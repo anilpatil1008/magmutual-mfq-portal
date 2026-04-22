@@ -44,14 +44,18 @@ current_profile = user_profile.iloc[0] if not user_profile.empty else None
 display_name = current_profile["DISPLAY_NAME"] if current_profile is not None else "User"
 email = current_profile["EMAIL"] if current_profile is not None else "user@example.com"
 
-role_options = roles_df["ROLE_KEY"].tolist() if not roles_df.empty else ["CLAIMS_ANALYST"]
+role_items = (
+    roles_df[["ROLE_KEY", "ROLE_NAME"]].rename(columns={"ROLE_KEY": "key", "ROLE_NAME": "label"}).to_dict("records")
+    if not roles_df.empty
+    else [{"key": "CLAIMS_ANALYST", "label": "Claims Analyst"}]
+)
 notif_df = get_notifications(st.session_state.user_id)
 
 render_sidebar(st.session_state.role_key)
 render_topbar(
     display_name=display_name,
     email=email,
-    role_options=role_options,
+    role_items=role_items,
     current_role=st.session_state.role_key,
     notif_df=notif_df,
 )

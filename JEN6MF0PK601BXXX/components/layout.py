@@ -3,9 +3,9 @@ import streamlit as st
 
 
 NAV_ITEMS = [
-    ("Dashboard", "Dashboard", "⌂"),
-    ("Claims", "Claims", "◫"),
-    ("Reports", "Reports", "▤"),
+    ("Dashboard", "Dashboard", ":material/dashboard:"),
+    ("Claims", "Claims", ":material/description:"),
+    ("Reports", "Reports", ":material/bar_chart:"),
 ]
 
 
@@ -44,7 +44,8 @@ def render_sidebar(current_role: str) -> None:
 
         for page_key, page_label, page_icon in NAV_ITEMS:
             clicked = st.button(
-                f"{page_icon}  {page_label}",
+                page_label,
+                icon=page_icon,
                 use_container_width=True,
                 key=f"nav_{page_key.lower()}",
                 type="primary" if active_page == page_key else "secondary",
@@ -54,7 +55,8 @@ def render_sidebar(current_role: str) -> None:
 
         if current_role == "ADMIN":
             clicked = st.button(
-                "⚙  Admin",
+                "Admin",
+                icon=":material/settings:",
                 use_container_width=True,
                 key="nav_admin",
                 type="primary" if active_page == "Admin" else "secondary",
@@ -63,34 +65,46 @@ def render_sidebar(current_role: str) -> None:
                 _switch_page("Admin")
 
 
-def render_topbar(display_name: str, email: str, role_options: list[str], current_role: str, notif_df) -> None:
+def render_topbar(display_name: str, email: str, role_items: list[dict[str, str]], current_role: str, notif_df) -> None:
     unread = 0
     if notif_df is not None and not notif_df.empty:
         unread = int((notif_df["IS_READ"] == False).sum())
 
-    spacer, role_col, bell_col, user_col = st.columns([6.8, 2.3, 0.8, 2.3])
+    spacer, role_col, bell_col, user_col = st.columns([6.9, 2.0, 0.5, 1.9], vertical_alignment="center")
+
+    current_label = next((item["label"] for item in role_items if item["key"] == current_role), current_role.replace("_", " ").title())
 
     with spacer:
         st.markdown('<div class="topbar-spacer"></div>', unsafe_allow_html=True)
 
     with role_col:
-        selected_role = st.selectbox(
-            "Role",
-            role_options,
-            index=role_options.index(current_role) if current_role in role_options else 0,
-            label_visibility="collapsed",
-            key="role_selector",
-        )
-        if selected_role != st.session_state.role_key:
-            st.session_state.role_key = selected_role
-            st.rerun()
+        st.markdown('<div class="topbar-role-wrap">', unsafe_allow_html=True)
+        with st.popover(f"🛡  {current_label}   ▾", use_container_width=True):
+            st.markdown('<div class="role-switch-menu">', unsafe_allow_html=True)
+            st.markdown('<div class="role-switch-title">SWITCH ROLE</div>', unsafe_allow_html=True)
+            for item in role_items:
+                selected = item["key"] == current_role
+                clicked = st.button(
+                    item["label"],
+                    icon=":material/check:" if selected else None,
+                    key=f"switch_role_{item['key']}",
+                    use_container_width=True,
+                    type="secondary" if selected else "primary",
+                )
+                if clicked and item["key"] != current_role:
+                    st.session_state.role_key = item["key"]
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with bell_col:
         st.markdown(
             f"""
-            <div class="notification-pill">
-                <span class="notification-icon">🔔</span>
-                <span class="notification-count">{unread}</span>
+            <div class="topbar-divider-box topbar-bell-wrap">
+                <div class="notification-pill">
+                    <span class="notification-icon">🔔</span>
+                    <span class="notification-badge">{unread}</span>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -99,16 +113,20 @@ def render_topbar(display_name: str, email: str, role_options: list[str], curren
     with user_col:
         st.markdown(
             f"""
-            <div class="profile-card">
-                <div class="profile-avatar">{safe_str(initials(display_name))}</div>
-                <div class="profile-details">
-                    <div class="profile-name">{safe_str(display_name)}</div>
-                    <div class="profile-email">{safe_str(email)}</div>
+            <div class="topbar-divider-box topbar-profile-wrap">
+                <div class="profile-card">
+                    <div class="profile-avatar">{safe_str(initials(display_name))}</div>
+                    <div class="profile-details">
+                        <div class="profile-name">{safe_str(display_name)}</div>
+                    </div>
+                    <div class="profile-chevron">▾</div>
                 </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+    st.markdown('<div class="fixed-topbar-offset"></div>', unsafe_allow_html=True)
 
 
 def render_page_title(title: str, subtitle: str) -> None:

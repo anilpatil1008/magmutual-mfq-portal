@@ -20,7 +20,7 @@ METRIC_CONFIG = [
 
 
 def render_dashboard(display_name: str, user_id: str) -> None:
-    header_col, action_col = st.columns([5.5, 2.2], vertical_alignment="bottom")
+    header_col, action_col = st.columns([5.2, 2.5], vertical_alignment="bottom")
 
     with header_col:
         render_page_title(
@@ -29,9 +29,10 @@ def render_dashboard(display_name: str, user_id: str) -> None:
         )
 
     with action_col:
-        action_left, action_right = st.columns([1, 1.15], vertical_alignment="bottom")
+        action_left, action_right = st.columns([1.05, 1.35], vertical_alignment="bottom")
         with action_left:
-            with st.popover("Filters", use_container_width=True):
+            st.markdown('<div class="dashboard-action-btn dashboard-filter-btn">', unsafe_allow_html=True)
+            with st.popover("Filters  ▾", use_container_width=True):
                 st.markdown("### Filter claims")
                 st.multiselect(
                     "Status",
@@ -43,8 +44,11 @@ def render_dashboard(display_name: str, user_id: str) -> None:
                     CLAIM_PRIORITIES,
                     key="dashboard_priority_filter",
                 )
+            st.markdown('</div>', unsafe_allow_html=True)
         with action_right:
+            st.markdown('<div class="dashboard-action-btn dashboard-generate-btn">', unsafe_allow_html=True)
             st.button("Generate Report", use_container_width=True, key="dashboard_generate_report_btn", type="primary")
+            st.markdown('</div>', unsafe_allow_html=True)
 
     metrics_df = get_dashboard_metrics()
     if not metrics_df.empty:

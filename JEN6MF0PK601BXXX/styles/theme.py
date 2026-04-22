@@ -21,15 +21,41 @@ def inject_theme() -> None:
 
         .block-container {
             max-width: 100% !important;
-            padding-top: 1rem !important;
+            padding-top: 0rem !important;
             padding-right: 1.75rem !important;
             padding-bottom: 1.5rem !important;
             padding-left: 1.75rem !important;
         }
 
+        .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type {
+            position: fixed !important;
+            top: 0 !important;
+            left: 228px !important;
+            right: 0 !important;
+            z-index: 1000 !important;
+            background: #ffffff !important;
+            border-bottom: 1px solid #e6ebf3 !important;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+            padding: 0.6rem 1.75rem 0.55rem 1.75rem !important;
+            margin: 0 !important;
+            min-height: 58px !important;
+            align-items: center !important;
+        }
+
+        .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type > div {
+            width: 100% !important;
+        }
+
+        .fixed-topbar-offset {
+            display: block;
+            width: 100%;
+            height: 48px;
+        }
+
         div[data-testid="stHorizontalBlock"] {
             gap: 1rem !important;
         }
+
 
         section[data-testid="stSidebar"] {
             background: #ffffff;
@@ -39,7 +65,7 @@ def inject_theme() -> None:
         }
 
         section[data-testid="stSidebar"] .block-container {
-            padding-top: 1.1rem !important;
+            padding-top: 0.35rem !important;
             padding-right: 0.8rem !important;
             padding-bottom: 1rem !important;
             padding-left: 0.8rem !important;
@@ -55,8 +81,9 @@ def inject_theme() -> None:
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-bottom: 2rem;
-            padding: 0.2rem 0.55rem 0 0.55rem;
+            margin-top: 0 !important;
+            margin-bottom: 1.9rem;
+            padding: 0.05rem 0.55rem 0 0.55rem;
             font-size: 1.9rem;
             font-weight: 800;
             color: #0b2f6b;
@@ -75,18 +102,53 @@ def inject_theme() -> None:
             font-size: 12px;
             font-weight: 700;
             letter-spacing: 0.08em;
-            margin: 0.2rem 0 0.8rem 0.55rem;
+            margin: 0.15rem 0 0.85rem 0.55rem;
+        }
+
+        section[data-testid="stSidebar"] .stButton {
+            width: 100% !important;
         }
 
         section[data-testid="stSidebar"] .stButton button {
+            width: 100% !important;
+            display: flex !important;
+            align-items: center !important;
             justify-content: flex-start !important;
-            border-radius: 10px !important;
+            border-radius: 12px !important;
+            min-height: 44px !important;
             height: 44px !important;
-            padding: 0 0.9rem !important;
+            padding: 0 1rem !important;
             font-weight: 700 !important;
+            font-size: 16px !important;
+            line-height: 1 !important;
+            text-align: left !important;
             border: 1px solid transparent !important;
             box-shadow: none !important;
-            margin-bottom: 0.35rem !important;
+            margin-bottom: 0.55rem !important;
+        }
+
+        section[data-testid="stSidebar"] .stButton button > div {
+            width: 100% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-start !important;
+            gap: 0.55rem !important;
+        }
+
+        section[data-testid="stSidebar"] .stButton button p {
+            margin: 0 !important;
+            font-size: 16px !important;
+            font-weight: 700 !important;
+            line-height: 1.1 !important;
+        }
+
+        section[data-testid="stSidebar"] .stButton button [data-testid="stIconMaterial"],
+        section[data-testid="stSidebar"] .stButton button svg {
+            width: 16px !important;
+            height: 16px !important;
+            min-width: 16px !important;
+            min-height: 16px !important;
+            flex-shrink: 0 !important;
         }
 
         section[data-testid="stSidebar"] .stButton button[kind="secondary"] {
@@ -109,6 +171,158 @@ def inject_theme() -> None:
             height: 1px;
         }
 
+        .topbar-role-wrap {
+            justify-content: flex-end;
+        }
+
+        .topbar-bell-wrap,
+        .topbar-profile-wrap {
+            justify-content: center;
+        }
+
+        .topbar-divider-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 40px;
+        }
+
+        .topbar-role-wrap [data-testid="stPopover"] {
+            width: 100% !important;
+        }
+
+        .topbar-role-wrap [data-testid="stPopover"] > div {
+            width: 100% !important;
+        }
+
+        .topbar-role-wrap div[data-testid="stPopover"] > div > button {
+            width: 100% !important;
+            white-space: nowrap !important;
+        }
+
+        .dashboard-action-btn .stButton,
+        .dashboard-action-btn [data-testid="stPopover"] {
+            width: 100% !important;
+        }
+
+        .dashboard-action-btn .stButton button,
+        .dashboard-action-btn div[data-testid="stPopover"] > div > button {
+            white-space: nowrap !important;
+        }
+
+        .topbar-role-wrap,
+        .topbar-bell-wrap,
+        .topbar-profile-wrap {
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+
+        .topbar-divider-box {
+            border-left: 1px solid #e1e7f0;
+            padding-left: 0.85rem;
+            height: 42px;
+        }
+
+        div[data-testid="stPopover"] > div > button {
+            min-height: 40px !important;
+            height: 40px !important;
+            white-space: nowrap !important;
+            border-radius: 12px !important;
+            border: 1px solid #dbe4f0 !important;
+            background: #ffffff !important;
+            color: #172033 !important;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+            font-weight: 600 !important;
+            padding: 0 0.9rem !important;
+        }
+
+        div[data-testid="stPopover"] > div > button p {
+            margin: 0 !important;
+            font-size: 14px !important;
+            line-height: 1.1 !important;
+            white-space: nowrap !important;
+        }
+
+        .dashboard-filter-btn div[data-testid="stPopover"] > div > button {
+            min-width: 120px !important;
+            justify-content: center !important;
+        }
+
+        .dashboard-generate-btn .stButton > button {
+            min-width: 140px !important;
+            justify-content: center !important;
+        }
+
+        .role-switch-title {
+            color: #7b8798;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            margin: 0 0 0.65rem 0;
+        }
+
+        .role-switch-menu .stButton {
+            width: 100% !important;
+        }
+
+        .role-switch-menu .stButton button {
+            width: 100% !important;
+            justify-content: flex-start !important;
+            min-height: 34px !important;
+            height: 34px !important;
+            border-radius: 10px !important;
+            border: 1px solid transparent !important;
+            box-shadow: none !important;
+            padding: 0 0.7rem !important;
+            font-size: 15px !important;
+            font-weight: 500 !important;
+        }
+
+        .role-switch-menu .stButton button p {
+            font-size: 15px !important;
+            margin: 0 !important;
+        }
+
+        .role-switch-menu .stButton button[kind="primary"] {
+            background: #ffffff !important;
+            color: #172033 !important;
+        }
+
+        .role-switch-menu .stButton button[kind="primary"]:hover {
+            background: #f6f8fb !important;
+            color: #172033 !important;
+        }
+
+        .role-switch-menu .stButton button[kind="secondary"] {
+            background: #eef2f7 !important;
+            color: #0b2f6b !important;
+            border-color: transparent !important;
+        }
+
+        .role-switch-menu .stButton button[kind="secondary"]:hover {
+            background: #e8edf5 !important;
+            color: #0b2f6b !important;
+        }
+
+        .role-switch-menu .stButton button [data-testid="stIconMaterial"],
+        .role-switch-menu .stButton button svg {
+            width: 15px !important;
+            height: 15px !important;
+            color: #0b2f6b !important;
+        }
+
+        div[data-testid="stPopoverContent"] {
+            border-radius: 14px !important;
+            border: 1px solid #e3e9f2 !important;
+            box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12) !important;
+            padding: 0.15rem !important;
+            min-width: 198px !important;
+        }
+
         div[data-testid="stSelectbox"] > div[data-baseweb="select"] {
             min-height: 42px !important;
             border-radius: 12px !important;
@@ -118,77 +332,91 @@ def inject_theme() -> None:
         }
 
         .notification-pill {
-            min-height: 42px;
+            position: relative;
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.35rem;
-            padding: 0 0.85rem;
             border-radius: 12px;
-            background: #ffffff;
-            border: 1px solid #dbe4f0;
-            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-            margin-top: 1px;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            margin-top: 0;
         }
 
         .notification-icon {
-            font-size: 1rem;
+            font-size: 1.05rem;
+            line-height: 1;
+            color: #475467;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: 1px;
+            right: 2px;
+            min-width: 17px;
+            height: 17px;
+            padding: 0 4px;
+            border-radius: 999px;
+            background: #f04438;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             line-height: 1;
         }
 
-        .notification-count {
-            font-size: 0.9rem;
-            font-weight: 800;
-            color: #172033;
-        }
-
         .profile-card {
-            min-height: 42px;
+            min-height: 40px;
             display: flex;
             align-items: center;
-            gap: 0.75rem;
-            padding: 0.45rem 0.7rem;
+            justify-content: flex-start;
+            gap: 0.65rem;
+            padding: 0.2rem 0;
             border-radius: 12px;
-            background: #ffffff;
-            border: 1px solid #dbe4f0;
-            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            width: 100%;
         }
 
         .profile-avatar {
-            width: 34px;
-            height: 34px;
+            width: 31px;
+            height: 31px;
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
             justify-content: center;
             background: #0b2f6b;
             color: #ffffff;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 800;
             flex-shrink: 0;
         }
 
         .profile-details {
             min-width: 0;
+            max-width: 125px;
         }
 
         .profile-name {
             color: #172033;
             font-size: 14px;
             line-height: 1.15;
-            font-weight: 800;
+            font-weight: 700;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
 
-        .profile-email {
-            color: #6f7d93;
+        .profile-chevron {
+            color: #667085;
             font-size: 12px;
-            line-height: 1.2;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            line-height: 1;
+            margin-left: 0.1rem;
         }
 
         .page-title {
@@ -196,13 +424,13 @@ def inject_theme() -> None:
             line-height: 1.1;
             font-weight: 800;
             color: #13213d;
-            margin: 1rem 0 0.35rem 0;
+            margin: 0.2rem 0 0.25rem 0;
         }
 
         .page-subtitle {
             color: #6f7d93;
             font-size: 1rem;
-            margin-bottom: 0.9rem;
+            margin-bottom: 0.7rem;
         }
 
         .metric-card {
@@ -316,6 +544,26 @@ def inject_theme() -> None:
             color: #6f7d93;
             font-size: 14px;
             margin-top: 0.25rem;
+        }
+
+        .claims-section-gap {
+            height: 1.1rem;
+        }
+
+        .claims-table-card {
+            background: transparent;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"] {
+            background: #ffffff !important;
+            border: 1px solid #e3e9f2 !important;
+            border-radius: 18px !important;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+            padding: 0.6rem 0.95rem 0.35rem 0.95rem !important;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"] > div {
+            background: transparent !important;
         }
 
         div[data-testid="stTextInput"] input {
@@ -494,6 +742,16 @@ def inject_theme() -> None:
             .block-container {
                 padding-left: 1rem !important;
                 padding-right: 1rem !important;
+            }
+
+            .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type {
+                left: 228px !important;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+
+            .fixed-topbar-offset {
+                height: 52px;
             }
 
             .metric-card {

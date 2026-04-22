@@ -77,9 +77,8 @@ def _render_table_header(table_cols: list[float], show_regenerate: bool) -> None
 def _render_dashboard_action(col, claim_id: str, row_key: str, on_review: Callable[[str], None]) -> None:
     with col:
         st.markdown('<div class="dashboard-action-wrap">', unsafe_allow_html=True)
-        if st.button("Review  →", key=f"review_{row_key}", use_container_width=True, type="primary"):
+        if st.button("Review  →", key=f"review_{row_key}", use_container_width=True, type="tertiary"):
             on_review(claim_id)
-        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def _render_claims_action(
@@ -99,7 +98,7 @@ def _render_claims_action(
             st.markdown('<div class="action-spacer"></div>', unsafe_allow_html=True)
 
     with action_right:
-        if st.button("Review", key=f"review_{row_key}", use_container_width=True, type="primary"):
+        if st.button("Review  →", key=f"review_{row_key}", use_container_width=True, type="tertiary"):
             on_review(claim_id)
 
 
@@ -115,8 +114,9 @@ def render_claims_table(
 ) -> None:
     table_cols = CLAIMS_TABLE_COLS if show_regenerate else DASHBOARD_TABLE_COLS
 
-    with st.container():
-        st.markdown('<div class="section-card claims-table-card">', unsafe_allow_html=True)
+    st.markdown('<div class="claims-section-gap"></div>', unsafe_allow_html=True)
+
+    with st.container(border=True):
 
         header_left, header_right = st.columns([4.7, 1.7], vertical_alignment="bottom")
 
@@ -141,7 +141,6 @@ def render_claims_table(
 
         if queue_df.empty:
             st.info("No claims found")
-            st.markdown('</div>', unsafe_allow_html=True)
             return
 
         _render_table_header(table_cols, show_regenerate)
@@ -186,4 +185,3 @@ def render_claims_table(
 
             st.markdown('<div class="table-divider table-divider-row"></div>', unsafe_allow_html=True)
 
-        st.markdown('</div>', unsafe_allow_html=True)
