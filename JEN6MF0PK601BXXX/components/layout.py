@@ -67,20 +67,26 @@ def render_sidebar(current_role: str) -> None:
 
 def render_topbar(display_name: str, email: str, role_items: list[dict[str, str]], current_role: str, notif_df) -> None:
     unread = 0
-    if notif_df is not None and not notif_df.empty:
+    if notif_df is not None and not notif_df.empty and "IS_READ" in notif_df.columns:
         unread = int((notif_df["IS_READ"] == False).sum())
 
-    spacer, role_col, bell_col, user_col = st.columns([6.9, 2.0, 0.5, 1.9], vertical_alignment="center")
+    current_label = next(
+        (item["label"] for item in role_items if item["key"] == current_role),
+        current_role.replace("_", " ").title(),
+    )
 
-    current_label = next((item["label"] for item in role_items if item["key"] == current_role), current_role.replace("_", " ").title())
+    st.markdown('<div class="topbar-anchor"></div>', unsafe_allow_html=True)
+
+    spacer, role_col, bell_col, user_col = st.columns(
+        [8.2, 2.0, 0.55, 2.25],
+        vertical_alignment="center",
+    )
 
     with spacer:
         st.markdown('<div class="topbar-spacer"></div>', unsafe_allow_html=True)
 
     with role_col:
-        st.markdown('<div class="topbar-role-wrap">', unsafe_allow_html=True)
         with st.popover(f"🛡  {current_label}   ▾", use_container_width=True):
-            st.markdown('<div class="role-switch-menu">', unsafe_allow_html=True)
             st.markdown('<div class="role-switch-title">SWITCH ROLE</div>', unsafe_allow_html=True)
             for item in role_items:
                 selected = item["key"] == current_role
@@ -94,13 +100,11 @@ def render_topbar(display_name: str, email: str, role_items: list[dict[str, str]
                 if clicked and item["key"] != current_role:
                     st.session_state.role_key = item["key"]
                     st.rerun()
-            st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
 
     with bell_col:
         st.markdown(
             f"""
-            <div class="topbar-divider-box topbar-bell-wrap">
+            <div class="topbar-bell-wrap">
                 <div class="notification-pill">
                     <span class="notification-icon">🔔</span>
                     <span class="notification-badge">{unread}</span>
@@ -113,7 +117,7 @@ def render_topbar(display_name: str, email: str, role_items: list[dict[str, str]
     with user_col:
         st.markdown(
             f"""
-            <div class="topbar-divider-box topbar-profile-wrap">
+            <div class="topbar-profile-wrap">
                 <div class="profile-card">
                     <div class="profile-avatar">{safe_str(initials(display_name))}</div>
                     <div class="profile-details">

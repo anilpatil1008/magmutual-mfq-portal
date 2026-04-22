@@ -13,6 +13,7 @@ def inject_theme() -> None:
 
         header[data-testid="stHeader"] {
             background: transparent !important;
+            height: 0 !important;
         }
 
         #MainMenu, footer {
@@ -21,41 +22,19 @@ def inject_theme() -> None:
 
         .block-container {
             max-width: 100% !important;
-            padding-top: 0rem !important;
+            padding-top: 0 !important;
             padding-right: 1.75rem !important;
             padding-bottom: 1.5rem !important;
             padding-left: 1.75rem !important;
         }
 
-        .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type {
-            position: fixed !important;
-            top: 0 !important;
-            left: 228px !important;
-            right: 0 !important;
-            z-index: 1000 !important;
-            background: #ffffff !important;
-            border-bottom: 1px solid #e6ebf3 !important;
-            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
-            padding: 0.6rem 1.75rem 0.55rem 1.75rem !important;
-            margin: 0 !important;
-            min-height: 58px !important;
-            align-items: center !important;
+        section.main > div {
+            padding-top: 0 !important;
         }
 
-        .block-container > div[data-testid="stVerticalBlock"] > div[data-testid="stHorizontalBlock"]:first-of-type > div {
-            width: 100% !important;
+        html, body, [data-testid="stAppViewContainer"] {
+            scroll-behavior: smooth;
         }
-
-        .fixed-topbar-offset {
-            display: block;
-            width: 100%;
-            height: 48px;
-        }
-
-        div[data-testid="stHorizontalBlock"] {
-            gap: 1rem !important;
-        }
-
 
         section[data-testid="stSidebar"] {
             background: #ffffff;
@@ -71,11 +50,9 @@ def inject_theme() -> None:
             padding-left: 0.8rem !important;
         }
 
-
         div[data-testid="stSidebarNav"] {
             display: none !important;
         }
-
 
         .brand-wrap {
             display: flex;
@@ -120,7 +97,6 @@ def inject_theme() -> None:
             padding: 0 1rem !important;
             font-weight: 700 !important;
             font-size: 16px !important;
-            line-height: 1 !important;
             text-align: left !important;
             border: 1px solid transparent !important;
             box-shadow: none !important;
@@ -151,6 +127,11 @@ def inject_theme() -> None:
             flex-shrink: 0 !important;
         }
 
+        section[data-testid="stSidebar"] .stButton button[kind="primary"] {
+            background: #0b2f6b !important;
+            color: #ffffff !important;
+        }
+
         section[data-testid="stSidebar"] .stButton button[kind="secondary"] {
             background: #ffffff !important;
             color: #2f3b52 !important;
@@ -162,13 +143,50 @@ def inject_theme() -> None:
             color: #0b2f6b !important;
         }
 
-        section[data-testid="stSidebar"] .stButton button[kind="primary"] {
-            background: #0b2f6b !important;
-            color: #ffffff !important;
+        .topbar-anchor {
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) {
+            position: fixed !important;
+            top: 0 !important;
+            left: 228px !important;
+            right: 0 !important;
+            z-index: 999 !important;
+            min-height: 72px !important;
+            background: #ffffff !important;
+            border-bottom: 1px solid #e6ebf3 !important;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+            padding: 0.7rem 1.75rem !important;
+            margin: 0 !important;
+            align-items: center !important;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) > div {
+            width: 100% !important;
+        }
+
+        .fixed-topbar-offset {
+            display: block;
+            width: 100%;
+            height: 86px;
         }
 
         .topbar-spacer {
             height: 1px;
+        }
+
+        .topbar-role-wrap,
+        .topbar-bell-wrap,
+        .topbar-profile-wrap {
+            min-height: 42px;
+            display: flex;
+            align-items: center;
+            height: 100%;
+            margin-top: 0 !important;
+            padding-top: 0 !important;
         }
 
         .topbar-role-wrap {
@@ -178,27 +196,130 @@ def inject_theme() -> None:
         .topbar-bell-wrap,
         .topbar-profile-wrap {
             justify-content: center;
-        }
-
-        .topbar-divider-box {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 40px;
+            border-left: 1px solid #e6ebf3;
+            padding-left: 1rem;
         }
 
         .topbar-role-wrap [data-testid="stPopover"] {
             width: 100% !important;
         }
 
-        .topbar-role-wrap [data-testid="stPopover"] > div {
+        .topbar-role-wrap [data-testid="stPopover"] > div,
+        .topbar-role-wrap [data-testid="stPopover"] > div > button {
             width: 100% !important;
         }
 
-        .topbar-role-wrap div[data-testid="stPopover"] > div > button {
-            width: 100% !important;
+        div[data-testid="stPopover"] > div > button {
+            min-height: 42px !important;
+            height: 42px !important;
             white-space: nowrap !important;
+            border-radius: 12px !important;
+            border: 1px solid #dbe4f0 !important;
+            background: #ffffff !important;
+            color: #172033 !important;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+            font-weight: 600 !important;
+            padding: 0 1rem !important;
+        }
+
+        div[data-testid="stPopover"] > div > button p {
+            margin: 0 !important;
+            font-size: 14px !important;
+            line-height: 1.1 !important;
+            white-space: nowrap !important;
+        }
+
+        .role-switch-title {
+            color: #7b8798;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            margin: 0 0 0.65rem 0;
+        }
+
+        div[data-testid="stPopoverContent"] {
+            border-radius: 14px !important;
+            border: 1px solid #e3e9f2 !important;
+            box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12) !important;
+            padding: 0.15rem !important;
+            min-width: 198px !important;
+        }
+
+        .notification-pill {
+            position: relative;
+            width: 42px;
+            height: 42px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-icon {
+            font-size: 18px;
+            line-height: 1;
+            color: #4b5565;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -1px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .profile-card {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            min-height: 42px;
+            white-space: nowrap;
+            width: 100%;
+        }
+
+        .profile-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            background: #0b2f6b;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .profile-details {
+            min-width: 0;
+            max-width: 150px;
+        }
+
+        .profile-name {
+            color: #172033;
+            font-size: 14px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .profile-chevron {
+            color: #667085;
+            font-size: 12px;
+            line-height: 1;
         }
 
         .dashboard-action-btn .stButton,
@@ -211,42 +332,6 @@ def inject_theme() -> None:
             white-space: nowrap !important;
         }
 
-        .topbar-role-wrap,
-        .topbar-bell-wrap,
-        .topbar-profile-wrap {
-            min-height: 40px;
-            display: flex;
-            align-items: center;
-            margin-top: 0 !important;
-            padding-top: 0 !important;
-        }
-
-        .topbar-divider-box {
-            border-left: 1px solid #e1e7f0;
-            padding-left: 0.85rem;
-            height: 42px;
-        }
-
-        div[data-testid="stPopover"] > div > button {
-            min-height: 40px !important;
-            height: 40px !important;
-            white-space: nowrap !important;
-            border-radius: 12px !important;
-            border: 1px solid #dbe4f0 !important;
-            background: #ffffff !important;
-            color: #172033 !important;
-            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
-            font-weight: 600 !important;
-            padding: 0 0.9rem !important;
-        }
-
-        div[data-testid="stPopover"] > div > button p {
-            margin: 0 !important;
-            font-size: 14px !important;
-            line-height: 1.1 !important;
-            white-space: nowrap !important;
-        }
-
         .dashboard-filter-btn div[data-testid="stPopover"] > div > button {
             min-width: 120px !important;
             justify-content: center !important;
@@ -255,14 +340,6 @@ def inject_theme() -> None:
         .dashboard-generate-btn .stButton > button {
             min-width: 140px !important;
             justify-content: center !important;
-        }
-
-        .role-switch-title {
-            color: #7b8798;
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: 0.08em;
-            margin: 0 0 0.65rem 0;
         }
 
         .role-switch-menu .stButton {
@@ -315,14 +392,6 @@ def inject_theme() -> None:
             color: #0b2f6b !important;
         }
 
-        div[data-testid="stPopoverContent"] {
-            border-radius: 14px !important;
-            border: 1px solid #e3e9f2 !important;
-            box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12) !important;
-            padding: 0.15rem !important;
-            min-width: 198px !important;
-        }
-
         div[data-testid="stSelectbox"] > div[data-baseweb="select"] {
             min-height: 42px !important;
             border-radius: 12px !important;
@@ -331,106 +400,38 @@ def inject_theme() -> None:
             box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
         }
 
-        .notification-pill {
-            position: relative;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-            background: transparent;
-            border: none;
-            box-shadow: none;
-            margin-top: 0;
+        .main .block-container > div:first-child {
+            margin-top: 0 !important;
         }
 
-        .notification-icon {
-            font-size: 1.05rem;
-            line-height: 1;
-            color: #475467;
-        }
+        @media (max-width: 1100px) {
+            .block-container {
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
 
-        .notification-badge {
-            position: absolute;
-            top: 1px;
-            right: 2px;
-            min-width: 17px;
-            height: 17px;
-            padding: 0 4px;
-            border-radius: 999px;
-            background: #f04438;
-            color: #ffffff;
-            font-size: 11px;
-            font-weight: 800;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            line-height: 1;
-        }
+            div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) {
+                left: 228px !important;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
 
-        .profile-card {
-            min-height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 0.65rem;
-            padding: 0.2rem 0;
-            border-radius: 12px;
-            background: transparent;
-            border: none;
-            box-shadow: none;
-            width: 100%;
+            .fixed-topbar-offset {
+                height: 86px;
+            }
         }
-
-        .profile-avatar {
-            width: 31px;
-            height: 31px;
-            border-radius: 50%;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            background: #0b2f6b;
-            color: #ffffff;
-            font-size: 12px;
-            font-weight: 800;
-            flex-shrink: 0;
-        }
-
-        .profile-details {
-            min-width: 0;
-            max-width: 125px;
-        }
-
-        .profile-name {
-            color: #172033;
-            font-size: 14px;
-            line-height: 1.15;
-            font-weight: 700;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .profile-chevron {
-            color: #667085;
-            font-size: 12px;
-            line-height: 1;
-            margin-left: 0.1rem;
-        }
-
         .page-title {
             font-size: 2.25rem;
             line-height: 1.1;
             font-weight: 800;
             color: #13213d;
-            margin: 0.2rem 0 0.25rem 0;
+            margin: 0.1rem 0 0.25rem 0;
         }
 
         .page-subtitle {
             color: #6f7d93;
             font-size: 1rem;
-            margin-bottom: 0.7rem;
+            margin-bottom: 0.9rem;
         }
 
         .metric-card {
@@ -716,7 +717,7 @@ def inject_theme() -> None:
         .chip-gray { background: #eef2f7; color: #475467; }
 
         .action-spacer {
-            height: 42px;
+            height: 44px;
         }
 
         .dashboard-action-wrap {
