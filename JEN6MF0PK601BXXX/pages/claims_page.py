@@ -14,7 +14,8 @@ def render_claims(user_id: str) -> None:
     )
 
     claim_service = ClaimService()
-    queue_df = claim_service.get_queue()
+    search_text = st.session_state.get("claims_page_search", "")
+    queue_df = claim_service.get_queue(search_text=search_text)
 
     def on_regenerate(claim_id: str) -> None:
         claim_service.request_regeneration(claim_id, user_id)
@@ -26,4 +27,12 @@ def render_claims(user_id: str) -> None:
         st.session_state.page = "Claim Detail"
         st.rerun()
 
-    render_claims_table(queue_df, on_regenerate=on_regenerate, on_review=on_review)
+    render_claims_table(
+        queue_df,
+        on_regenerate=on_regenerate,
+        on_review=on_review,
+        show_regenerate=True,
+        title="Claims Queue",
+        subtitle="Review and manage claims submitted for assessment.",
+        search_key="claims_page_search",
+    )

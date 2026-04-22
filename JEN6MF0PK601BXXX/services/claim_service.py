@@ -2,6 +2,17 @@ from __future__ import annotations
 
 from core.session import get_session
 from repositories.base_repository import esc
+from repositories.claim_repository import get_claim_queue
+
+
+class ClaimService:
+    def get_queue(self, search_text: str = "", status_filter=None, priority_filter=None, confidence_band: str = "All"):
+        return get_claim_queue(search_text, status_filter, priority_filter, confidence_band)
+
+    def request_regeneration(self, claim_id: str, user_id: str, reason: str = "User requested regenerate") -> None:
+        request_regeneration(claim_id, user_id, reason)
+
+
 from config.settings import CONFIG
 
 

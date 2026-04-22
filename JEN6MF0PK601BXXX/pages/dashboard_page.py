@@ -10,49 +10,52 @@ from repositories.claim_repository import get_claim_queue, get_dashboard_metrics
 from services.claim_service import request_regeneration
 
 
-def render_dashboard(display_name: str, user_id: str) -> None:
-    top_left, top_right = st.columns([5, 1.2])
+METRIC_CONFIG = [
+    ("Total Active\nClaims", "TOTAL_ACTIVE_CLAIMS", "+12% vs last month", "📄"),
+    ("MFQ Generated", "MFQ_GENERATED", "", "!"),
+    ("Assigned", "ASSIGNED", "", "🕒"),
+    ("Approved", "APPROVED", "", "✓"),
+    ("Rejected", "REJECTED", "", "✕"),
+]
 
-    with top_left:
+
+def render_dashboard(display_name: str, user_id: str) -> None:
+    header_col, action_col = st.columns([5.5, 2.2], vertical_alignment="bottom")
+
+    with header_col:
         render_page_title(
             "Dashboard",
             f"Welcome back, {display_name}. Here's what's happening today.",
         )
 
-    with top_right:
-        st.button("Generate Report", use_container_width=True, key="dashboard_generate_report_btn")
+    with action_col:
+        action_left, action_right = st.columns([1, 1.15], vertical_alignment="bottom")
+        with action_left:
+            with st.popover("Filters", use_container_width=True):
+                st.markdown("### Filter claims")
+                st.multiselect(
+                    "Status",
+                    CLAIM_STATUSES,
+                    key="dashboard_status_filter",
+                )
+                st.multiselect(
+                    "Priority",
+                    CLAIM_PRIORITIES,
+                    key="dashboard_priority_filter",
+                )
+        with action_right:
+            st.button("Generate Report", use_container_width=True, key="dashboard_generate_report_btn", type="primary")
 
     metrics_df = get_dashboard_metrics()
     if not metrics_df.empty:
-        m = metrics_df.iloc[0]
-        c1, c2, c3, c4, c5 = st.columns(5)
-        with c1:
-            render_metric_card("Total Active\nClaims", int(m["TOTAL_ACTIVE_CLAIMS"]), "+12%  vs last month", "📄")
-        with c2:
-            render_metric_card("MFQ Generated", int(m["MFQ_GENERATED"]), "", "!")
-        with c3:
-            render_metric_card("Assigned", int(m["ASSIGNED"]), "", "🕒")
-        with c4:
-            render_metric_card("Approved", int(m["APPROVED"]), "", "✓")
-        with c5:
-            render_metric_card("Rejected", int(m["REJECTED"]), "", "✕")
+        metric_row = st.columns(5, gap="medium")
+        values = metrics_df.iloc[0]
+        for column, (label, field, subtitle, icon) in zip(metric_row, METRIC_CONFIG):
+            with column:
+                render_metric_card(label, int(values[field]), subtitle, icon)
 
-    st.markdown("<div style='height:18px'></div>", unsafe_allow_html=True)
-
-    status_col, priority_col = st.columns([2, 2])
-
-    selected_status = status_col.multiselect(
-        "Status",
-        CLAIM_STATUSES,
-        key="dashboard_status_filter",
-    )
-
-    selected_priority = priority_col.multiselect(
-        "Priority",
-        CLAIM_PRIORITIES,
-        key="dashboard_priority_filter",
-    )
-
+    selected_status = st.session_state.get("dashboard_status_filter", [])
+    selected_priority = st.session_state.get("dashboard_priority_filter", [])
     search_text = st.session_state.get("claims_table_inline_search", "")
 
     queue_df = get_claim_queue(
@@ -69,11 +72,15 @@ def render_dashboard(display_name: str, user_id: str) -> None:
 
     def _regen(claim_id: str) -> None:
         request_regeneration(claim_id, user_id)
-        st.success("Regeneration requested")
+        st.toast("Regeneration requested")
         st.rerun()
 
     render_claims_table(
         queue_df=queue_df,
         on_review=_review,
         on_regenerate=_regen,
+        show_regenerate=False,
+        title="Recent Claims",
+        subtitle="Latest claims submitted for assessment.",
+        search_key="claims_table_inline_search",
     )

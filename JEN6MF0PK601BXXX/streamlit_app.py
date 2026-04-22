@@ -5,6 +5,9 @@ import streamlit as st
 from config.settings import CONFIG
 from components.layout import render_sidebar, render_topbar
 from pages.dashboard_page import render_dashboard
+from pages.claims_page import render_claims
+from pages.reports_page import render_reports
+from pages.admin_page import render_admin
 from pages.claim_detail_page import render_claim_detail_page
 from repositories.notification_repository import get_notifications
 from repositories.user_repository import get_user_profile, get_user_roles
@@ -57,8 +60,7 @@ if st.session_state.page == "Dashboard":
     render_dashboard(display_name, st.session_state.user_id)
 
 elif st.session_state.page == "Claims":
-    st.title("Claims")
-    st.write("Hook your claims page here.")
+    render_claims(st.session_state.user_id)
 
 elif st.session_state.page == "Claim Detail":
     render_claim_detail_page(
@@ -67,8 +69,7 @@ elif st.session_state.page == "Claim Detail":
     )
 
 elif st.session_state.page == "Reports":
-    st.title("Reports")
-    st.write("Hook your reports page here.")
+    render_reports()
 
 elif st.session_state.page == "Admin":
     st.title("Admin")

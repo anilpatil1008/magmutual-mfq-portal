@@ -2,6 +2,13 @@ import html
 import streamlit as st
 
 
+NAV_ITEMS = [
+    ("Dashboard", "Dashboard", "⌂"),
+    ("Claims", "Claims", "◫"),
+    ("Reports", "Reports", "▤"),
+]
+
+
 def safe_str(value) -> str:
     if value is None:
         return ""
@@ -13,7 +20,15 @@ def initials(name: str) -> str:
     return "".join(p[0].upper() for p in parts[:2]) or "U"
 
 
+def _switch_page(page_name: str) -> None:
+    st.session_state.page = page_name
+    st.session_state.selected_claim_id = None
+    st.rerun()
+
+
 def render_sidebar(current_role: str) -> None:
+    active_page = st.session_state.get("page", "Dashboard")
+
     with st.sidebar:
         st.markdown(
             """
@@ -27,37 +42,38 @@ def render_sidebar(current_role: str) -> None:
 
         st.markdown("""<div class="nav-title">NAVIGATION</div>""", unsafe_allow_html=True)
 
-        if st.button("Dashboard", use_container_width=True, key="nav_dashboard"):
-            st.session_state.page = "Dashboard"
-            st.session_state.selected_claim_id = None
-            st.rerun()
-
-        if st.button("Claims", use_container_width=True, key="nav_claims"):
-            st.session_state.page = "Claims"
-            st.session_state.selected_claim_id = None
-            st.rerun()
-
-        if st.button("Reports", use_container_width=True, key="nav_reports"):
-            st.session_state.page = "Reports"
-            st.session_state.selected_claim_id = None
-            st.rerun()
+        for page_key, page_label, page_icon in NAV_ITEMS:
+            clicked = st.button(
+                f"{page_icon}  {page_label}",
+                use_container_width=True,
+                key=f"nav_{page_key.lower()}",
+                type="primary" if active_page == page_key else "secondary",
+            )
+            if clicked:
+                _switch_page(page_key)
 
         if current_role == "ADMIN":
-            if st.button("Admin", use_container_width=True, key="nav_admin"):
-                st.session_state.page = "Admin"
-                st.session_state.selected_claim_id = None
-                st.rerun()
+            clicked = st.button(
+                "⚙  Admin",
+                use_container_width=True,
+                key="nav_admin",
+                type="primary" if active_page == "Admin" else "secondary",
+            )
+            if clicked:
+                _switch_page("Admin")
 
 
 def render_topbar(display_name: str, email: str, role_options: list[str], current_role: str, notif_df) -> None:
     unread = 0
     if notif_df is not None and not notif_df.empty:
-        unread = len(notif_df[notif_df["IS_READ"] == False])
+        unread = int((notif_df["IS_READ"] == False).sum())
 
-    left, role_col, bell_col, user_col = st.columns([6.5, 2.2, 0.9, 2.4])
+    spacer, role_col, bell_col, user_col = st.columns([6.8, 2.3, 0.8, 2.3])
+
+    with spacer:
+        st.markdown('<div class="topbar-spacer"></div>', unsafe_allow_html=True)
 
     with role_col:
-        st.markdown('<div class="topbar-box">', unsafe_allow_html=True)
         selected_role = st.selectbox(
             "Role",
             role_options,
@@ -65,7 +81,6 @@ def render_topbar(display_name: str, email: str, role_options: list[str], curren
             label_visibility="collapsed",
             key="role_selector",
         )
-        st.markdown("</div>", unsafe_allow_html=True)
         if selected_role != st.session_state.role_key:
             st.session_state.role_key = selected_role
             st.rerun()
@@ -73,9 +88,9 @@ def render_topbar(display_name: str, email: str, role_options: list[str], curren
     with bell_col:
         st.markdown(
             f"""
-            <div class="topbar-box topbar-bell">
-                <span class="bell-icon">🔔</span>
-                <span class="bell-count">{unread}</span>
+            <div class="notification-pill">
+                <span class="notification-icon">🔔</span>
+                <span class="notification-count">{unread}</span>
             </div>
             """,
             unsafe_allow_html=True,
@@ -84,13 +99,11 @@ def render_topbar(display_name: str, email: str, role_options: list[str], curren
     with user_col:
         st.markdown(
             f"""
-            <div class="topbar-box">
-                <div class="user-inline">
-                    <span class="user-badge">{safe_str(initials(display_name))}</span>
-                    <div class="user-text-wrap">
-                        <div class="topbar-user-name">{safe_str(display_name)}</div>
-                        <div class="topbar-user-email">{safe_str(email)}</div>
-                    </div>
+            <div class="profile-card">
+                <div class="profile-avatar">{safe_str(initials(display_name))}</div>
+                <div class="profile-details">
+                    <div class="profile-name">{safe_str(display_name)}</div>
+                    <div class="profile-email">{safe_str(email)}</div>
                 </div>
             </div>
             """,
@@ -99,5 +112,5 @@ def render_topbar(display_name: str, email: str, role_options: list[str], curren
 
 
 def render_page_title(title: str, subtitle: str) -> None:
-    st.markdown(f"""<div class="page-title">{safe_str(title)}</div>""", unsafe_allow_html=True)
-    st.markdown(f"""<div class="page-subtitle">{safe_str(subtitle)}</div>""", unsafe_allow_html=True)
+    st.markdown(f'<div class="page-title">{safe_str(title)}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="page-subtitle">{safe_str(subtitle)}</div>', unsafe_allow_html=True)
