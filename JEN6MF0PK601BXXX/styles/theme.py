@@ -180,7 +180,7 @@ def inject_theme() -> None:
         .topbar-anchor {
             height: 0 !important;
             margin: 0 !important;
-            padding: 0 !important;
+            padding: 0 0.08rem 0 0.10rem !important;
         }
 
         div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) {
@@ -375,7 +375,7 @@ def inject_theme() -> None:
             color: #172033 !important;
             box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
             font-weight: 600 !important;
-            padding: 0 0.65rem !important;
+            padding: 0 0.55rem !important;
             overflow: hidden !important;
         }
 
@@ -391,7 +391,9 @@ def inject_theme() -> None:
         .topbar-role-wrap div[data-testid="stPopover"] > div > button {
             padding-left: 0.45rem !important;
             padding-right: 0.45rem !important;
-            justify-content: center !important;
+            justify-content: flex-start !important;
+            min-width: 150px !important;
+            max-width: 150px !important;
             max-width: 100% !important;
         }
 
@@ -615,7 +617,7 @@ def inject_theme() -> None:
             }
 
             .profile-name {
-                font-size: 11px !important;
+                font-size: 10.5px !important;
             }
 
             div[data-testid="stPopover"] > div > button p {
@@ -654,7 +656,7 @@ def inject_theme() -> None:
             }
 
             .profile-details {
-                max-width: 56px !important;
+                max-width: 118px !important;
             }
 
             .profile-name {
@@ -687,6 +689,721 @@ def inject_theme() -> None:
                 padding-left: 0.35rem !important;
             }
         }
+
+        .topbar-anchor {
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) {
+            position: fixed !important;
+            top: 0 !important;
+            left: 228px !important;
+            right: 0 !important;
+            z-index: 999 !important;
+            min-height: 58px !important;
+            background: #ffffff !important;
+            border-bottom: 1px solid #e6ebf3 !important;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+            padding: 0.34rem 0.40rem 0.34rem 0.32rem !important;
+            margin: 0 !important;
+            align-items: center !important;
+            overflow: visible !important;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) > div {
+            width: 100% !important;
+        }
+
+        .topbar-spacer {
+            height: 1px;
+        }
+
+        .fixed-topbar-offset {
+            display: block;
+            width: 100%;
+            height: 72px;
+        }
+
+        div[data-testid="stColumn"]:has(.topbar-role-wrap),
+        div[data-testid="stColumn"]:has(.topbar-notification-wrap),
+        div[data-testid="stColumn"]:has(.topbar-profile-wrap) {
+            min-width: 0 !important;
+            overflow: visible !important;
+        }
+
+        
+        .topbar-role-wrap,
+        .topbar-notification-wrap,
+        .topbar-profile-wrap {
+            flex-shrink: 1 !important;
+        }
+
+        .topbar-role-wrap [data-testid="stPopover"] > div > button,
+        .topbar-notification-wrap [data-testid="stPopover"] > div > button,
+        .topbar-profile-wrap [data-testid="stPopover"] > div > button {
+            overflow: hidden !important;
+        }
+
+.topbar-role-wrap,
+        .topbar-notification-wrap,
+        .topbar-profile-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            min-width: 0;
+            width: 100%;
+            height: 38px;
+        }
+
+        .topbar-role-wrap [data-testid="stPopover"],
+        .topbar-profile-wrap [data-testid="stPopover"],
+        .topbar-notification-wrap [data-testid="stPopover"] {
+            width: 100% !important;
+        }
+
+        .topbar-role-wrap [data-testid="stPopover"] > div,
+        .topbar-role-wrap [data-testid="stPopover"] > div > button,
+        .topbar-profile-wrap [data-testid="stPopover"] > div,
+        .topbar-profile-wrap [data-testid="stPopover"] > div > button,
+        .topbar-notification-wrap [data-testid="stPopover"] > div,
+        .topbar-notification-wrap [data-testid="stPopover"] > div > button {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+        }
+
+        .topbar-role-wrap div[data-testid="stPopover"] > div > button,
+        .topbar-profile-wrap div[data-testid="stPopover"] > div > button,
+        .topbar-notification-wrap div[data-testid="stPopover"] > div > button {
+            min-height: 38px !important;
+            height: 38px !important;
+            white-space: nowrap !important;
+            background: #ffffff !important;
+            color: #172033 !important;
+            font-weight: 600 !important;
+            overflow: hidden !important;
+            display: flex !important;
+            align-items: center !important;
+        }
+
+        .topbar-notification-wrap div[data-testid="stPopover"] > div > button {
+            max-width: 44px !important;
+            margin-left: auto !important;
+            text-align: center !important;
+            justify-content: center !important;
+            padding-left: 0.35rem !important;
+            padding-right: 0.35rem !important;
+        }
+
+        .topbar-role-wrap {
+            padding-right: 0.08rem;
+        }
+
+        .topbar-role-wrap div[data-testid="stPopover"] > div > button {
+            border-radius: 12px !important;
+            border: 1px solid #dbe4f0 !important;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+            padding: 0 0.65rem !important;
+            justify-content: center !important;
+        }
+
+        .topbar-notification-wrap {
+            border-left: 1px solid #e6ebf3;
+            border-right: 1px solid #e6ebf3;
+            padding: 0 0.10rem;
+        }
+
+        .topbar-notification-wrap div[data-testid="stPopover"] > div > button {
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            font-size: 17px !important;
+            min-width: 36px !important;
+        }
+
+        .topbar-profile-wrap {
+            padding-left: 0.04rem;
+        }
+
+        .topbar-profile-wrap div[data-testid="stPopover"] > div > button {
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            background: transparent !important;
+            justify-content: center !important;
+            padding: 0 !important;
+            max-width: 56px !important;
+            min-width: 92px !important;
+        }
+
+        .topbar-role-wrap div[data-testid="stPopover"] > div > button {
+            margin-left: auto !important;
+        }
+
+        .topbar-profile-wrap div[data-testid="stPopover"] > div > button {
+            margin-left: auto !important;
+        }
+
+        .topbar-role-wrap div[data-testid="stPopover"] > div > button p,
+        .topbar-profile-wrap div[data-testid="stPopover"] > div > button p,
+        .topbar-notification-wrap div[data-testid="stPopover"] > div > button p {
+            margin: 0 !important;
+            font-size: 11px !important;
+            line-height: 1 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            color: #172033 !important;
+        }
+
+        .topbar-notification-wrap div[data-testid="stPopover"] > div > button p {
+            text-align: center !important;
+        }
+
+        div[data-testid="stPopoverContent"] {
+            border-radius: 14px !important;
+            border: 1px solid #e3e9f2 !important;
+            box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12) !important;
+            padding: 0.2rem !important;
+        }
+
+        
+
+        .popover-title {
+            color: #7b8798;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            margin: 0 0 0.65rem 0;
+        }
+
+        .empty-popover-text {
+            color: #6f7d93;
+            font-size: 14px;
+            padding: 0.35rem 0 0.25rem 0;
+        }
+
+        .notification-list {
+            max-height: 340px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            display: flex;
+            gap: 0.7rem;
+            padding: 0.7rem 0;
+            border-top: 1px solid #eef2f7;
+        }
+
+        .notification-item:first-child {
+            border-top: none;
+            padding-top: 0.15rem;
+        }
+
+        .notif-icon {
+            width: 20px;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1;
+            margin-top: 0.15rem;
+        }
+
+        .notif-icon-danger {
+            background: #fdeaea;
+            color: #d92d20;
+        }
+
+        .notif-icon-success {
+            background: #e8f7ee;
+            color: #067647;
+        }
+
+        .notif-icon-info {
+            background: #edf3ff;
+            color: #2457d6;
+        }
+
+        .notification-content {
+            min-width: 0;
+        }
+
+        .notification-claim {
+            color: #0b2f6b;
+            font-size: 14px;
+            font-weight: 800;
+            margin-bottom: 0.15rem;
+        }
+
+        .notification-message {
+            color: #172033;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        .notification-date {
+            color: #6f7d93;
+            font-size: 12px;
+            margin-top: 0.2rem;
+        }
+
+        .profile-popover {
+            min-width: 250px;
+            padding: 0.2rem;
+        }
+
+        .profile-popover-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .profile-avatar-lg {
+            width: 40px;
+            min-width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            background: #0b2f6b;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .profile-popover-meta {
+            min-width: 0;
+        }
+
+        .profile-popover-name {
+            color: #172033;
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .profile-popover-email {
+            color: #6f7d93;
+            font-size: 14px;
+            line-height: 1.35;
+            margin-top: 0.15rem;
+        }
+
+        .profile-role-row {
+            color: #0b2f6b;
+            font-size: 14px;
+            font-weight: 700;
+            padding-top: 0.85rem;
+        }
+
+        .role-switch-menu .stButton {
+            width: 100% !important;
+        }
+
+        .role-switch-menu .stButton button {
+            width: 100% !important;
+            justify-content: flex-start !important;
+            min-height: 34px !important;
+            height: 34px !important;
+            border-radius: 10px !important;
+            border: 1px solid transparent !important;
+            box-shadow: none !important;
+            padding: 0 0.7rem !important;
+            font-size: 15px !important;
+            font-weight: 500 !important;
+        }
+
+        .role-switch-menu .stButton button p {
+            font-size: 15px !important;
+            margin: 0 !important;
+        }
+
+        .role-switch-menu .stButton button[kind="primary"] {
+            background: #ffffff !important;
+            color: #172033 !important;
+        }
+
+        .role-switch-menu .stButton button[kind="primary"]:hover {
+            background: #f6f8fb !important;
+            color: #172033 !important;
+        }
+
+        .role-switch-menu .stButton button[kind="secondary"] {
+            background: #eef2f7 !important;
+            color: #0b2f6b !important;
+            border-color: transparent !important;
+        }
+
+        .role-switch-menu .stButton button[kind="secondary"]:hover {
+            background: #e8edf5 !important;
+            color: #0b2f6b !important;
+        }
+
+
+        /* MM_DYNAMIC_TOPBAR_V47_START */
+        .topbar-anchor {
+            height: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) {
+            position: fixed !important;
+            top: 0 !important;
+            left: 228px !important;
+            right: 0 !important;
+            z-index: 1001 !important;
+            min-height: 56px !important;
+            background: #ffffff !important;
+            border-bottom: 1px solid #e6ebf3 !important;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+            padding: 0.35rem 0.55rem 0.35rem 0.45rem !important;
+            margin: 0 !important;
+            align-items: center !important;
+            overflow: visible !important;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) > div {
+            width: 100% !important;
+        }
+
+        .topbar-spacer {
+            height: 1px;
+        }
+
+        .fixed-topbar-offset {
+            display: block;
+            width: 100%;
+            height: 70px;
+        }
+
+        div[data-testid="stColumn"]:has(.mm-topbar-role-wrap),
+        div[data-testid="stColumn"]:has(.mm-topbar-bell-wrap),
+        div[data-testid="stColumn"]:has(.mm-topbar-profile-wrap) {
+            min-width: 0 !important;
+            overflow: visible !important;
+        }
+
+        .mm-topbar-role-wrap,
+        .mm-topbar-bell-wrap,
+        .mm-topbar-profile-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            width: 100%;
+            min-width: 0;
+            height: 36px;
+        }
+
+        .mm-topbar-role-wrap [data-testid="stPopover"],
+        .mm-topbar-bell-wrap [data-testid="stPopover"],
+        .mm-topbar-profile-wrap [data-testid="stPopover"] {
+            width: 100% !important;
+        }
+
+        .mm-topbar-role-wrap [data-testid="stPopover"] > div,
+        .mm-topbar-role-wrap [data-testid="stPopover"] > div > button,
+        .mm-topbar-bell-wrap [data-testid="stPopover"] > div,
+        .mm-topbar-bell-wrap [data-testid="stPopover"] > div > button,
+        .mm-topbar-profile-wrap [data-testid="stPopover"] > div,
+        .mm-topbar-profile-wrap [data-testid="stPopover"] > div > button {
+            width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
+        }
+
+        .mm-topbar-role-wrap div[data-testid="stPopover"] > div > button {
+            min-width: 150px !important;
+            max-width: 150px !important;
+            min-height: 36px !important;
+            height: 36px !important;
+            border-radius: 10px !important;
+            border: 1px solid #dbe4f0 !important;
+            background: #ffffff !important;
+            color: #172033 !important;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+            padding: 0 0.65rem !important;
+            justify-content: center !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+        }
+
+        .mm-topbar-bell-wrap {
+            border-left: 1px solid #e6ebf3;
+            border-right: 1px solid #e6ebf3;
+            padding: 0 0.15rem;
+        }
+
+        .mm-topbar-bell-wrap div[data-testid="stPopover"] > div > button {
+            min-width: 38px !important;
+            max-width: 38px !important;
+            min-height: 36px !important;
+            height: 36px !important;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            justify-content: center !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+        }
+
+        .mm-topbar-profile-wrap {
+            padding-left: 0.20rem;
+        }
+
+        .mm-topbar-profile-wrap div[data-testid="stPopover"] > div > button {
+            min-width: 124px !important;
+            max-width: 124px !important;
+            min-height: 36px !important;
+            height: 36px !important;
+            border: none !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            padding: 0 0.05rem !important;
+            justify-content: flex-start !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+        }
+
+        .mm-topbar-role-wrap div[data-testid="stPopover"] > div > button p,
+        .mm-topbar-bell-wrap div[data-testid="stPopover"] > div > button p,
+        .mm-topbar-profile-wrap div[data-testid="stPopover"] > div > button p {
+            margin: 0 !important;
+            font-size: 12px !important;
+            line-height: 1 !important;
+            color: #172033 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        .mm-topbar-bell-wrap div[data-testid="stPopover"] > div > button p {
+            text-align: center !important;
+            font-size: 16px !important;
+        }
+
+        div[data-testid="stPopoverContent"] {
+            border-radius: 14px !important;
+            border: 1px solid #e3e9f2 !important;
+            box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12) !important;
+            padding: 0.2rem !important;
+        }
+
+        .mm-popover-title {
+            color: #7b8798;
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            margin: 0 0 0.65rem 0;
+        }
+
+        .mm-empty-popover {
+            color: #6f7d93;
+            font-size: 14px;
+            padding: 0.35rem 0 0.25rem 0;
+        }
+
+        .mm-role-switch-menu .stButton {
+            width: 100% !important;
+        }
+
+        .mm-role-switch-menu .stButton button {
+            width: 100% !important;
+            justify-content: flex-start !important;
+            min-height: 34px !important;
+            height: 34px !important;
+            border-radius: 10px !important;
+            border: 1px solid transparent !important;
+            box-shadow: none !important;
+            padding: 0 0.7rem !important;
+            font-size: 15px !important;
+            font-weight: 500 !important;
+        }
+
+        .mm-role-switch-menu .stButton button p {
+            font-size: 15px !important;
+            margin: 0 !important;
+        }
+
+        .mm-role-switch-menu .stButton button[kind="primary"] {
+            background: #ffffff !important;
+            color: #172033 !important;
+        }
+
+        .mm-role-switch-menu .stButton button[kind="primary"]:hover {
+            background: #f6f8fb !important;
+            color: #172033 !important;
+        }
+
+        .mm-role-switch-menu .stButton button[kind="secondary"] {
+            background: #eef2f7 !important;
+            color: #0b2f6b !important;
+            border-color: transparent !important;
+        }
+
+        .mm-role-switch-menu .stButton button[kind="secondary"]:hover {
+            background: #e8edf5 !important;
+            color: #0b2f6b !important;
+        }
+
+        .mm-notification-list {
+            max-height: 340px;
+            overflow-y: auto;
+        }
+
+        .mm-notification-item {
+            display: flex;
+            gap: 0.7rem;
+            padding: 0.7rem 0;
+            border-top: 1px solid #eef2f7;
+        }
+
+        .mm-notification-item:first-child {
+            border-top: none;
+            padding-top: 0.15rem;
+        }
+
+        .mm-notif-icon {
+            width: 20px;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1;
+            margin-top: 0.15rem;
+        }
+
+        .mm-notif-danger {
+            background: #fdeaea;
+            color: #d92d20;
+        }
+
+        .mm-notif-success {
+            background: #e8f7ee;
+            color: #067647;
+        }
+
+        .mm-notif-info {
+            background: #edf3ff;
+            color: #2457d6;
+        }
+
+        .mm-notification-body {
+            min-width: 0;
+        }
+
+        .mm-notification-claim {
+            color: #0b2f6b;
+            font-size: 14px;
+            font-weight: 800;
+            margin-bottom: 0.15rem;
+        }
+
+        .mm-notification-message {
+            color: #172033;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+
+        .mm-notification-date {
+            color: #6f7d93;
+            font-size: 12px;
+            margin-top: 0.2rem;
+        }
+
+        .mm-profile-popover {
+            min-width: 250px;
+            padding: 0.2rem;
+        }
+
+        .mm-profile-popover-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding-bottom: 0.8rem;
+            border-bottom: 1px solid #eef2f7;
+        }
+
+        .mm-profile-avatar-lg {
+            width: 40px;
+            min-width: 40px;
+            height: 40px;
+            border-radius: 999px;
+            background: #0b2f6b;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 800;
+        }
+
+        .mm-profile-meta {
+            min-width: 0;
+        }
+
+        .mm-profile-name-lg {
+            color: #172033;
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1.2;
+        }
+
+        .mm-profile-email {
+            color: #6f7d93;
+            font-size: 14px;
+            line-height: 1.35;
+            margin-top: 0.15rem;
+        }
+
+        .mm-profile-role-row {
+            color: #0b2f6b;
+            font-size: 14px;
+            font-weight: 700;
+            padding-top: 0.85rem;
+        }
+
+        @media (max-width: 1280px) {
+            div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) {
+                padding-left: 0.3rem !important;
+                padding-right: 0.35rem !important;
+            }
+
+            .mm-topbar-role-wrap div[data-testid="stPopover"] > div > button {
+                min-width: 144px !important;
+                max-width: 144px !important;
+            }
+
+            .mm-topbar-profile-wrap div[data-testid="stPopover"] > div > button {
+                min-width: 112px !important;
+                max-width: 112px !important;
+            }
+
+            .mm-topbar-role-wrap div[data-testid="stPopover"] > div > button p,
+            .mm-topbar-profile-wrap div[data-testid="stPopover"] > div > button p {
+                font-size: 11px !important;
+            }
+        }
+        /* MM_DYNAMIC_TOPBAR_V47_END */
+
         .page-title {
             font-size: 2.25rem;
             line-height: 1.1;

@@ -78,6 +78,20 @@ def render_sidebar(current_role: str) -> None:
                 _switch_page("Admin")
 
 
+def _format_created_at(value) -> str:
+    if value is None:
+        return ""
+    return str(value)[:10]
+
+
+def _notification_icon_and_class(event_type: str, message: str) -> tuple[str, str]:
+    raw = f"{event_type or ''} {message or ''}".lower()
+    if "reject" in raw or "over-alloc" in raw or "conflict" in raw:
+        return "✕", "notif-icon-danger"
+    if "approve" in raw or "complete" in raw:
+        return "✓", "notif-icon-success"
+    return "i", "notif-icon-info"
+
 
 def render_topbar(display_name: str, email: str, role_items: list[dict[str, str]], current_role: str, notif_df) -> None:
     unread = 0
@@ -89,26 +103,91 @@ def render_topbar(display_name: str, email: str, role_items: list[dict[str, str]
         current_role.replace("_", " ").title(),
     )
 
-    st.markdown(
-        f"""
-        <div class="app-topbar">
-            <div class="app-topbar-right">
-                <div class="app-role-pill">🛡&nbsp;&nbsp;{safe_str(current_label)}&nbsp;▾</div>
-                <div class="app-notification-pill">
-                    <span class="app-notification-icon">🔔</span>
-                    <span class="app-notification-badge">{unread}</span>
-                </div>
-                <div class="app-profile-pill" title="{safe_str(display_name)} · {safe_str(email)}">
-                    <div class="app-profile-avatar">{safe_str(initials(display_name))}</div>
-                    <div class="app-profile-name">{safe_str(display_name)}</div>
-                    <div class="app-profile-chevron">▾</div>
-                </div>
-            </div>
-        </div>
-        <div class="fixed-topbar-offset"></div>
-        """,
-        unsafe_allow_html=True,
+    short_name = str(display_name).split()[0] if str(display_name).strip() else "User"
+
+    st.markdown('<div class="topbar-anchor"></div>', unsafe_allow_html=True)
+
+    # Dynamic, compact, app-view-safe layout
+    spacer_col, role_col, bell_col, profile_col = st.columns(
+        [7.7, 1.75, 0.48, 1.22],
+        vertical_alignment="center",
     )
+
+    with spacer_col:
+        st.markdown('<div class="topbar-spacer"></div>', unsafe_allow_html=True)
+
+    with role_col:
+        st.markdown('<div class="mm-topbar-role-wrap">', unsafe_allow_html=True)
+        with st.popover(f"🛡  {current_label}   ▾", use_container_width=True):
+            st.markdown('<div class="mm-popover-title">SWITCH ROLE</div>', unsafe_allow_html=True)
+            st.markdown('<div class="mm-role-switch-menu">', unsafe_allow_html=True)
+            for item in role_items:
+                selected = item["key"] == current_role
+                clicked = st.button(
+                    item["label"],
+                    icon=":material/check:" if selected else None,
+                    key=f"switch_role_{item['key']}",
+                    use_container_width=True,
+                    type="secondary" if selected else "primary",
+                )
+                if clicked and item["key"] != current_role:
+                    st.session_state.role_key = item["key"]
+                    st.rerun()
+            st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with bell_col:
+        st.markdown('<div class="mm-topbar-bell-wrap">', unsafe_allow_html=True)
+        bell_label = "🔔"
+        with st.popover(bell_label, use_container_width=True):
+            st.markdown('<div class="mm-popover-title">Notifications</div>', unsafe_allow_html=True)
+            if notif_df is None or notif_df.empty:
+                st.markdown('<div class="mm-empty-popover">No notifications available.</div>', unsafe_allow_html=True)
+            else:
+                st.markdown('<div class="mm-notification-list">', unsafe_allow_html=True)
+                for _, row in notif_df.head(8).iterrows():
+                    claim_id = safe_str(row.get("CLAIM_ID", ""))
+                    message = safe_str(row.get("MESSAGE", ""))
+                    created_at = safe_str(_format_created_at(row.get("CREATED_AT", "")))
+                    event_type = str(row.get("EVENT_TYPE", ""))
+                    icon, icon_class = _notification_icon_and_class(event_type, message)
+                    st.markdown(
+                        f"""
+                        <div class="mm-notification-item">
+                            <div class="mm-notif-icon {icon_class}">{icon}</div>
+                            <div class="mm-notification-body">
+                                <div class="mm-notification-claim">{claim_id}</div>
+                                <div class="mm-notification-message">{message}</div>
+                                <div class="mm-notification-date">{created_at}</div>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with profile_col:
+        st.markdown('<div class="mm-topbar-profile-wrap">', unsafe_allow_html=True)
+        with st.popover(f"{initials(display_name)}   {short_name}   ▾", use_container_width=True):
+            st.markdown(
+                f"""
+                <div class="mm-profile-popover">
+                    <div class="mm-profile-popover-header">
+                        <div class="mm-profile-avatar-lg">{safe_str(initials(display_name))}</div>
+                        <div class="mm-profile-meta">
+                            <div class="mm-profile-name-lg">{safe_str(display_name)}</div>
+                            <div class="mm-profile-email">{safe_str(email)}</div>
+                        </div>
+                    </div>
+                    <div class="mm-profile-role-row">◉&nbsp;&nbsp;{safe_str(current_label)}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    st.markdown('<div class="fixed-topbar-offset"></div>', unsafe_allow_html=True)
 
 
 def render_page_title(title: str, subtitle: str) -> None:
