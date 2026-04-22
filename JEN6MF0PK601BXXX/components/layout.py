@@ -106,7 +106,7 @@ def render_topbar(
     st.markdown('<div class="topbar-inline-card">', unsafe_allow_html=True)
 
     spacer_col, role_col, bell_col, profile_col = st.columns(
-        [7.2, 1.5, 0.55, 0.55],
+        [7.0, 1.6, 0.55, 0.65],
         vertical_alignment="center",
     )
 
@@ -114,6 +114,7 @@ def render_topbar(
         st.markdown("<div></div>", unsafe_allow_html=True)
 
     with role_col:
+        st.markdown('<div class="topbar-role-wrap">', unsafe_allow_html=True)
         selected_label = st.selectbox(
             "Role",
             role_labels,
@@ -125,6 +126,7 @@ def render_topbar(
         if selected_item and selected_item["key"] != current_role:
             st.session_state.role_key = selected_item["key"]
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with bell_col:
         bell_label = f"🔔 {unread}" if unread else "🔔"

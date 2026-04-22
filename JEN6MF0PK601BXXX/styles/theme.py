@@ -69,7 +69,7 @@ def inject_theme() -> None:
             display: none !important;
         }
 
-        /* Fix left empty gap when sidebar is collapsed */
+        /* Sidebar collapse fix */
         section[data-testid="stSidebar"][aria-expanded="false"] {
             width: 0 !important;
             min-width: 0 !important;
@@ -193,7 +193,7 @@ def inject_theme() -> None:
             color: #0b2f6b !important;
         }
 
-        /* In-flow topbar */
+        /* Topbar */
         .topbar-inline-card {
             background: #ffffff;
             border-bottom: 1px solid #e6ebf3;
@@ -202,14 +202,52 @@ def inject_theme() -> None:
             margin: 0 -1.5rem 1rem -1.5rem;
         }
 
-        /* Topbar controls */
-        div[data-testid="stSelectbox"] > div[data-baseweb="select"] {
+        .topbar-role-wrap div[data-testid="stSelectbox"] {
+            width: 116px !important;
+            min-width: 116px !important;
+            max-width: 116px !important;
+            margin-left: auto !important;
+        }
+
+        .topbar-role-wrap div[data-testid="stSelectbox"] > div[data-baseweb="select"] {
             min-height: 40px !important;
             height: 40px !important;
             border-radius: 12px !important;
             border: 1px solid #dbe4f0 !important;
             background: #ffffff !important;
             box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+        }
+
+        .topbar-role-wrap div[data-testid="stSelectbox"] div[role="button"] {
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            color: #172033 !important;
+        }
+
+        div[role="listbox"] {
+            border-radius: 14px !important;
+            border: 1px solid #e3e9f2 !important;
+            box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12) !important;
+            padding: 6px !important;
+            background: #ffffff !important;
+        }
+
+        div[role="option"] {
+            border-radius: 10px !important;
+            min-height: 40px !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            color: #172033 !important;
+            padding: 8px 12px !important;
+        }
+
+        div[role="option"][aria-selected="true"] {
+            background: #edf3ff !important;
+            color: #0b2f6b !important;
+        }
+
+        div[role="option"]:hover {
+            background: #f5f8fc !important;
         }
 
         div[data-testid="stPopover"] > div > button {
@@ -233,7 +271,7 @@ def inject_theme() -> None:
             margin-bottom: 1.2rem;
         }
 
-        /* Dashboard metric cards */
+        /* Metric cards */
         .metric-card {
             background: #ffffff;
             border: 1px solid #e3e9f2;
@@ -352,7 +390,7 @@ def inject_theme() -> None:
             height: 1.1rem;
         }
 
-        /* Streamlit container cards */
+        /* Table / bordered blocks */
         div[data-testid="stVerticalBlockBorderWrapper"] {
             background: #ffffff !important;
             border: 1px solid #e3e9f2 !important;
