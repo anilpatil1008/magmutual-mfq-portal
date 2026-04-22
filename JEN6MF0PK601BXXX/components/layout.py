@@ -78,6 +78,7 @@ def render_sidebar(current_role: str) -> None:
                 _switch_page("Admin")
 
 
+
 def render_topbar(display_name: str, email: str, role_items: list[dict[str, str]], current_role: str, notif_df) -> None:
     unread = 0
     if notif_df is not None and not notif_df.empty and "IS_READ" in notif_df.columns:
@@ -88,57 +89,26 @@ def render_topbar(display_name: str, email: str, role_items: list[dict[str, str]
         current_role.replace("_", " ").title(),
     )
 
-    st.markdown('<div class="topbar-anchor"></div>', unsafe_allow_html=True)
-
-    spacer_col, right_col = st.columns([5.8, 4.2], vertical_alignment="center")
-
-    with spacer_col:
-        st.markdown('<div class="topbar-spacer"></div>', unsafe_allow_html=True)
-
-    with right_col:
-        role_col, info_col = st.columns([1.15, 1.85], vertical_alignment="center")
-
-        with role_col:
-            st.markdown('<div class="topbar-role-wrap">', unsafe_allow_html=True)
-            with st.popover(f"🛡  {current_label}   ▾", use_container_width=True):
-                st.markdown('<div class="role-switch-title">SWITCH ROLE</div>', unsafe_allow_html=True)
-                st.markdown('<div class="role-switch-menu">', unsafe_allow_html=True)
-                for item in role_items:
-                    selected = item["key"] == current_role
-                    clicked = st.button(
-                        item["label"],
-                        icon=":material/check:" if selected else None,
-                        key=f"switch_role_{item['key']}",
-                        use_container_width=True,
-                        type="secondary" if selected else "primary",
-                    )
-                    if clicked and item["key"] != current_role:
-                        st.session_state.role_key = item["key"]
-                        st.rerun()
-                st.markdown('</div>', unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-
-        with info_col:
-            st.markdown(
-                f"""
-                <div class="topbar-info-wrap" title="{safe_str(display_name)} · {safe_str(email)}">
-                    <div class="notification-pill">
-                        <span class="notification-icon">🔔</span>
-                        <span class="notification-badge">{unread}</span>
-                    </div>
-                    <div class="profile-card">
-                        <div class="profile-avatar">{safe_str(initials(display_name))}</div>
-                        <div class="profile-details">
-                            <div class="profile-name">{safe_str(display_name)}</div>
-                        </div>
-                        <div class="profile-chevron">▾</div>
-                    </div>
+    st.markdown(
+        f"""
+        <div class="app-topbar">
+            <div class="app-topbar-right">
+                <div class="app-role-pill">🛡&nbsp;&nbsp;{safe_str(current_label)}&nbsp;▾</div>
+                <div class="app-notification-pill">
+                    <span class="app-notification-icon">🔔</span>
+                    <span class="app-notification-badge">{unread}</span>
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-    st.markdown('<div class="fixed-topbar-offset"></div>', unsafe_allow_html=True)
+                <div class="app-profile-pill" title="{safe_str(display_name)} · {safe_str(email)}">
+                    <div class="app-profile-avatar">{safe_str(initials(display_name))}</div>
+                    <div class="app-profile-name">{safe_str(display_name)}</div>
+                    <div class="app-profile-chevron">▾</div>
+                </div>
+            </div>
+        </div>
+        <div class="fixed-topbar-offset"></div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_page_title(title: str, subtitle: str) -> None:

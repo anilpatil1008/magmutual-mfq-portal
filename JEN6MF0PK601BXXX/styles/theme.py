@@ -203,10 +203,136 @@ def inject_theme() -> None:
             width: 100% !important;
         }
 
-        .fixed-topbar-offset {
+        
+        .app-topbar {
+            position: fixed;
+            top: 0;
+            left: 228px;
+            right: 0;
+            z-index: 999;
+            height: 58px;
+            background: #ffffff;
+            border-bottom: 1px solid #e6ebf3;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+
+        .app-topbar-right {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.55rem;
+            min-width: 0;
+            margin-left: auto;
+        }
+
+        .app-role-pill {
+            height: 34px;
+            padding: 0 0.8rem;
+            border-radius: 12px;
+            border: 1px solid #dbe4f0;
+            background: #ffffff;
+            color: #172033;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            font-size: 13px;
+            font-weight: 600;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+            flex-shrink: 0;
+        }
+
+        .app-notification-pill {
+            position: relative;
+            width: 34px;
+            min-width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-left: 1px solid #e6ebf3;
+            padding-left: 0.5rem;
+            box-sizing: content-box;
+            flex-shrink: 0;
+        }
+
+        .app-notification-icon {
+            font-size: 18px;
+            line-height: 1;
+            color: #4b5565;
+        }
+
+        .app-notification-badge {
+            position: absolute;
+            top: -2px;
+            right: -1px;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 4px;
+            border-radius: 999px;
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 11px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .app-profile-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            min-width: 0;
+            max-width: 240px;
+            height: 34px;
+            padding-left: 0.7rem;
+            border-left: 1px solid #e6ebf3;
+            box-sizing: border-box;
+            flex-shrink: 0;
+        }
+
+        .app-profile-avatar {
+            width: 30px;
+            min-width: 30px;
+            height: 30px;
+            border-radius: 999px;
+            background: #0b2f6b;
+            color: #ffffff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 800;
+        }
+
+        .app-profile-name {
+            color: #172033;
+            font-size: 13px;
+            font-weight: 700;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 140px;
+        }
+
+        .app-profile-chevron {
+            color: #667085;
+            font-size: 11px;
+            line-height: 1;
+            flex-shrink: 0;
+        }
+
+.fixed-topbar-offset {
             display: block;
             width: 100%;
-            height: 62px;
+            height: 72px;
         }
 
         .topbar-spacer {
@@ -230,11 +356,13 @@ def inject_theme() -> None:
 
         .topbar-role-wrap [data-testid="stPopover"] {
             width: 100% !important;
+            min-width: 0 !important;
         }
 
         .topbar-role-wrap [data-testid="stPopover"] > div,
         .topbar-role-wrap [data-testid="stPopover"] > div > button {
             width: 100% !important;
+            min-width: 0 !important;
         }
 
         div[data-testid="stPopover"] > div > button {
@@ -260,6 +388,17 @@ def inject_theme() -> None:
             text-overflow: ellipsis !important;
         }
 
+        .topbar-role-wrap div[data-testid="stPopover"] > div > button {
+            padding-left: 0.45rem !important;
+            padding-right: 0.45rem !important;
+            justify-content: center !important;
+            max-width: 100% !important;
+        }
+
+        .topbar-role-wrap div[data-testid="stPopover"] > div > button p {
+            font-size: 12px !important;
+        }
+
         .role-switch-title {
             color: #7b8798;
             font-size: 12px;
@@ -280,16 +419,19 @@ def inject_theme() -> None:
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            gap: 0.3rem;
+            gap: 0.18rem;
             min-height: 36px;
             width: 100%;
             min-width: 0;
+            margin-left: auto;
+            overflow: visible !important;
+            flex-wrap: nowrap !important;
         }
 
         .notification-pill {
             position: relative;
-            width: 34px;
-            min-width: 34px;
+            width: 32px;
+            min-width: 32px;
             height: 36px;
             display: flex;
             align-items: center;
@@ -327,11 +469,11 @@ def inject_theme() -> None:
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            gap: 0.3rem;
+            gap: 0.22rem;
             min-height: 36px;
             min-width: 0;
             max-width: 100%;
-            padding-left: 0.55rem;
+            padding-left: 0.42rem;
             border-left: 1px solid #e6ebf3;
             overflow: hidden;
             box-sizing: border-box;
@@ -354,13 +496,13 @@ def inject_theme() -> None:
 
         .profile-details {
             min-width: 0;
-            max-width: 96px;
+            max-width: 74px;
             overflow: hidden;
         }
 
         .profile-name {
             color: #172033;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             white-space: nowrap;
             overflow: hidden;
@@ -469,7 +611,7 @@ def inject_theme() -> None:
             }
 
             .profile-details {
-                max-width: 54px !important;
+                max-width: 50px !important;
             }
 
             .profile-name {
@@ -512,7 +654,7 @@ def inject_theme() -> None:
             }
 
             .profile-details {
-                max-width: 60px !important;
+                max-width: 56px !important;
             }
 
             .profile-name {
