@@ -44,10 +44,24 @@ def inject_theme() -> None:
         }
 
         section[data-testid="stSidebar"] .block-container {
-            padding-top: 0.35rem !important;
+            padding-top: 0 !important;
             padding-right: 0.8rem !important;
             padding-bottom: 1rem !important;
             padding-left: 0.8rem !important;
+        }
+
+        div[data-testid="stSidebarHeader"] {
+            min-height: 26px !important;
+            height: 26px !important;
+            padding-top: 0.15rem !important;
+            padding-bottom: 0 !important;
+            margin-bottom: 0 !important;
+        }
+
+        div[data-testid="stSidebarHeader"] > div {
+            min-height: 26px !important;
+            height: 26px !important;
+            align-items: flex-start !important;
         }
 
         div[data-testid="stSidebarNav"] {
@@ -58,20 +72,40 @@ def inject_theme() -> None:
             display: flex;
             align-items: center;
             gap: 12px;
-            margin-top: 0 !important;
-            margin-bottom: 1.9rem;
-            padding: 0.05rem 0.55rem 0 0.55rem;
-            font-size: 1.9rem;
-            font-weight: 800;
-            color: #0b2f6b;
+            margin-top: -0.1rem !important;
+            margin-bottom: 1.35rem;
+            padding: 0 0.55rem 0.05rem 0.55rem;
         }
 
-        .brand-drop {
-            width: 18px;
-            height: 30px;
-            background: #0b2f6b;
-            border-radius: 50% 50% 50% 50% / 65% 65% 35% 35%;
-            display: inline-block;
+        .brand-mark {
+            width: 28px;
+            min-width: 28px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .brand-mark-svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+            filter: drop-shadow(0 2px 4px rgba(11, 47, 107, 0.16));
+        }
+
+        .brand-text-wrap {
+            min-width: 0;
+            display: flex;
+            align-items: center;
+        }
+
+        .brand-text {
+            font-size: 1.62rem;
+            line-height: 1;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            color: #0b2f6b;
+            white-space: nowrap;
         }
 
         .nav-title {
@@ -94,7 +128,7 @@ def inject_theme() -> None:
             border-radius: 12px !important;
             min-height: 44px !important;
             height: 44px !important;
-            padding: 0 1rem !important;
+            padding: 0 0.7rem !important;
             font-weight: 700 !important;
             font-size: 16px !important;
             text-align: left !important;
@@ -155,13 +189,14 @@ def inject_theme() -> None:
             left: 228px !important;
             right: 0 !important;
             z-index: 999 !important;
-            min-height: 72px !important;
+            min-height: 48px !important;
             background: #ffffff !important;
             border-bottom: 1px solid #e6ebf3 !important;
             box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
-            padding: 0.7rem 1.75rem !important;
+            padding: 0.12rem 1rem !important;
             margin: 0 !important;
             align-items: center !important;
+            overflow: visible !important;
         }
 
         div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) > div {
@@ -171,33 +206,26 @@ def inject_theme() -> None:
         .fixed-topbar-offset {
             display: block;
             width: 100%;
-            height: 86px;
+            height: 62px;
         }
 
         .topbar-spacer {
             height: 1px;
         }
 
-        .topbar-role-wrap,
-        .topbar-bell-wrap,
-        .topbar-profile-wrap {
-            min-height: 42px;
-            display: flex;
-            align-items: center;
-            height: 100%;
-            margin-top: 0 !important;
-            padding-top: 0 !important;
+        div[data-testid="stColumn"]:has(.topbar-role-wrap),
+        div[data-testid="stColumn"]:has(.topbar-info-wrap) {
+            min-width: 0 !important;
+            overflow: visible !important;
         }
 
         .topbar-role-wrap {
+            display: flex;
+            align-items: center;
             justify-content: flex-end;
-        }
-
-        .topbar-bell-wrap,
-        .topbar-profile-wrap {
-            justify-content: center;
-            border-left: 1px solid #e6ebf3;
-            padding-left: 1rem;
+            min-height: 36px;
+            width: 100%;
+            min-width: 0;
         }
 
         .topbar-role-wrap [data-testid="stPopover"] {
@@ -210,8 +238,8 @@ def inject_theme() -> None:
         }
 
         div[data-testid="stPopover"] > div > button {
-            min-height: 42px !important;
-            height: 42px !important;
+            min-height: 36px !important;
+            height: 36px !important;
             white-space: nowrap !important;
             border-radius: 12px !important;
             border: 1px solid #dbe4f0 !important;
@@ -219,14 +247,17 @@ def inject_theme() -> None:
             color: #172033 !important;
             box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
             font-weight: 600 !important;
-            padding: 0 1rem !important;
+            padding: 0 0.65rem !important;
+            overflow: hidden !important;
         }
 
         div[data-testid="stPopover"] > div > button p {
             margin: 0 !important;
-            font-size: 14px !important;
+            font-size: 13px !important;
             line-height: 1.1 !important;
             white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
         }
 
         .role-switch-title {
@@ -242,16 +273,30 @@ def inject_theme() -> None:
             border: 1px solid #e3e9f2 !important;
             box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12) !important;
             padding: 0.15rem !important;
-            min-width: 198px !important;
+            min-width: 190px !important;
+        }
+
+        .topbar-info-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 0.3rem;
+            min-height: 36px;
+            width: 100%;
+            min-width: 0;
         }
 
         .notification-pill {
             position: relative;
-            width: 42px;
-            height: 42px;
+            width: 34px;
+            min-width: 34px;
+            height: 36px;
             display: flex;
             align-items: center;
             justify-content: center;
+            border-left: 1px solid #e6ebf3;
+            padding-left: 0.18rem;
+            box-sizing: border-box;
         }
 
         .notification-icon {
@@ -282,14 +327,19 @@ def inject_theme() -> None:
             display: flex;
             align-items: center;
             justify-content: flex-end;
-            gap: 10px;
-            min-height: 42px;
-            white-space: nowrap;
-            width: 100%;
+            gap: 0.3rem;
+            min-height: 36px;
+            min-width: 0;
+            max-width: 100%;
+            padding-left: 0.55rem;
+            border-left: 1px solid #e6ebf3;
+            overflow: hidden;
+            box-sizing: border-box;
         }
 
         .profile-avatar {
             width: 32px;
+            min-width: 32px;
             height: 32px;
             border-radius: 999px;
             background: #0b2f6b;
@@ -304,12 +354,13 @@ def inject_theme() -> None:
 
         .profile-details {
             min-width: 0;
-            max-width: 150px;
+            max-width: 96px;
+            overflow: hidden;
         }
 
         .profile-name {
             color: #172033;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 700;
             white-space: nowrap;
             overflow: hidden;
@@ -318,8 +369,9 @@ def inject_theme() -> None:
 
         .profile-chevron {
             color: #667085;
-            font-size: 12px;
+            font-size: 11px;
             line-height: 1;
+            flex-shrink: 0;
         }
 
         .dashboard-action-btn .stButton,
@@ -401,10 +453,74 @@ def inject_theme() -> None:
         }
 
         .main .block-container > div:first-child {
-            margin-top: 0 !important;
+            margin-top: 0.35rem !important;
         }
 
-        @media (max-width: 1100px) {
+        div[data-testid="stVerticalBlock"] > div:has(.topbar-anchor) {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+
+
+
+        @media (max-width: 1280px) {
+            .brand-text {
+                font-size: 1.48rem !important;
+            }
+
+            .profile-details {
+                max-width: 54px !important;
+            }
+
+            .profile-name {
+                font-size: 11px !important;
+            }
+
+            div[data-testid="stPopover"] > div > button p {
+                font-size: 12px !important;
+            }
+        }
+
+        @media (max-width: 1400px) {
+            div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) {
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+            }
+
+            div[data-testid="stPopover"] > div > button {
+                padding-left: 0.55rem !important;
+                padding-right: 0.55rem !important;
+            }
+
+            div[data-testid="stPopover"] > div > button p {
+                font-size: 13px !important;
+            }
+
+            .topbar-info-wrap {
+                gap: 0.35rem !important;
+            }
+
+            .notification-pill {
+                width: 32px !important;
+                min-width: 32px !important;
+                padding-left: 0.12rem !important;
+            }
+
+            .profile-card {
+                gap: 0.35rem !important;
+                padding-left: 0.4rem !important;
+            }
+
+            .profile-details {
+                max-width: 60px !important;
+            }
+
+            .profile-name {
+                font-size: 12px !important;
+            }
+        }
+
+                @media (max-width: 1100px) {
             .block-container {
                 padding-left: 1rem !important;
                 padding-right: 1rem !important;
@@ -417,7 +533,16 @@ def inject_theme() -> None:
             }
 
             .fixed-topbar-offset {
-                height: 86px;
+                height: 58px;
+            }
+
+            .profile-details {
+                display: none !important;
+            }
+
+            .profile-card {
+                gap: 0.25rem !important;
+                padding-left: 0.35rem !important;
             }
         }
         .page-title {
@@ -425,13 +550,13 @@ def inject_theme() -> None:
             line-height: 1.1;
             font-weight: 800;
             color: #13213d;
-            margin: 0.1rem 0 0.25rem 0;
+            margin: 0.3rem 0 0.3rem 0;
         }
 
         .page-subtitle {
             color: #6f7d93;
             font-size: 1rem;
-            margin-bottom: 0.9rem;
+            margin-bottom: 1.2rem;
         }
 
         .metric-card {
@@ -739,7 +864,48 @@ def inject_theme() -> None:
             padding-left: 2.2rem !important;
         }
 
-        @media (max-width: 1100px) {
+
+
+        @media (max-width: 1400px) {
+            div[data-testid="stHorizontalBlock"]:has(.topbar-spacer) {
+                padding-left: 0.75rem !important;
+                padding-right: 0.75rem !important;
+            }
+
+            div[data-testid="stPopover"] > div > button {
+                padding-left: 0.55rem !important;
+                padding-right: 0.55rem !important;
+            }
+
+            div[data-testid="stPopover"] > div > button p {
+                font-size: 13px !important;
+            }
+
+            .topbar-info-wrap {
+                gap: 0.35rem !important;
+            }
+
+            .notification-pill {
+                width: 32px !important;
+                min-width: 32px !important;
+                padding-left: 0.12rem !important;
+            }
+
+            .profile-card {
+                gap: 0.35rem !important;
+                padding-left: 0.4rem !important;
+            }
+
+            .profile-details {
+                max-width: 60px !important;
+            }
+
+            .profile-name {
+                font-size: 12px !important;
+            }
+        }
+
+                @media (max-width: 1100px) {
             .block-container {
                 padding-left: 1rem !important;
                 padding-right: 1rem !important;
