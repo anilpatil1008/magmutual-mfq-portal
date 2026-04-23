@@ -223,13 +223,19 @@ def inject_theme() -> None:
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="stHorizontalBlock"] {
+            display: flex !important;
+            flex-wrap: wrap !important;
             align-items: center !important;
+            justify-content: flex-end !important;
+            gap: 0.55rem !important;
             min-height: 36px !important;
             margin-top: 0 !important;
             margin-bottom: 0 !important;
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"] {
+            flex: 0 0 auto !important;
+            width: auto !important;
             min-width: 0 !important;
             display: flex !important;
             align-items: center !important;
@@ -237,6 +243,8 @@ def inject_theme() -> None:
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:first-child {
+            flex: 1 1 14rem !important;
+            min-width: 6rem !important;
             justify-content: flex-start !important;
         }
 
@@ -247,9 +255,9 @@ def inject_theme() -> None:
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker) div[data-testid="stSelectbox"] {
-            width: 214px !important;
-            min-width: 214px !important;
-            max-width: 214px !important;
+            width: clamp(186px, 20vw, 234px) !important;
+            min-width: 186px !important;
+            max-width: 234px !important;
             margin-left: auto !important;
         }
 
@@ -308,7 +316,9 @@ def inject_theme() -> None:
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-bell-marker),
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) {
-            padding-left: 0.8rem !important;
+            flex: 0 0 auto !important;
+            min-width: fit-content !important;
+            padding-left: 0.65rem !important;
             border-left: 1px solid #edf1f5 !important; margin-left: 0.18rem !important;
         }
 
@@ -320,8 +330,8 @@ def inject_theme() -> None:
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) div[data-testid="stPopover"] > div > button {
-            min-width: 206px !important;
-            max-width: 206px !important;
+            min-width: clamp(182px, 21vw, 220px) !important;
+            max-width: clamp(182px, 21vw, 220px) !important;
             padding: 0 1rem !important;
             justify-content: flex-start !important;
             white-space: nowrap !important;
@@ -369,6 +379,64 @@ def inject_theme() -> None:
                 margin-right: -1rem !important;
                 padding-left: 1rem !important;
                 padding-right: 1rem !important;
+            }
+        }
+
+        @media (max-width: 980px) {
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:first-child {
+                display: none !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="stHorizontalBlock"] {
+                justify-content: flex-end !important;
+                row-gap: 0.45rem !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker) {
+                order: 1 !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-bell-marker) {
+                order: 2 !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) {
+                order: 3 !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-bell-marker),
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) {
+                border-left: none !important;
+                margin-left: 0 !important;
+                padding-left: 0 !important;
+            }
+        }
+
+        @media (max-width: 640px) {
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) {
+                padding-top: 0.4rem !important;
+                padding-bottom: 0.4rem !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="stHorizontalBlock"] {
+                justify-content: stretch !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker),
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) {
+                flex: 1 1 100% !important;
+                width: 100% !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker) div[data-testid="stSelectbox"],
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) div[data-testid="stPopover"] > div > button {
+                width: 100% !important;
+                min-width: 0 !important;
+                max-width: none !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-bell-marker) {
+                margin-left: auto !important;
             }
         }
 
