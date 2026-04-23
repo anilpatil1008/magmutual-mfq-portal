@@ -207,7 +207,7 @@ def inject_theme() -> None:
             border-bottom: 1px solid #e6ebf3 !important;
             box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
             margin: 0 -1.5rem 0.45rem -1.5rem !important;
-            padding: 0.18rem 1.5rem !important;
+            padding: 0.35rem 1.5rem !important;
             position: sticky;
             top: 0;
             z-index: 40;
@@ -223,7 +223,7 @@ def inject_theme() -> None:
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="stHorizontalBlock"] {
             align-items: center !important;
-            min-height: 40px !important;
+            min-height: 48px !important;
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"] {
@@ -317,13 +317,20 @@ def inject_theme() -> None:
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) div[data-testid="stPopover"] > div > button {
-            min-width: 206px !important;
-            max-width: 206px !important;
+            min-width: 236px !important;
+            max-width: 236px !important;
             padding: 0 1rem !important;
             justify-content: flex-start !important;
             white-space: nowrap !important;
             overflow: hidden !important;
             text-overflow: ellipsis !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="stPopover"] > div > button p {
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            line-height: 1.1 !important;
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"] > div[data-testid="stVerticalBlock"] {
