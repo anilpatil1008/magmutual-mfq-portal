@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from components.cards import render_metric_card
+from components.cards import render_metric_grid
 from components.layout import render_page_title
 from components.tables import render_claims_table
 from core.constants import CLAIM_PRIORITIES, CLAIM_STATUSES
@@ -11,7 +11,7 @@ from services.claim_service import request_regeneration
 
 
 METRIC_CONFIG = [
-    ("Total Active\nClaims", "TOTAL_ACTIVE_CLAIMS", "+12% vs last month", "📄"),
+    ("Total Active\nClaims", "TOTAL_ACTIVE_CLAIMS", "+12%  vs last month", "📄"),
     ("MFQ Generated", "MFQ_GENERATED", "", "!"),
     ("Assigned", "ASSIGNED", "", "🕒"),
     ("Approved", "APPROVED", "", "✓"),
@@ -19,9 +19,10 @@ METRIC_CONFIG = [
 ]
 
 
+
 def render_dashboard(display_name: str, user_id: str) -> None:
     st.markdown('<div class="dashboard-header-wrap">', unsafe_allow_html=True)
-    header_col, action_col = st.columns([4.9, 2.6], vertical_alignment="bottom")
+    header_col, action_col = st.columns([5.2, 2.35], vertical_alignment="bottom")
 
     with header_col:
         render_page_title(
@@ -31,10 +32,10 @@ def render_dashboard(display_name: str, user_id: str) -> None:
 
     with action_col:
         st.markdown('<div class="dashboard-toolbar">', unsafe_allow_html=True)
-        action_left, action_right = st.columns([1.0, 1.38], vertical_alignment="bottom")
+        action_left, action_right = st.columns([1.0, 1.28], vertical_alignment="bottom")
         with action_left:
             st.markdown('<div class="dashboard-action-btn dashboard-filter-btn">', unsafe_allow_html=True)
-            with st.popover("◉ Filters  ▾", use_container_width=True):
+            with st.popover("Filters", use_container_width=True):
                 st.markdown("### Filter claims")
                 st.multiselect(
                     "Status",
@@ -46,28 +47,32 @@ def render_dashboard(display_name: str, user_id: str) -> None:
                     CLAIM_PRIORITIES,
                     key="dashboard_priority_filter",
                 )
-            st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
         with action_right:
             st.markdown('<div class="dashboard-action-btn dashboard-generate-btn">', unsafe_allow_html=True)
-            st.button("Generate Report", use_container_width=True, key="dashboard_generate_report_btn", type="primary")
-            st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+            st.button(
+                "Generate Report",
+                use_container_width=True,
+                key="dashboard_generate_report_btn",
+                type="primary",
+            )
+            st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
     metrics_df = get_dashboard_metrics()
     if not metrics_df.empty:
         values = metrics_df.iloc[0]
-        metric_row_1 = st.columns(3, gap="medium")
-        first_group = METRIC_CONFIG[:3]
-        for column, (label, field, subtitle, icon) in zip(metric_row_1, first_group):
-            with column:
-                render_metric_card(label, int(values[field]), subtitle, icon)
-
-        metric_row_2 = st.columns(2, gap="medium")
-        second_group = METRIC_CONFIG[3:]
-        for column, (label, field, subtitle, icon) in zip(metric_row_2, second_group):
-            with column:
-                render_metric_card(label, int(values[field]), subtitle, icon)
+        metrics = [
+            {
+                "title": label,
+                "value": int(values[field]),
+                "subtitle": subtitle,
+                "icon": icon,
+            }
+            for label, field, subtitle, icon in METRIC_CONFIG
+        ]
+        render_metric_grid(metrics)
 
     selected_status = st.session_state.get("dashboard_status_filter", [])
     selected_priority = st.session_state.get("dashboard_priority_filter", [])

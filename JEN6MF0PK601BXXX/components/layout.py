@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import html
 import streamlit as st
 
@@ -16,8 +18,8 @@ def safe_str(value) -> str:
 
 
 def initials(name: str) -> str:
-    parts = [p for p in str(name).split() if p.strip()]
-    return "".join(p[0].upper() for p in parts[:2]) or "U"
+    parts = [part for part in str(name).split() if part.strip()]
+    return "".join(part[0].upper() for part in parts[:2]) or "U"
 
 
 def _switch_page(page_name: str) -> None:
@@ -102,61 +104,58 @@ def render_topbar(
 
     role_labels = [item["label"] for item in role_items]
     current_index = next((i for i, item in enumerate(role_items) if item["key"] == current_role), 0)
+    bell_label = f"🔔 {unread}" if unread else "🔔"
+    profile_button_label = f"{initials(display_name)}  {display_name}"
 
-    st.markdown('<div class="topbar-inline-card">', unsafe_allow_html=True)
+    with st.container():
+        st.markdown('<div class="topbar-host"></div>', unsafe_allow_html=True)
+        spacer_col, role_col, bell_col, profile_col = st.columns([7.15, 2.15, 0.72, 1.98], gap="small", vertical_alignment="center")
 
-    spacer_col, role_col, bell_col, profile_col = st.columns(
-        [7.6, 1.9, 0.7, 0.9],
-        vertical_alignment="center",
-    )
+        with spacer_col:
+            st.markdown('<div class="topbar-spacer"></div>', unsafe_allow_html=True)
 
-    with spacer_col:
-        st.empty()
-
-    with role_col:
-        st.markdown('<div class="topbar-role-wrap">', unsafe_allow_html=True)
-        selected_label = st.selectbox(
-            "Role",
-            role_labels,
-            index=current_index,
-            label_visibility="collapsed",
-            key="topbar_role_select",
-        )
-        selected_item = next((item for item in role_items if item["label"] == selected_label), None)
-        if selected_item and selected_item["key"] != current_role:
-            st.session_state.role_key = selected_item["key"]
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with bell_col:
-        bell_label = f"🔔 {unread}" if unread else "🔔"
-        with st.popover(bell_label):
-            st.markdown("### Notifications")
-            if notif_df is None or notif_df.empty:
-                st.write("No notifications available.")
-            else:
-                for _, row in notif_df.head(8).iterrows():
-                    claim_id = safe_str(row.get("CLAIM_ID", ""))
-                    message = safe_str(row.get("MESSAGE", ""))
-                    created_at = safe_str(_format_created_at(row.get("CREATED_AT", "")))
-                    st.markdown(
-                        f"**{claim_id}**  \n{message}  \n<small>{created_at}</small>",
-                        unsafe_allow_html=True,
-                    )
-
-    with profile_col:
-        with st.popover(f"{initials(display_name)}"):
-            st.markdown(
-                f"""
-                **{safe_str(display_name)}**  
-                {safe_str(email)}  
-
-                {safe_str(current_label)}
-                """,
-                unsafe_allow_html=True,
+        with role_col:
+            st.markdown('<div class="topbar-role-marker"></div>', unsafe_allow_html=True)
+            selected_label = st.selectbox(
+                "Role",
+                role_labels,
+                index=current_index,
+                label_visibility="collapsed",
+                key="topbar_role_select",
             )
+            selected_item = next((item for item in role_items if item["label"] == selected_label), None)
+            if selected_item and selected_item["key"] != current_role:
+                st.session_state.role_key = selected_item["key"]
+                st.rerun()
 
-    st.markdown("</div>", unsafe_allow_html=True)
+        with bell_col:
+            st.markdown('<div class="topbar-bell-marker"></div>', unsafe_allow_html=True)
+            with st.popover(bell_label):
+                st.markdown("### Notifications")
+                if notif_df is None or notif_df.empty:
+                    st.write("No notifications available.")
+                else:
+                    for _, row in notif_df.head(8).iterrows():
+                        claim_id = safe_str(row.get("CLAIM_ID", ""))
+                        message = safe_str(row.get("MESSAGE", ""))
+                        created_at = safe_str(_format_created_at(row.get("CREATED_AT", "")))
+                        st.markdown(
+                            f"**{claim_id}**  \n{message}  \n<small>{created_at}</small>",
+                            unsafe_allow_html=True,
+                        )
+
+        with profile_col:
+            st.markdown('<div class="topbar-profile-marker"></div>', unsafe_allow_html=True)
+            with st.popover(profile_button_label):
+                st.markdown(
+                    f"""
+                    **{safe_str(display_name)}**  
+                    {safe_str(email)}  
+
+                    {safe_str(current_label)}
+                    """,
+                    unsafe_allow_html=True,
+                )
 
 
 def render_page_title(title: str, subtitle: str) -> None:

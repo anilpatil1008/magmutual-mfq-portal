@@ -48,7 +48,7 @@ def inject_theme() -> None:
             padding-top: 0.1rem !important;
             padding-right: 0.8rem !important;
             padding-bottom: 1rem !important;
-            padding-left: 0.8rem !important;
+            padding-left: 0.42rem !important;
         }
 
         div[data-testid="stSidebarHeader"] {
@@ -194,42 +194,80 @@ def inject_theme() -> None:
         }
 
         /* Topbar */
-        .element-container:has(.topbar-inline-card) {
-            margin-top: -0.35rem !important;
-            margin-bottom: 0 !important;
+        .topbar-host,
+        .topbar-role-marker,
+        .topbar-bell-marker,
+        .topbar-profile-marker,
+        .topbar-spacer {
+            display: none !important;
         }
 
-        .topbar-inline-card {
-            background: #ffffff;
-            border-bottom: 1px solid #e6ebf3;
-            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-            padding: 0.12rem 0.95rem 0.4rem 0.95rem;
-            margin: 0 -1.5rem 0.6rem -1.5rem;
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) {
+            background: #ffffff !important;
+            border-bottom: 1px solid #e6ebf3 !important;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+            margin: 0 -1.5rem 1.15rem -1.5rem !important;
+            padding: 0.62rem 1.5rem !important;
+            position: sticky;
+            top: 0;
+            z-index: 40;
         }
 
-        .topbar-role-wrap div[data-testid="stSelectbox"] {
-            width: 190px !important;
-            min-width: 190px !important;
-            max-width: 190px !important;
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) > div[data-testid="element-container"] {
+            margin: 0 !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) > div[data-testid="element-container"]:has(.topbar-host) {
+            display: none !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="stHorizontalBlock"] {
+            align-items: center !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"] {
+            min-width: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: flex-end !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:first-child {
+            justify-content: flex-start !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="element-container"]:has(.topbar-role-marker),
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="element-container"]:has(.topbar-bell-marker),
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="element-container"]:has(.topbar-profile-marker) {
+            display: none !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker) div[data-testid="stSelectbox"] {
+            width: 214px !important;
+            min-width: 214px !important;
+            max-width: 214px !important;
             margin-left: auto !important;
         }
 
-        .topbar-role-wrap div[data-testid="stSelectbox"] > div[data-baseweb="select"] {
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker) div[data-baseweb="select"] {
             min-height: 40px !important;
             height: 40px !important;
             border-radius: 12px !important;
             border: 1px solid #dbe4f0 !important;
             background: #ffffff !important;
-            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
+            box-shadow: none !important;
         }
 
-        .topbar-role-wrap div[data-testid="stSelectbox"] div[role="button"] {
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker) div[role="button"] {
             font-size: 14px !important;
             font-weight: 600 !important;
             color: #172033 !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
         }
 
-        div[role="listbox"] {
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[role="listbox"] {
             border-radius: 14px !important;
             border: 1px solid #e3e9f2 !important;
             box-shadow: 0 8px 20px rgba(16, 24, 40, 0.12) !important;
@@ -237,7 +275,7 @@ def inject_theme() -> None:
             background: #ffffff !important;
         }
 
-        div[role="option"] {
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[role="option"] {
             border-radius: 10px !important;
             min-height: 40px !important;
             font-size: 14px !important;
@@ -246,19 +284,86 @@ def inject_theme() -> None:
             padding: 8px 12px !important;
         }
 
-        div[role="option"][aria-selected="true"] {
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[role="option"][aria-selected="true"] {
             background: #edf3ff !important;
             color: #0b2f6b !important;
         }
 
-        div[role="option"]:hover {
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[role="option"]:hover {
             background: #f5f8fc !important;
         }
 
-        div[data-testid="stPopover"] > div > button {
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="stPopover"] > div > button {
             min-height: 40px !important;
             height: 40px !important;
             border-radius: 12px !important;
+            border: 1px solid #dbe4f0 !important;
+            background: #ffffff !important;
+            box-shadow: none !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-bell-marker),
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) {
+            padding-left: 0.8rem !important;
+            border-left: 1px solid #edf1f5 !important; margin-left: 0.18rem !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-bell-marker) div[data-testid="stPopover"] > div > button {
+            width: 58px !important;
+            min-width: 58px !important;
+            padding: 0 !important;
+            justify-content: center !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) div[data-testid="stPopover"] > div > button {
+            min-width: 206px !important;
+            max-width: 206px !important;
+            padding: 0 1rem !important;
+            justify-content: flex-start !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"] > div[data-testid="stVerticalBlock"] {
+            gap: 0 !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"] [data-testid="element-container"] {
+            margin: 0 !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"] [data-testid="stSelectbox"],
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"] [data-testid="stPopover"] {
+            margin-top: 0 !important;
+            margin-bottom: 0 !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker) {
+            padding-right: 0.1rem !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-bell-marker) div[data-testid="stPopover"] > div > button {
+            font-size: 16px !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) div[data-testid="stPopover"] > div > button,
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker) div[role="button"] {
+            font-size: 15px !important;
+        }
+
+        @media (max-width: 1366px) {
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) {
+                margin-left: -1rem !important;
+                margin-right: -1rem !important;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
         }
 
         /* Page title */
@@ -613,6 +718,38 @@ def inject_theme() -> None:
             .topbar-inline-card {
                 margin-left: -1rem;
                 margin-right: -1rem;
+            }
+        }
+
+
+        @media (max-width: 1366px) {
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) {
+                margin-left: -1rem !important;
+                margin-right: -1rem !important;
+                padding-left: 1rem !important;
+                padding-right: 1rem !important;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker) div[data-testid="stSelectbox"] {
+                width: 168px !important;
+                min-width: 168px !important;
+                max-width: 168px !important;
+            }
+
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) div[data-testid="stPopover"] > div > button {
+                min-width: 160px !important;
+                max-width: 160px !important;
+            }
+        }
+
+        @media (max-width: 768px) {
+            div[data-testid="stVerticalBlock"]:has(.topbar-host) {
+                margin-left: -0.8rem !important;
+                margin-right: -0.8rem !important;
+                padding-left: 0.8rem !important;
+                padding-right: 0.8rem !important;
             }
         }
         </style>
