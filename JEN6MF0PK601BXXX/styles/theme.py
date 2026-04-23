@@ -227,7 +227,7 @@ def inject_theme() -> None:
             flex-wrap: wrap !important;
             align-items: center !important;
             justify-content: flex-end !important;
-            gap: 0.7rem !important;
+            gap: 0.85rem !important;
             min-height: 36px !important;
             margin-top: 0 !important;
             margin-bottom: 0 !important;
@@ -324,14 +324,14 @@ def inject_theme() -> None:
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-bell-marker) div[data-testid="stPopover"] > div > button {
-            width: 72px !important;
-            min-width: 72px !important;
-            padding: 0 0.45rem !important;
+            width: 88px !important;
+            min-width: 88px !important;
+            padding: 0 0.7rem !important;
             justify-content: center !important;
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) {
-            margin-left: 0.32rem !important;
+            margin-left: auto !important;
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) div[data-testid="stPopover"] > div > button {

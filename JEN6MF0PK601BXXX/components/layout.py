@@ -109,7 +109,7 @@ def render_topbar(
 
     with st.container():
         st.markdown('<div class="topbar-host"></div>', unsafe_allow_html=True)
-        spacer_col, role_col, bell_col, profile_col = st.columns([7.15, 2.15, 0.72, 1.98], gap="small", vertical_alignment="center")
+        spacer_col, role_col, bell_col, profile_col = st.columns([7.0, 2.15, 0.9, 1.95], gap="small", vertical_alignment="center")
 
         with spacer_col:
             st.markdown('<div class="topbar-spacer"></div>', unsafe_allow_html=True)
