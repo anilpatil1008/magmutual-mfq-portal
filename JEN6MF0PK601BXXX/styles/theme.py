@@ -657,7 +657,7 @@ def inject_theme() -> None:
         }
 
         .claims-table-shell .table-head {
-            color: #6f7d93;
+            color: #64748b;
             font-size: 12px;
             font-weight: 700;
             letter-spacing: 0.02em;
