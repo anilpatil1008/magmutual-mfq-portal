@@ -227,7 +227,7 @@ def inject_theme() -> None:
             flex-wrap: wrap !important;
             align-items: center !important;
             justify-content: flex-end !important;
-            gap: 0.55rem !important;
+            gap: 0.7rem !important;
             min-height: 36px !important;
             margin-top: 0 !important;
             margin-bottom: 0 !important;
@@ -255,9 +255,9 @@ def inject_theme() -> None:
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker) div[data-testid="stSelectbox"] {
-            width: clamp(186px, 20vw, 234px) !important;
-            min-width: 186px !important;
-            max-width: 234px !important;
+            width: clamp(204px, 21vw, 252px) !important;
+            min-width: 204px !important;
+            max-width: 252px !important;
             margin-left: auto !important;
         }
 
@@ -317,16 +317,21 @@ def inject_theme() -> None:
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-bell-marker),
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) {
             flex: 0 0 auto !important;
+            flex-shrink: 0 !important;
             min-width: fit-content !important;
             padding-left: 0.65rem !important;
             border-left: 1px solid #edf1f5 !important; margin-left: 0.18rem !important;
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-bell-marker) div[data-testid="stPopover"] > div > button {
-            width: 58px !important;
-            min-width: 58px !important;
-            padding: 0 !important;
+            width: 72px !important;
+            min-width: 72px !important;
+            padding: 0 0.45rem !important;
             justify-content: center !important;
+        }
+
+        div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) {
+            margin-left: 0.32rem !important;
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) div[data-testid="stPopover"] > div > button {
@@ -808,9 +813,9 @@ def inject_theme() -> None:
 
         @media (max-width: 1200px) {
             div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-role-marker) div[data-testid="stSelectbox"] {
-                width: 168px !important;
-                min-width: 168px !important;
-                max-width: 168px !important;
+                width: 182px !important;
+                min-width: 182px !important;
+                max-width: 182px !important;
             }
 
             div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"]:has(.topbar-profile-marker) div[data-testid="stPopover"] > div > button {
