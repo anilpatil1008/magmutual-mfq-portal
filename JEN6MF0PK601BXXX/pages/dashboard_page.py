@@ -22,7 +22,7 @@ METRIC_CONFIG = [
 
 def render_dashboard(display_name: str, user_id: str) -> None:
     st.markdown('<div class="dashboard-header-wrap">', unsafe_allow_html=True)
-    header_col, action_col = st.columns([5.2, 2.35], vertical_alignment="bottom")
+    header_col, action_col = st.columns([5.2, 2.35], vertical_alignment="top")
 
     with header_col:
         render_page_title(
@@ -32,7 +32,7 @@ def render_dashboard(display_name: str, user_id: str) -> None:
 
     with action_col:
         st.markdown('<div class="dashboard-toolbar">', unsafe_allow_html=True)
-        action_left, action_right = st.columns([1.0, 1.28], vertical_alignment="bottom")
+        action_left, action_right = st.columns([1.0, 1.28], vertical_alignment="top")
         with action_left:
             st.markdown('<div class="dashboard-action-btn dashboard-filter-btn">', unsafe_allow_html=True)
             with st.popover("Filters", use_container_width=True):

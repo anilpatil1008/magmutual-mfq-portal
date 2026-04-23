@@ -206,8 +206,8 @@ def inject_theme() -> None:
             background: #ffffff !important;
             border-bottom: 1px solid #e6ebf3 !important;
             box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04) !important;
-            margin: 0 -1.5rem 1.15rem -1.5rem !important;
-            padding: 0.62rem 1.5rem !important;
+            margin: 0 -1.5rem 0.45rem -1.5rem !important;
+            padding: 0.18rem 1.5rem !important;
             position: sticky;
             top: 0;
             z-index: 40;
@@ -223,6 +223,7 @@ def inject_theme() -> None:
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="stHorizontalBlock"] {
             align-items: center !important;
+            min-height: 40px !important;
         }
 
         div[data-testid="stVerticalBlock"]:has(.topbar-host) div[data-testid="column"] {
@@ -601,11 +602,12 @@ def inject_theme() -> None:
         }
 
         .dashboard-header-wrap {
-            margin-bottom: 0.55rem;
+            margin-top: 0 !important;
+            margin-bottom: 0.35rem;
         }
 
         .dashboard-toolbar {
-            padding-top: 0.15rem;
+            padding-top: 0 !important;
         }
 
         .dashboard-action-btn {
