@@ -20,7 +20,8 @@ METRIC_CONFIG = [
 
 
 def render_dashboard(display_name: str, user_id: str) -> None:
-    header_col, action_col = st.columns([5.2, 2.5], vertical_alignment="bottom")
+    st.markdown('<div class="dashboard-header-wrap">', unsafe_allow_html=True)
+    header_col, action_col = st.columns([4.9, 2.6], vertical_alignment="bottom")
 
     with header_col:
         render_page_title(
@@ -29,10 +30,11 @@ def render_dashboard(display_name: str, user_id: str) -> None:
         )
 
     with action_col:
-        action_left, action_right = st.columns([1.05, 1.35], vertical_alignment="bottom")
+        st.markdown('<div class="dashboard-toolbar">', unsafe_allow_html=True)
+        action_left, action_right = st.columns([1.0, 1.38], vertical_alignment="bottom")
         with action_left:
             st.markdown('<div class="dashboard-action-btn dashboard-filter-btn">', unsafe_allow_html=True)
-            with st.popover("Filters  ▾", use_container_width=True):
+            with st.popover("◉ Filters  ▾", use_container_width=True):
                 st.markdown("### Filter claims")
                 st.multiselect(
                     "Status",
@@ -49,12 +51,21 @@ def render_dashboard(display_name: str, user_id: str) -> None:
             st.markdown('<div class="dashboard-action-btn dashboard-generate-btn">', unsafe_allow_html=True)
             st.button("Generate Report", use_container_width=True, key="dashboard_generate_report_btn", type="primary")
             st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     metrics_df = get_dashboard_metrics()
     if not metrics_df.empty:
-        metric_row = st.columns(5, gap="medium")
         values = metrics_df.iloc[0]
-        for column, (label, field, subtitle, icon) in zip(metric_row, METRIC_CONFIG):
+        metric_row_1 = st.columns(3, gap="medium")
+        first_group = METRIC_CONFIG[:3]
+        for column, (label, field, subtitle, icon) in zip(metric_row_1, first_group):
+            with column:
+                render_metric_card(label, int(values[field]), subtitle, icon)
+
+        metric_row_2 = st.columns(2, gap="medium")
+        second_group = METRIC_CONFIG[3:]
+        for column, (label, field, subtitle, icon) in zip(metric_row_2, second_group):
             with column:
                 render_metric_card(label, int(values[field]), subtitle, icon)
 

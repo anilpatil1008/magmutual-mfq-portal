@@ -7,11 +7,9 @@ from services.claim_service import ClaimService
 
 
 def render_claims(user_id: str) -> None:
-    st.markdown("""<div class="page-title">Claims</div>""", unsafe_allow_html=True)
-    st.markdown(
-        """<div class="page-subtitle">Select a claim from the work queue to review details.</div>""",
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="claims-page-wrap">', unsafe_allow_html=True)
+    st.markdown("""<div class="page-header-block"><div class="page-title">Claims</div><div class="page-subtitle">Select a claim from the work queue to review details.</div></div>""", unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
 
     claim_service = ClaimService()
     search_text = st.session_state.get("claims_page_search", "")

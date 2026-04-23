@@ -106,12 +106,12 @@ def render_topbar(
     st.markdown('<div class="topbar-inline-card">', unsafe_allow_html=True)
 
     spacer_col, role_col, bell_col, profile_col = st.columns(
-        [7.0, 1.6, 0.55, 0.65],
+        [7.6, 1.9, 0.7, 0.9],
         vertical_alignment="center",
     )
 
     with spacer_col:
-        st.markdown("<div></div>", unsafe_allow_html=True)
+        st.empty()
 
     with role_col:
         st.markdown('<div class="topbar-role-wrap">', unsafe_allow_html=True)

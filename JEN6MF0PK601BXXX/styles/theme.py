@@ -194,18 +194,23 @@ def inject_theme() -> None:
         }
 
         /* Topbar */
+        .element-container:has(.topbar-inline-card) {
+            margin-top: -0.35rem !important;
+            margin-bottom: 0 !important;
+        }
+
         .topbar-inline-card {
             background: #ffffff;
             border-bottom: 1px solid #e6ebf3;
             box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
-            padding: 0.75rem 0.75rem;
-            margin: 0 -1.5rem 1rem -1.5rem;
+            padding: 0.12rem 0.95rem 0.4rem 0.95rem;
+            margin: 0 -1.5rem 0.6rem -1.5rem;
         }
 
         .topbar-role-wrap div[data-testid="stSelectbox"] {
-            width: 116px !important;
-            min-width: 116px !important;
-            max-width: 116px !important;
+            width: 190px !important;
+            min-width: 190px !important;
+            max-width: 190px !important;
             margin-left: auto !important;
         }
 
@@ -262,13 +267,13 @@ def inject_theme() -> None:
             line-height: 1.1;
             font-weight: 800;
             color: #13213d;
-            margin: 0.3rem 0 0.3rem 0;
+            margin: 0 0 0.25rem 0;
         }
 
         .page-subtitle {
             color: #6f7d93;
             font-size: 1rem;
-            margin-bottom: 1.2rem;
+            margin-bottom: 0;
         }
 
         /* Metric cards */
@@ -451,6 +456,152 @@ def inject_theme() -> None:
             background: #fff5f5 !important;
             border-color: #e98b83 !important;
             color: #c81e1e !important;
+        }
+
+
+        .topbar-spacer {
+            min-height: 1px;
+        }
+
+        .topbar-inline-card [data-testid="column"] {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+        }
+
+        .topbar-inline-card [data-testid="column"]:first-child {
+            justify-content: flex-start;
+        }
+
+        .topbar-bell-wrap,
+        .topbar-profile-wrap {
+            width: 100%;
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .topbar-bell-wrap div[data-testid="stPopover"] > div > button {
+            min-width: 64px !important;
+            padding: 0 0.8rem !important;
+        }
+
+        .topbar-profile-wrap div[data-testid="stPopover"] > div > button {
+            min-width: 150px !important;
+            padding: 0 0.85rem !important;
+        }
+
+        .page-header-block {
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        .dashboard-header-wrap {
+            margin-bottom: 0.55rem;
+        }
+
+        .dashboard-toolbar {
+            padding-top: 0.15rem;
+        }
+
+        .dashboard-action-btn {
+            width: 100%;
+        }
+
+        .dashboard-action-btn .stPopover,
+        .dashboard-action-btn .stButton {
+            width: 100%;
+        }
+
+        .dashboard-action-btn .stPopover > div,
+        .dashboard-action-btn .stButton > div {
+            width: 100%;
+        }
+
+        .dashboard-action-btn button {
+            width: 100% !important;
+            white-space: nowrap !important;
+        }
+
+        .claims-page-wrap {
+            margin-bottom: 0.35rem;
+        }
+
+        div[data-testid="stVerticalBlockBorderWrapper"] [data-testid="column"] {
+            min-width: 0;
+        }
+
+        @media (max-width: 1024px) {
+            .block-container {
+                padding-left: 0.95rem !important;
+                padding-right: 0.95rem !important;
+            }
+
+            .topbar-inline-card {
+                padding-top: 0.08rem;
+                padding-bottom: 0.45rem;
+            }
+
+            .topbar-role-wrap div[data-testid="stSelectbox"] {
+                width: 170px !important;
+                min-width: 170px !important;
+                max-width: 170px !important;
+            }
+
+            .page-title {
+                font-size: 1.95rem;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .block-container {
+                padding-left: 0.8rem !important;
+                padding-right: 0.8rem !important;
+            }
+
+            .topbar-inline-card {
+                margin-left: -0.8rem;
+                margin-right: -0.8rem;
+                padding-left: 0.8rem;
+                padding-right: 0.8rem;
+            }
+
+            .page-title {
+                font-size: 1.7rem;
+            }
+
+            .page-subtitle {
+                font-size: 0.95rem;
+            }
+
+            .metric-card {
+                min-height: 132px;
+                padding: 1rem 1rem;
+            }
+
+            .metric-value {
+                font-size: 1.75rem;
+            }
+
+            div[data-testid="stVerticalBlockBorderWrapper"] {
+                padding-left: 0.7rem !important;
+                padding-right: 0.7rem !important;
+            }
+
+            div[data-testid="stVerticalBlockBorderWrapper"] .table-head {
+                font-size: 11px !important;
+            }
+
+            .claim-person-name,
+            .claim-file-no,
+            .table-value,
+            .chip {
+                font-size: 12px !important;
+            }
+
+            .claim-subtext {
+                font-size: 11px !important;
+                line-height: 1.25 !important;
+            }
         }
 
         @media (max-width: 1366px) {
