@@ -21,6 +21,7 @@ METRIC_CONFIG = [
 
 
 def render_dashboard(display_name: str, user_id: str) -> None:
+    st.markdown('<div class="dashboard-page-wrap">', unsafe_allow_html=True)
     st.markdown('<div class="dashboard-header-wrap">', unsafe_allow_html=True)
     header_col, action_col = st.columns([5.2, 2.35], vertical_alignment="top")
 
@@ -104,3 +105,4 @@ def render_dashboard(display_name: str, user_id: str) -> None:
         subtitle="Latest claims submitted for assessment.",
         search_key="claims_table_inline_search",
     )
+    st.markdown("</div>", unsafe_allow_html=True)

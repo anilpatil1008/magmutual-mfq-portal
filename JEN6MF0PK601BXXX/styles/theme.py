@@ -868,6 +868,15 @@ def inject_theme() -> None:
             margin-bottom: 0.35rem;
         }
 
+        div[data-testid="stVerticalBlock"]:has(.dashboard-page-wrap) {
+            background: #f6f7fb !important;
+            min-height: calc(100vh - 84px);
+        }
+
+        .dashboard-page-wrap {
+            display: none !important;
+        }
+
         .dashboard-toolbar {
             padding-top: 0 !important;
         }
