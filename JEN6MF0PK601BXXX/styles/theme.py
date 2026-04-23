@@ -11,6 +11,10 @@ def inject_theme() -> None:
             font-family: Inter, "Segoe UI", Arial, sans-serif;
         }
 
+        section.main {
+            background: #f3f5f9 !important;
+        }
+
         header[data-testid="stHeader"] {
             background: transparent !important;
             height: 0 !important;
@@ -590,6 +594,186 @@ def inject_theme() -> None:
 
         div[data-testid="stVerticalBlockBorderWrapper"] > div {
             background: transparent !important;
+        }
+
+        /* Recent claims table card */
+        div[data-testid="stVerticalBlockBorderWrapper"]:has(.claims-table-shell) {
+            background: #ffffff !important;
+            border: 1px solid #e2e8f0 !important;
+            border-radius: 16px !important;
+            box-shadow: 0 2px 8px rgba(16, 24, 40, 0.05) !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+        }
+
+        .claims-table-shell {
+            padding: 0 !important;
+        }
+
+        .claims-table-shell .section-title-sm {
+            font-size: 2rem;
+            margin: 0;
+            line-height: 1.2;
+            padding: 1.35rem 1.55rem 0 1.55rem;
+        }
+
+        .claims-table-shell .section-subtitle {
+            margin-top: 0.25rem;
+            margin-bottom: 0;
+            padding: 0 1.55rem 1.05rem 1.55rem;
+        }
+
+        .claims-table-shell .stTextInput {
+            display: flex;
+            justify-content: flex-end;
+            padding: 1.1rem 1.55rem 0.85rem 0.6rem;
+        }
+
+        .claims-table-shell .stTextInput > div {
+            width: min(100%, 340px);
+        }
+
+        .claims-table-shell .stTextInput input {
+            height: 40px !important;
+            border-radius: 10px !important;
+            border: 1px solid #d7deea !important;
+            background: #f9fbff !important;
+            box-shadow: none !important;
+            padding-left: 0.9rem !important;
+            color: #314158 !important;
+        }
+
+        .table-divider {
+            width: 100%;
+            border-top: 1px solid #e9edf3;
+        }
+
+        .table-divider-tight {
+            margin-top: 0;
+        }
+
+        .table-divider-row {
+            margin: 0;
+        }
+
+        .claims-table-shell .table-head {
+            color: #6f7d93;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            line-height: 1.25;
+            padding: 0.75rem 0;
+        }
+
+        .claims-table-shell .table-head-right {
+            text-align: right;
+            padding-right: 0.35rem;
+        }
+
+        .claims-table-shell div[data-testid="stHorizontalBlock"] {
+            gap: 0.35rem;
+        }
+
+        .claim-file-no,
+        .claim-person-name,
+        .table-value {
+            color: #13213d;
+            font-size: 16px;
+            line-height: 1.35;
+        }
+
+        .claim-file-no,
+        .claim-person-wrap,
+        .claims-table-shell .badge,
+        .confidence-chip,
+        .table-action-inline {
+            padding: 0.45rem 0;
+        }
+
+        .claim-file-no {
+            font-weight: 600;
+        }
+
+        .claim-person-name {
+            font-weight: 500;
+        }
+
+        .claim-subtext {
+            color: #6f7d93;
+            font-size: 13px;
+            line-height: 1.35;
+            margin-top: 0.1rem;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            border: 1px solid transparent;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1;
+            padding: 0.3rem 0.62rem;
+            white-space: nowrap;
+        }
+
+        .badge-blue { background: #dbeafe; border-color: #bfd7ff; color: #0d4fd8; }
+        .badge-indigo { background: #e6e9ff; border-color: #cdd3ff; color: #3747b8; }
+        .badge-green { background: #dff7ea; border-color: #beeacd; color: #117a4c; }
+        .badge-red { background: #fde8ea; border-color: #f9c9cf; color: #bf1d3d; }
+        .badge-slate { background: #edf1f7; border-color: #dce3ee; color: #52627a; }
+
+        .badge-red-soft { background: #fde8ea; border-color: #f8c7ce; color: #c41e3a; }
+        .badge-amber { background: #fff0df; border-color: #f8d5a8; color: #b86214; }
+        .badge-blue-soft { background: #e6f0ff; border-color: #c7daff; color: #2158c9; }
+
+        .confidence-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.28rem;
+            border-radius: 999px;
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1;
+            padding: 0.33rem 0.7rem;
+        }
+
+        .confidence-dot {
+            font-size: 16px;
+            line-height: 0;
+        }
+
+        .confidence-green { background: #daf3e6; color: #0c8b58; }
+        .confidence-amber { background: #f9e7b4; color: #b46813; }
+        .confidence-red { background: #f9d8dc; color: #c72b40; }
+
+        .table-action-inline .stButton > div {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .table-action-inline .stButton > div > button {
+            min-height: 32px !important;
+            height: 32px !important;
+            border-radius: 8px !important;
+            padding: 0 0.25rem !important;
+            border: 1px solid transparent !important;
+            background: transparent !important;
+            color: #0b2f6b !important;
+            font-size: 14px !important;
+            font-weight: 600 !important;
+            justify-content: flex-end !important;
+        }
+
+        .table-action-inline .stButton > div > button:hover {
+            color: #123c83 !important;
+            background: #f5f8ff !important;
+        }
+
+        .table-regenerate-btn .stButton > div > button {
+            min-height: 36px !important;
+            height: 36px !important;
         }
 
         div[data-testid="stTextInput"] input {
