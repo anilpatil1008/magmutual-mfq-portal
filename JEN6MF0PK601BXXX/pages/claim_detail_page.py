@@ -90,7 +90,7 @@ def _inject_review_styles() -> None:
         }
         .review-v2-breadcrumb-sep { color: #98a2b3; }
         .review-v2-breadcrumb-file { color: #13213d; font-weight: 700; }
-        .review-v2-panel {
+        .review-v2-card {
             background: #ffffff;
             border: 1px solid #dbe4f0;
             border-radius: 16px;
@@ -329,7 +329,7 @@ def _render_claim_header(row, role_key: str) -> None:
 
 
 def _render_confidence(section_conf_df, overall_score: float) -> None:
-    st.markdown('<div class="review-v2-panel review-v2-confidence" style="padding:1rem 1rem .9rem;">', unsafe_allow_html=True)
+    st.markdown('<div class="review-v2-card review-v2-confidence" style="padding:1rem 1rem .9rem;">', unsafe_allow_html=True)
     st.markdown(
         f"""
         <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center;">
@@ -385,14 +385,14 @@ def _render_confidence(section_conf_df, overall_score: float) -> None:
 
 
 def _render_synopsis_and_navigation(row, sections_df, score_map) -> None:
-    st.markdown('<div class="review-v2-panel review-v2-synopsis" style="padding:1rem;">', unsafe_allow_html=True)
+    st.markdown('<div class="review-v2-card review-v2-synopsis" style="padding:1rem;">', unsafe_allow_html=True)
     st.markdown("<h4>⚠ Claim Synopsis</h4>", unsafe_allow_html=True)
     st.markdown(f"<div class='block-title'>SYNOPSIS</div><div class='block-value'>{_safe(row['BRIEF_SYNOPSIS'])}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='block-title'>ALLEGED INJURY</div><div class='block-value'>{_safe(row['ALLEGED_INJURY_TERMS'])}</div>", unsafe_allow_html=True)
     st.markdown(f"<div class='block-title'>ALLEGATIONS</div><div class='block-value'>{_safe(row['ALLEGATION_SUMMARY'])}</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    st.markdown('<div class="review-v2-panel" style="padding:1rem;margin-top:.75rem;">', unsafe_allow_html=True)
+    st.markdown('<div class="review-v2-card" style="padding:1rem;margin-top:.75rem;">', unsafe_allow_html=True)
     st.markdown("<h4 style='font-size:28px;'>Sections</h4>", unsafe_allow_html=True)
     if "selected_mfq_section" not in st.session_state and not sections_df.empty:
         st.session_state.selected_mfq_section = str(sections_df.iloc[0]["SECTION_KEY"])
@@ -471,7 +471,7 @@ def _render_question(question, answer, suffix: str) -> None:
 
 
 def _render_questionnaire(sections_df, answers_map, selected_key: str) -> None:
-    st.markdown('<div class="review-v2-panel review-v2-eval">', unsafe_allow_html=True)
+    st.markdown('<div class="review-v2-card review-v2-eval">', unsafe_allow_html=True)
     st.markdown("<div class='review-v2-eval-head'><h4>Section III: Detailed Case Evaluation</h4></div>", unsafe_allow_html=True)
     for section_idx, (_, section) in enumerate(sections_df.iterrows()):
         section_key = str(section["SECTION_KEY"])
@@ -499,7 +499,7 @@ def _render_tabbed_content(row, claim_id: str, defendant_id: str) -> None:
     st.markdown("<div style='height:.55rem;'></div>", unsafe_allow_html=True)
     tab_objects = st.tabs(REVIEW_TABS)
     with tab_objects[0]:
-        st.markdown('<div class="review-v2-panel" style="margin-top:.85rem;padding:1rem 1.05rem;">', unsafe_allow_html=True)
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem 1.05rem;">', unsafe_allow_html=True)
         st.markdown("<div class='review-v2-title'>Medical Faculty Questionnaire</div>", unsafe_allow_html=True)
         st.markdown("<div class='review-v2-subtitle'>Complete evaluation based on accepted medical practice standards.</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
@@ -523,33 +523,33 @@ def _render_tabbed_content(row, claim_id: str, defendant_id: str) -> None:
     summary_map = {r["SUMMARY_TYPE"]: r["SUMMARY_TEXT"] for _, r in summaries_df.iterrows()}
 
     with tab_objects[1]:
-        st.markdown('<div class="review-v2-panel" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("Records Summary")
         st.write(summary_map.get("RECORDS_SUMMARY", "No records summary available"))
         st.markdown("</div>", unsafe_allow_html=True)
     with tab_objects[2]:
-        st.markdown('<div class="review-v2-panel" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("MedCron")
         st.write(summary_map.get("MEDCRON", "No MedCron summary available"))
         st.markdown("</div>", unsafe_allow_html=True)
     with tab_objects[3]:
-        st.markdown('<div class="review-v2-panel" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("Legal Memo")
         st.write(summary_map.get("LEGAL_MEMO", "No legal memo summary available"))
         st.markdown("</div>", unsafe_allow_html=True)
     with tab_objects[4]:
-        st.markdown('<div class="review-v2-panel" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("Enquiries")
         st.text_area("Ask a role-safe question", key="claim_detail_enquiry")
         st.button("Ask", key="claim_detail_enquiry_btn")
         st.markdown("</div>", unsafe_allow_html=True)
     with tab_objects[5]:
-        st.markdown('<div class="review-v2-panel" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("AI Assist")
         st.write("Use this tab for guided AI analysis and evidence lookup.")
         st.markdown("</div>", unsafe_allow_html=True)
     with tab_objects[6]:
-        st.markdown('<div class="review-v2-panel" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("Documents")
         st.write("Add document viewer and PDF download links here.")
         st.markdown("</div>", unsafe_allow_html=True)
