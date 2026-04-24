@@ -288,13 +288,7 @@ def _render_claim_header(row, role_key: str) -> None:
         left, right = st.columns([5, 2])
         left.markdown(
             f"""
-            <div class='review-v2-title-row'>
-              <div class='review-v2-head'>
-                {_safe(row['PATIENT_NAME'])} <span class='vs'>vs</span> {_safe(row['DEFENDANT_NAME'])}
-              </div>
-                {_status_chip(row['STATUS'])}
-                {_priority_chip(row['PRIORITY'])}
-            </div>
+            <div class='review-v2-title-row'><div class='review-v2-head'>{_safe(row['PATIENT_NAME'])} <span class='vs'>vs</span> {_safe(row['DEFENDANT_NAME'])}</div>{_status_chip(row['STATUS'])}{_priority_chip(row['PRIORITY'])}</div>
             """,
             unsafe_allow_html=True,
         )
