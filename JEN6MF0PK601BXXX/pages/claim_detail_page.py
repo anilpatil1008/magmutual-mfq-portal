@@ -109,7 +109,7 @@ def _inject_review_styles() -> None:
         .review-v2-title-row {
             display: flex;
             align-items: center;
-            gap: .55rem;
+            gap: 0;
             flex-wrap: wrap;
         }
         .review-v2-header-actions { display: flex; justify-content: flex-end; gap: .5rem; }
@@ -134,6 +134,9 @@ def _inject_review_styles() -> None:
             border-radius: 7px;
             padding: .17rem .48rem;
             margin-left: 0;
+        }
+        .review-v2-chip + .review-v2-chip {
+            margin-left: .35rem;
         }
         .review-v2-meta-grid {
             display: grid;
