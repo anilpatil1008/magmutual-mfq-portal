@@ -1025,6 +1025,239 @@ def inject_theme() -> None:
                 padding-right: 0.8rem !important;
             }
         }
+
+        /* Claim detail / MFQ review */
+        .claim-main-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #13213d;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.45rem;
+        }
+
+        .vs-text {
+            color: #5f6b80;
+            font-weight: 600;
+            font-size: 1.55rem;
+        }
+
+        .inline-chip {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 8px;
+            padding: 0.25rem 0.58rem;
+            font-size: 12px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+        div[data-testid="stHorizontalBlock"]:has(input[id*="claim_detail_tab"]) {
+            border-bottom: 1px solid #e4eaf3;
+            margin-top: 0.5rem;
+        }
+
+        div[data-testid="stRadio"]:has(input[id*="claim_detail_tab"]) label p {
+            font-weight: 600 !important;
+            color: #344054 !important;
+        }
+
+        div[data-testid="stRadio"]:has(input[id*="claim_detail_tab"]) [role="radiogroup"] {
+            gap: 0 !important;
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        div[data-testid="stRadio"]:has(input[id*="claim_detail_tab"]) [role="radio"] {
+            border-radius: 0 !important;
+            border-bottom: 2px solid transparent !important;
+            min-height: 48px !important;
+            padding: 0.4rem 0.8rem !important;
+        }
+
+        div[data-testid="stRadio"]:has(input[id*="claim_detail_tab"]) [role="radio"][aria-checked="true"] {
+            border-bottom-color: #0b2f6b !important;
+            background: #f8fbff !important;
+        }
+
+        .mfq-title-card {
+            margin-top: 0.9rem;
+        }
+
+        .mfq-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #0f2342;
+            line-height: 1.1;
+        }
+
+        .mfq-subtitle {
+            color: #667085;
+            margin-top: 0.25rem;
+            font-size: 0.95rem;
+        }
+
+        .confidence-card {
+            background: #fffdf6;
+            border-color: #f1d085;
+        }
+
+        .confidence-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 0.8rem;
+        }
+
+        .confidence-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: #1f2937;
+        }
+
+        .confidence-right {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 0.6rem;
+        }
+
+        .confidence-guidance {
+            background: #fff1d6;
+            color: #b54708;
+            border: 1px solid #f0cf9a;
+            border-radius: 999px;
+            padding: 0.3rem 0.7rem;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .confidence-overall {
+            font-weight: 800;
+            font-size: 1.9rem;
+            color: #067647;
+        }
+
+        .section-confidence-box {
+            background: #ffffff;
+            border: 1px solid #ebf0f7;
+            border-radius: 10px;
+            padding: 0.5rem 0.65rem;
+            margin-bottom: 0.45rem;
+        }
+
+        .section-confidence-top {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.5rem;
+            color: #1d2939;
+            font-size: 13px;
+            margin-bottom: 0.2rem;
+            font-weight: 600;
+        }
+
+        .section-confidence-track {
+            width: 100%;
+            border-radius: 999px;
+            background: #edf2f8;
+            height: 6px;
+            overflow: hidden;
+        }
+
+        .section-confidence-fill {
+            height: 100%;
+            border-radius: 999px;
+        }
+
+        .confidence-notes {
+            margin: 0.7rem 0 0 0.7rem;
+            padding: 0;
+            color: #475467;
+            font-size: 13px;
+        }
+
+        .confidence-notes .danger { color: #d92d20; font-weight: 700; }
+        .confidence-notes .warn { color: #b54708; font-weight: 700; }
+
+        .synopsis-title {
+            color: #1f2a44;
+            font-size: 1.45rem;
+            font-weight: 800;
+            margin-bottom: 0.7rem;
+        }
+
+        .section-nav-card .stButton > div > button {
+            justify-content: flex-start !important;
+            margin-bottom: 0.3rem !important;
+            border: 1px solid #d5deeb !important;
+            background: #f8fbff !important;
+            color: #0b2f6b !important;
+        }
+
+        .section-nav-btn { display: none; }
+
+        .eval-shell {
+            padding: 0 !important;
+            overflow: hidden;
+        }
+
+        .eval-header {
+            background: #f8fafc;
+            border-bottom: 1px solid #e4eaf3;
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: #0b2f6b;
+            padding: 1rem 1.2rem;
+        }
+
+        .eval-shell .stButton > div > button {
+            justify-content: space-between !important;
+            background: #f9fbff !important;
+            border: 1px solid #dde5f1 !important;
+            margin: 0.85rem 1rem 0.25rem 1rem !important;
+            color: #0f172a !important;
+        }
+
+        .question-card {
+            border: 1px solid #e4eaf3;
+            border-radius: 12px;
+            background: #ffffff;
+            margin: 0.45rem 1rem 1rem 1rem;
+            padding: 0.8rem 0.85rem;
+            box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04);
+        }
+
+        .score-chip {
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0.2rem 0.5rem;
+            white-space: nowrap;
+        }
+
+        .question-card textarea {
+            background: #f8fafc !important;
+        }
+
+        @media (max-width: 1200px) {
+            .claim-main-title { font-size: 1.6rem; }
+            .mfq-title { font-size: 1.6rem; }
+            .eval-header { font-size: 1.35rem; }
+        }
+
+        @media (max-width: 768px) {
+            .claim-main-title { font-size: 1.3rem; }
+            .vs-text { font-size: 1.1rem; }
+            .confidence-overall { font-size: 1.4rem; }
+            .content-card, .claim-header-card { padding: 0.85rem; }
+            .question-card { margin-left: 0.55rem; margin-right: 0.55rem; }
+        }
         </style>
         """,
         unsafe_allow_html=True,
