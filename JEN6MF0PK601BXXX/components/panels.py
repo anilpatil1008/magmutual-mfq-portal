@@ -70,13 +70,21 @@ def render_claim_header_card(row, role_key: str) -> None:
                 st.success("Claim approved")
                 st.rerun()
 
+    metadata = [
+        ("FILE NUMBER", _safe(row["FILE_NUMBER"])),
+        ("DEFENDANT SPECIALTY", _safe(row["DEFENDANT_SPECIALTY"])),
+        ("DATE REQUESTED", _safe(row["DATE_REQUESTED"])),
+        ("MAGMUTUAL CONTACT", "Sarah Johnson"),
+        ("CONTACT EMAIL", '<a href="mailto:analyst@magmutual.com">analyst@magmutual.com</a>'),
+    ]
+
     st.markdown("""<div class="claim-meta-grid">""", unsafe_allow_html=True)
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.markdown(f"""<div class="claim-meta-item"><div class="claim-meta-label">FILE NUMBER</div><div class="claim-meta-value">{_safe(row['FILE_NUMBER'])}</div></div>""", unsafe_allow_html=True)
-    c2.markdown(f"""<div class="claim-meta-item"><div class="claim-meta-label">DEFENDANT SPECIALTY</div><div class="claim-meta-value">{_safe(row['DEFENDANT_SPECIALTY'])}</div></div>""", unsafe_allow_html=True)
-    c3.markdown(f"""<div class="claim-meta-item"><div class="claim-meta-label">DATE REQUESTED</div><div class="claim-meta-value">{_safe(row['DATE_REQUESTED'])}</div></div>""", unsafe_allow_html=True)
-    c4.markdown("""<div class="claim-meta-item"><div class="claim-meta-label">MAGMUTUAL CONTACT</div><div class="claim-meta-value">Sarah Johnson</div></div>""", unsafe_allow_html=True)
-    c5.markdown("""<div class="claim-meta-item"><div class="claim-meta-label">CONTACT EMAIL</div><div class="claim-meta-value"><a href="mailto:analyst@magmutual.com">analyst@magmutual.com</a></div></div>""", unsafe_allow_html=True)
+    meta_cols = st.columns(len(metadata))
+    for col, (label, value) in zip(meta_cols, metadata):
+        col.markdown(
+            f"""<div class="claim-meta-item"><div class="claim-meta-label">{label}</div><div class="claim-meta-value">{value}</div></div>""",
+            unsafe_allow_html=True,
+        )
     st.markdown("""</div>""", unsafe_allow_html=True)
 
     st.markdown("""</div>""", unsafe_allow_html=True)
@@ -84,13 +92,13 @@ def render_claim_header_card(row, role_key: str) -> None:
 
 def render_claim_tabs() -> str:
     tabs = [
-        "MFQ Form",
-        "Records Summary",
-        "MedCron",
-        "Legal Memo",
-        "Enquiries",
-        "AI Assist",
-        "Documents",
+        "🩺 MFQ Form",
+        "📋 Records Summary",
+        "🕒 MedCron",
+        "🛡️ Legal Memo",
+        "💬 Enquiries",
+        "🤖 AI Assist",
+        "📥 Documents",
     ]
 
     current = st.radio(
@@ -100,4 +108,4 @@ def render_claim_tabs() -> str:
         horizontal=True,
         label_visibility="collapsed",
     )
-    return current
+    return current.replace("🩺 ", "").replace("📋 ", "").replace("🕒 ", "").replace("🛡️ ", "").replace("💬 ", "").replace("🤖 ", "").replace("📥 ", "")

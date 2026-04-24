@@ -1061,11 +1061,10 @@ def inject_theme() -> None:
 
         .claim-header-card {
             margin-top: 0.2rem;
-            padding: 1.4rem 1.6rem 1.25rem 1.6rem;
+            padding: 1.45rem 1.7rem 1.3rem 1.7rem;
             border: 1px solid #dde4ee;
-            border-radius: 14px;
-            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.07);
-            max-width: 1100px;
+            border-radius: 16px;
+            box-shadow: 0 2px 8px rgba(16, 24, 40, 0.06);
         }
 
         .claim-header-top {
@@ -1080,8 +1079,8 @@ def inject_theme() -> None:
         }
 
         .claim-title {
-            font-size: 2.7rem;
-            line-height: 1.08;
+            font-size: 2.8rem;
+            line-height: 1.1;
             font-weight: 800;
             color: #13213d;
             letter-spacing: -0.02em;
@@ -1116,7 +1115,7 @@ def inject_theme() -> None:
         }
 
         .claim-meta-grid {
-            margin-top: 0.45rem;
+            margin-top: 0.7rem;
         }
 
         .claim-meta-item {
@@ -1133,7 +1132,7 @@ def inject_theme() -> None:
 
         .claim-meta-value {
             color: #1f2937;
-            font-size: 1.7rem;
+            font-size: 1.55rem;
             font-weight: 500;
             line-height: 1.25;
         }
@@ -1160,9 +1159,9 @@ def inject_theme() -> None:
             height: 44px !important;
             min-width: 142px !important;
             padding: 0 1.1rem !important;
-            font-size: 17px !important;
+            font-size: 16px !important;
             font-weight: 600 !important;
-            border-radius: 14px !important;
+            border-radius: 10px !important;
         }
 
         div[data-testid="column"]:has(.btn-primary) button {
@@ -1177,9 +1176,15 @@ def inject_theme() -> None:
             color: #ffffff !important;
         }
 
+        .claim-tabs-card {
+            margin-top: 0.8rem;
+            padding: 0 !important;
+            overflow: hidden;
+        }
+
         div[data-testid="stHorizontalBlock"]:has(input[id*="claim_detail_tab"]) {
             border-bottom: 1px solid #e4eaf3;
-            margin-top: 0.5rem;
+            margin-top: 0 !important;
         }
 
         div[data-testid="stRadio"]:has(input[id*="claim_detail_tab"]) label p {
@@ -1197,8 +1202,8 @@ def inject_theme() -> None:
         div[data-testid="stRadio"]:has(input[id*="claim_detail_tab"]) [role="radio"] {
             border-radius: 0 !important;
             border-bottom: 2px solid transparent !important;
-            min-height: 48px !important;
-            padding: 0.4rem 0.8rem !important;
+            min-height: 52px !important;
+            padding: 0.45rem 0.95rem !important;
         }
 
         div[data-testid="stRadio"]:has(input[id*="claim_detail_tab"]) [role="radio"][aria-checked="true"] {
@@ -1207,7 +1212,8 @@ def inject_theme() -> None:
         }
 
         .mfq-title-card {
-            margin-top: 0.9rem;
+            margin-top: 0.95rem;
+            margin-bottom: 0.7rem;
         }
 
         .mfq-title {
@@ -1226,6 +1232,14 @@ def inject_theme() -> None:
         .confidence-card {
             background: #fffdf6;
             border-color: #f1d085;
+        }
+
+        .confidence-warning-box {
+            border: 1px solid #f1d085;
+            border-radius: 10px;
+            background: #fffefb;
+            padding: 0.25rem 0.55rem;
+            margin-top: 0.45rem;
         }
 
         .confidence-header {
@@ -1298,7 +1312,7 @@ def inject_theme() -> None:
         }
 
         .confidence-notes {
-            margin: 0.7rem 0 0 0.7rem;
+            margin: 0.55rem 0 0.5rem 0.7rem;
             padding: 0;
             color: #475467;
             font-size: 13px;
@@ -1309,9 +1323,28 @@ def inject_theme() -> None:
 
         .synopsis-title {
             color: #1f2a44;
-            font-size: 1.45rem;
+            font-size: 1.15rem;
             font-weight: 800;
             margin-bottom: 0.7rem;
+        }
+
+        .synopsis-card {
+            background: #f7fafc;
+        }
+
+        .synopsis-block {
+            color: #344054;
+            font-size: 0.98rem;
+            margin-bottom: 0.8rem;
+            line-height: 1.5;
+        }
+
+        .synopsis-label {
+            color: #475467;
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.2rem;
         }
 
         .section-nav-card .stButton > div > button {
@@ -1320,6 +1353,7 @@ def inject_theme() -> None:
             border: 1px solid #d5deeb !important;
             background: #f8fbff !important;
             color: #0b2f6b !important;
+            font-weight: 700 !important;
         }
 
         .section-nav-btn { display: none; }
@@ -1332,18 +1366,20 @@ def inject_theme() -> None:
         .eval-header {
             background: #f8fafc;
             border-bottom: 1px solid #e4eaf3;
-            font-size: 1.75rem;
+            font-size: 1.1rem;
             font-weight: 800;
             color: #0b2f6b;
-            padding: 1rem 1.2rem;
+            padding: 0.9rem 1.1rem;
         }
 
         .eval-shell .stButton > div > button {
             justify-content: space-between !important;
-            background: #f9fbff !important;
-            border: 1px solid #dde5f1 !important;
+            background: #f8fafc !important;
+            border: 1px solid #dde4ee !important;
             margin: 0.85rem 1rem 0.25rem 1rem !important;
             color: #0f172a !important;
+            font-weight: 700 !important;
+            min-height: 56px !important;
         }
 
         .question-card {

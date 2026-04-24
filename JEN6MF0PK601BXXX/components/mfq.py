@@ -71,7 +71,7 @@ def render_ai_confidence_panel(section_confidence_df, overall_score: float) -> N
     st.markdown(
         f"""
         <div class="confidence-header">
-            <div class="confidence-title">AI Confidence Analysis</div>
+            <div class="confidence-title">✣ AI Confidence Analysis</div>
             <div class="confidence-right">
                 <span class="confidence-guidance">{_safe(guidance)}</span>
                 <span class="confidence-overall">Overall {overall_score:.0f}%</span>
@@ -111,7 +111,7 @@ def render_ai_confidence_panel(section_confidence_df, overall_score: float) -> N
         notes.append(f"<li><span class='warn'>Moderate confidence:</span> {', '.join(moderate_sections)}</li>")
 
     if notes:
-        st.markdown(f"<ul class='confidence-notes'>{''.join(notes)}</ul>", unsafe_allow_html=True)
+        st.markdown(f"<div class='confidence-warning-box'><ul class='confidence-notes'>{''.join(notes)}</ul></div>", unsafe_allow_html=True)
 
     st.markdown("""</div>""", unsafe_allow_html=True)
 
@@ -119,9 +119,9 @@ def render_ai_confidence_panel(section_confidence_df, overall_score: float) -> N
 def render_claim_synopsis_panel(row) -> None:
     st.markdown("""<div class="content-card synopsis-card">""", unsafe_allow_html=True)
     st.markdown("""<div class="synopsis-title">⚠ Claim Synopsis</div>""", unsafe_allow_html=True)
-    st.markdown(f"**SYNOPSIS**  \n{_safe(row['BRIEF_SYNOPSIS'])}")
-    st.markdown(f"**ALLEGED INJURY**  \n{_safe(row['ALLEGED_INJURY_TERMS'])}")
-    st.markdown(f"**ALLEGATIONS**  \n{_safe(row['ALLEGATION_SUMMARY'])}")
+    st.markdown(f"<div class='synopsis-block'><div class='synopsis-label'>SYNOPSIS</div><div>{_safe(row['BRIEF_SYNOPSIS'])}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='synopsis-block'><div class='synopsis-label'>ALLEGED INJURY</div><div>{_safe(row['ALLEGED_INJURY_TERMS'])}</div></div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='synopsis-block'><div class='synopsis-label'>ALLEGATIONS</div><div>{_safe(row['ALLEGATION_SUMMARY'])}</div></div>", unsafe_allow_html=True)
     st.markdown("""</div>""", unsafe_allow_html=True)
 
 
@@ -263,13 +263,15 @@ def render_mfq_questionnaire(
     editable_sections,
     get_questions_by_section_fn,
     user_id: str,
+    show_title: bool = True,
 ) -> None:
-    st.markdown("""<div class="content-card mfq-title-card">""", unsafe_allow_html=True)
-    title_col, action_col = st.columns([5, 1])
-    title_col.markdown("""<div class="mfq-title">Medical Faculty Questionnaire</div>""", unsafe_allow_html=True)
-    title_col.markdown("""<div class="mfq-subtitle">Complete evaluation based on accepted medical practice standards.</div>""", unsafe_allow_html=True)
-    action_col.button("✎  Edit", key="mfq_edit_btn", use_container_width=True)
-    st.markdown("""</div>""", unsafe_allow_html=True)
+    if show_title:
+        st.markdown("""<div class="content-card mfq-title-card">""", unsafe_allow_html=True)
+        title_col, action_col = st.columns([5, 1])
+        title_col.markdown("""<div class="mfq-title">Medical Faculty Questionnaire</div>""", unsafe_allow_html=True)
+        title_col.markdown("""<div class="mfq-subtitle">Complete evaluation based on accepted medical practice standards.</div>""", unsafe_allow_html=True)
+        action_col.button("✎  Edit", key="mfq_edit_btn", use_container_width=True)
+        st.markdown("""</div>""", unsafe_allow_html=True)
 
     if sections_df.empty:
         st.info("No questionnaire sections available")
@@ -280,7 +282,7 @@ def render_mfq_questionnaire(
 
     selected_key = st.session_state.selected_mfq_section
 
-    st.markdown("""<div class='content-card eval-shell'><div class='eval-header'>Detailed Case Evaluation</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class='content-card eval-shell'><div class='eval-header'>Section III: Detailed Case Evaluation</div>""", unsafe_allow_html=True)
     for section_idx, (_, section) in enumerate(sections_df.iterrows()):
         section_key = section["SECTION_KEY"]
         section_name = section["SECTION_NAME"]
