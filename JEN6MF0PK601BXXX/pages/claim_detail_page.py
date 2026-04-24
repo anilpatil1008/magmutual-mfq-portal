@@ -462,9 +462,8 @@ def _render_questionnaire(sections_df, answers_map, selected_key: str) -> None:
 
 
 def _render_tabbed_content(row, claim_id: str, defendant_id: str) -> None:
-    st.markdown('<div class="review-v2-card review-v2-tabs" style="margin-top:.8rem;">', unsafe_allow_html=True)
+    st.markdown('<div class="review-v2-tabs" style="margin-top:.8rem;"></div>', unsafe_allow_html=True)
     tab_objects = st.tabs(REVIEW_TABS)
-    st.markdown("</div>", unsafe_allow_html=True)
     with tab_objects[0]:
         st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem 1.05rem;">', unsafe_allow_html=True)
         st.markdown("<div class='review-v2-title'>Medical Faculty Questionnaire</div>", unsafe_allow_html=True)
