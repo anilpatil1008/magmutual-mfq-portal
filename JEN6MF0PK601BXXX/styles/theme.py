@@ -40,6 +40,10 @@ def inject_theme() -> None:
             padding-top: 0 !important;
         }
 
+        .st-emotion-cache-b1pznn {
+            gap: 0 !important;
+        }
+
         /* Sidebar */
         section[data-testid="stSidebar"] {
             background: #ffffff;
