@@ -15,15 +15,40 @@ def _safe(value) -> str:
     return html.escape(str(value))
 
 
+def _confidence_bucket(score: float) -> str:
+    if score >= 90:
+        return "high"
+    if score >= 80:
+        return "moderate"
+    return "low"
+
+
 def _score_chip(score) -> str:
     value = float(score or 0)
-    if value >= 90:
-        bg, fg = "#e8f7ee", "#067647"
-    elif value >= 80:
-        bg, fg = "#fff1d6", "#b54708"
-    else:
-        bg, fg = "#fde7e7", "#d92d20"
-    return f"<span class='score-chip' style='background:{bg};color:{fg};'>{value:.0f}%</span>"
+    bucket = _confidence_bucket(value)
+    colors = {
+        "high": ("#e8f7ee", "#067647"),
+        "moderate": ("#fff1d6", "#b54708"),
+        "low": ("#fde7e7", "#d92d20"),
+    }
+    bg, fg = colors[bucket]
+    return f"<span class='score-chip' style='background:{bg};color:{fg};'>✣ {value:.0f}%</span>"
+
+
+def _confidence_bar(section_name: str, score: float) -> str:
+    bucket = _confidence_bucket(score)
+    bar_color = {"high": "#12b76a", "moderate": "#f79009", "low": "#f04438"}[bucket]
+    return f"""
+    <div class='section-confidence-box'>
+        <div class='section-confidence-top'>
+            <span>{_safe(section_name)}</span>
+            <span class='section-confidence-score'>{score:.0f}%</span>
+        </div>
+        <div class='section-confidence-track'>
+            <div class='section-confidence-fill' style='width:{score:.0f}%;background:{bar_color};'></div>
+        </div>
+    </div>
+    """
 
 
 def parse_allowed_values(raw_value):
@@ -61,34 +86,66 @@ def render_ai_confidence_panel(section_confidence_df, overall_score: float) -> N
         st.markdown("""</div>""", unsafe_allow_html=True)
         return
 
+    low_sections = []
+    moderate_sections = []
+
     col1, col2 = st.columns(2)
     rows = list(section_confidence_df.iterrows())
     for idx, (_, row) in enumerate(rows):
         target = col1 if idx % 2 == 0 else col2
+        score = float(row["CONFIDENCE_SCORE"])
+        section_name = str(row["SECTION_KEY"]).replace("_", " ").title()
+
+        if score < 80:
+            low_sections.append(section_name)
+        elif score < 90:
+            moderate_sections.append(section_name)
+
         with target:
-            score = float(row["CONFIDENCE_SCORE"])
-            st.markdown(
-                f"""
-                <div class="section-confidence-box">
-                    <div class="section-confidence-top">
-                        <span>{_safe(str(row['SECTION_KEY']).replace('_', ' ').title())}</span>
-                        <span>{score:.0f}%</span>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.progress(score / 100.0)
+            st.markdown(_confidence_bar(section_name, score), unsafe_allow_html=True)
+
+    notes = []
+    if low_sections:
+        notes.append(f"<li><span class='danger'>Needs review:</span> {', '.join(low_sections)}</li>")
+    if moderate_sections:
+        notes.append(f"<li><span class='warn'>Moderate confidence:</span> {', '.join(moderate_sections)}</li>")
+
+    if notes:
+        st.markdown(f"<ul class='confidence-notes'>{''.join(notes)}</ul>", unsafe_allow_html=True)
 
     st.markdown("""</div>""", unsafe_allow_html=True)
 
 
 def render_claim_synopsis_panel(row) -> None:
     st.markdown("""<div class="content-card synopsis-card">""", unsafe_allow_html=True)
-    st.markdown("""<div class="synopsis-title">Claim Synopsis</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="synopsis-title">⚠ Claim Synopsis</div>""", unsafe_allow_html=True)
     st.markdown(f"**SYNOPSIS**  \n{_safe(row['BRIEF_SYNOPSIS'])}")
     st.markdown(f"**ALLEGED INJURY**  \n{_safe(row['ALLEGED_INJURY_TERMS'])}")
     st.markdown(f"**ALLEGATIONS**  \n{_safe(row['ALLEGATION_SUMMARY'])}")
+    st.markdown("""</div>""", unsafe_allow_html=True)
+
+
+def render_mfq_section_navigation(sections_df, section_conf_df) -> None:
+    scores = {}
+    for _, row in section_conf_df.iterrows():
+        scores[str(row["SECTION_KEY"]).upper()] = float(row["CONFIDENCE_SCORE"])
+
+    st.markdown("""<div class="content-card section-nav-card"><div class="synopsis-title">MFQ Sections</div>""", unsafe_allow_html=True)
+    for _, section in sections_df.iterrows():
+        section_key = str(section["SECTION_KEY"])
+        score = scores.get(section_key.upper())
+        chip = _score_chip(score) if score is not None else ""
+        selected_key = st.session_state.get("selected_mfq_section", str(sections_df.iloc[0]["SECTION_KEY"]))
+        css_class = "section-nav-btn active" if selected_key == section_key else "section-nav-btn"
+        if st.button(
+            f"{section['SECTION_NAME']}",
+            key=f"section_nav_{section_key}",
+            use_container_width=True,
+            help=f"Open {section['SECTION_NAME']}",
+        ):
+            st.session_state.selected_mfq_section = section_key
+            st.rerun()
+        st.markdown(f"<div class='{css_class}'>{chip}</div>", unsafe_allow_html=True)
     st.markdown("""</div>""", unsafe_allow_html=True)
 
 
@@ -107,9 +164,11 @@ def render_single_question(question, answer, claim_id, defendant_id, user_id, is
     answer_type = str(question["ANSWER_TYPE"]).upper()
 
     if answer_type == "RADIO":
-        options = parse_allowed_values(question["ALLOWED_VALUES"])
-        options_display = [""] + options
-        current_index = options_display.index(answer_raw) if answer_raw in options_display else 0
+        allowed = parse_allowed_values(question["ALLOWED_VALUES"])
+        default_options = ["Yes", "No", "Unclear", "Not Applicable"]
+        options = default_options if not allowed else list(dict.fromkeys(default_options + allowed))
+
+        current_index = options.index(answer_raw) if answer_raw in options else 0
 
         radio_key = f"radio_{question['QUESTION_ID']}_{suffix}"
         text_key = f"text_{question['QUESTION_ID']}_{suffix}"
@@ -117,7 +176,7 @@ def render_single_question(question, answer, claim_id, defendant_id, user_id, is
 
         selected = st.radio(
             f"Answer {question['QUESTION_ID']}",
-            options_display,
+            options,
             index=current_index,
             horizontal=True,
             disabled=not is_editable,
@@ -130,10 +189,29 @@ def render_single_question(question, answer, claim_id, defendant_id, user_id, is
             value=answer_text,
             disabled=not is_editable,
             key=text_key,
-            height=90,
+            height=80,
             label_visibility="collapsed",
-            placeholder="Explain here...",
+            placeholder="Explain if Yes, No, or Unclear...",
         )
+
+        if selected in {"Yes", "No", "Unclear", "Not Applicable"}:
+            fu_col_1, fu_col_2 = st.columns(2)
+            fu_col_1.radio(
+                "Was this a deviation from acceptable practice?",
+                ["Yes", "No", "Unclear"],
+                horizontal=True,
+                key=f"fu1_{question['QUESTION_ID']}_{suffix}",
+                label_visibility="visible",
+                disabled=not is_editable,
+            )
+            fu_col_2.radio(
+                "Did it likely impact patient care/outcome?",
+                ["Yes", "No", "Unclear"],
+                horizontal=True,
+                key=f"fu2_{question['QUESTION_ID']}_{suffix}",
+                label_visibility="visible",
+                disabled=not is_editable,
+            )
 
         if is_editable and st.button("Save", key=save_key):
             save_answer(
@@ -158,6 +236,7 @@ def render_single_question(question, answer, claim_id, defendant_id, user_id, is
             key=text_key,
             height=110,
             label_visibility="collapsed",
+            placeholder="Add details...",
         )
 
         if is_editable and st.button("Save", key=save_key):
@@ -185,30 +264,51 @@ def render_mfq_questionnaire(
     get_questions_by_section_fn,
     user_id: str,
 ) -> None:
-    st.markdown("""<div class="content-card">""", unsafe_allow_html=True)
-    st.markdown("""<div class="mfq-title">Medical Faculty Questionnaire</div>""", unsafe_allow_html=True)
-    st.markdown("""<div class="mfq-subtitle">Complete evaluation based on accepted medical practice standards.</div>""", unsafe_allow_html=True)
+    st.markdown("""<div class="content-card mfq-title-card">""", unsafe_allow_html=True)
+    title_col, action_col = st.columns([5, 1])
+    title_col.markdown("""<div class="mfq-title">Medical Faculty Questionnaire</div>""", unsafe_allow_html=True)
+    title_col.markdown("""<div class="mfq-subtitle">Complete evaluation based on accepted medical practice standards.</div>""", unsafe_allow_html=True)
+    action_col.button("✎  Edit", key="mfq_edit_btn", use_container_width=True)
     st.markdown("""</div>""", unsafe_allow_html=True)
 
+    if sections_df.empty:
+        st.info("No questionnaire sections available")
+        return
+
+    if "selected_mfq_section" not in st.session_state:
+        st.session_state.selected_mfq_section = str(sections_df.iloc[0]["SECTION_KEY"])
+
+    selected_key = st.session_state.selected_mfq_section
+
+    st.markdown("""<div class='content-card eval-shell'><div class='eval-header'>Detailed Case Evaluation</div>""", unsafe_allow_html=True)
     for section_idx, (_, section) in enumerate(sections_df.iterrows()):
         section_key = section["SECTION_KEY"]
         section_name = section["SECTION_NAME"]
+        is_open = section_key == selected_key
+
+        arrow = "▾" if is_open else "▸"
+        if st.button(f"{section_name} {arrow}", key=f"accordion_{section_key}", use_container_width=True):
+            st.session_state.selected_mfq_section = section_key
+            st.rerun()
+
+        if not is_open:
+            continue
+
         is_editable = section_key in editable_sections
+        if not is_editable:
+            st.caption("Read-only for current role or assignment")
 
-        with st.expander(section_name, expanded=section["DISPLAY_ORDER"] <= 3):
-            if not is_editable:
-                st.caption("Read-only for current role or assignment")
+        q_df = get_questions_by_section_fn(section["SECTION_ID"])
+        for question_idx, (_, question) in enumerate(q_df.iterrows()):
+            answer = answers_map.get(question["QUESTION_ID"])
+            render_single_question(
+                question=question,
+                answer=answer,
+                claim_id=claim_id,
+                defendant_id=defendant_id,
+                user_id=user_id,
+                is_editable=is_editable,
+                suffix=f"{section_idx}_{question_idx}",
+            )
 
-            q_df = get_questions_by_section_fn(section["SECTION_ID"])
-
-            for question_idx, (_, question) in enumerate(q_df.iterrows()):
-                answer = answers_map.get(question["QUESTION_ID"])
-                render_single_question(
-                    question=question,
-                    answer=answer,
-                    claim_id=claim_id,
-                    defendant_id=defendant_id,
-                    user_id=user_id,
-                    is_editable=is_editable,
-                    suffix=f"{section_idx}_{question_idx}",
-                )
+    st.markdown("""</div>""", unsafe_allow_html=True)

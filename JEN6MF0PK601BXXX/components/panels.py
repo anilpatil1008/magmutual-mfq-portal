@@ -61,11 +61,12 @@ def render_claim_header_card(row, role_key: str) -> None:
                 st.success("Claim approved")
                 st.rerun()
 
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4, c5 = st.columns(5)
     c1.markdown(f"**FILE NUMBER**  \n{_safe(row['FILE_NUMBER'])}")
     c2.markdown(f"**DEFENDANT SPECIALTY**  \n{_safe(row['DEFENDANT_SPECIALTY'])}")
     c3.markdown(f"**DATE REQUESTED**  \n{_safe(row['DATE_REQUESTED'])}")
-    c4.markdown("**CONTACT EMAIL**  \nanalyst@magmutual.com")
+    c4.markdown("**MAGMUTUAL CONTACT**  \nSarah Johnson")
+    c5.markdown("**CONTACT EMAIL**  \nanalyst@magmutual.com")
 
     st.markdown("""</div>""", unsafe_allow_html=True)
 
@@ -81,12 +82,11 @@ def render_claim_tabs() -> str:
         "Documents",
     ]
 
-    current = st.session_state.get("claim_detail_tab", "MFQ Form")
-
-    cols = st.columns(len(tabs))
-    for i, tab in enumerate(tabs):
-        if cols[i].button(tab, use_container_width=True, key=f"claim_tab_{tab}"):
-            st.session_state.claim_detail_tab = tab
-            current = tab
-
+    current = st.radio(
+        "Claim detail tabs",
+        tabs,
+        key="claim_detail_tab",
+        horizontal=True,
+        label_visibility="collapsed",
+    )
     return current

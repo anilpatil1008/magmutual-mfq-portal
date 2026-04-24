@@ -6,6 +6,7 @@ import streamlit as st
 from components.mfq import (
     render_ai_confidence_panel,
     render_claim_synopsis_panel,
+    render_mfq_section_navigation,
     render_mfq_questionnaire,
 )
 from components.panels import render_claim_header_card, render_claim_tabs
@@ -51,6 +52,7 @@ def render_claim_detail_page(user_id: str, role_key: str) -> None:
     selected_tab = render_claim_tabs()
 
     if selected_tab == "MFQ Form":
+        sections_df = get_sections()
         section_conf_df = get_section_confidence(claim_id, defendant_id)
         render_ai_confidence_panel(section_conf_df, float(row["AI_CONFIDENCE"]))
 
@@ -58,9 +60,9 @@ def render_claim_detail_page(user_id: str, role_key: str) -> None:
 
         with left:
             render_claim_synopsis_panel(row)
+            render_mfq_section_navigation(sections_df, section_conf_df)
 
         with right:
-            sections_df = get_sections()
             answers_df = get_current_answers(claim_id, defendant_id)
             answers_map = {r["QUESTION_ID"]: r for _, r in answers_df.iterrows()}
             editable_sections = get_editable_sections(claim_id, user_id, role_key)
