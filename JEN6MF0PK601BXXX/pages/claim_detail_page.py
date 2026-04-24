@@ -96,9 +96,13 @@ def _inject_review_styles() -> None:
         }
         .review-v2-header-actions { display: flex; justify-content: flex-end; gap: .5rem; }
         .review-v2-header-actions button {
-            min-height: 36px !important;
-            font-size: 13px !important;
-            padding: .25rem .65rem !important;
+            min-height: 40px !important;
+            font-size: 20px !important;
+            font-weight: 600 !important;
+            border-radius: 8px !important;
+            padding: .3rem .9rem !important;
+            background: #0a3a78 !important;
+            border: 1px solid #0a3a78 !important;
         }
         .review-v2-chip {
             display: inline-flex;
@@ -111,7 +115,7 @@ def _inject_review_styles() -> None:
         }
         .review-v2-meta-grid {
             display: grid;
-            grid-template-columns: repeat(5, minmax(0, 1fr));
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: .65rem .9rem;
             margin-top: .75rem;
         }
@@ -244,7 +248,7 @@ def _section_score_map(section_conf_df):
 
 
 def _render_claim_header(row, role_key: str) -> None:
-    st.markdown('<div class="review-v2-card" style="padding:.85rem 1rem .75rem;">', unsafe_allow_html=True)
+    st.markdown('<div class="review-v2-card" style="padding:1.1rem 1.35rem 1.05rem;">', unsafe_allow_html=True)
     left, right = st.columns([5, 2])
     left.markdown(
         f"""
@@ -261,10 +265,12 @@ def _render_claim_header(row, role_key: str) -> None:
 
     if role_key in {"CLAIMS_ANALYST", "ADMIN"}:
         st.markdown("<div class='review-v2-header-actions'>", unsafe_allow_html=True)
-        b1, b2 = right.columns(2, gap="small")
-        if b1.button("Assign to Faculty", key="assign_faculty_btn", use_container_width=True):
+        if right.button("Reassign", key="assign_faculty_btn", use_container_width=True, type="primary"):
             st.info("Connect this to assignment workflow.")
-        if b2.button("Approve", key=f"approve_{row['CLAIM_ID']}", use_container_width=True, type="primary"):
+        st.markdown("</div>", unsafe_allow_html=True)
+    elif role_key == "FACULTY":
+        st.markdown("<div class='review-v2-header-actions'>", unsafe_allow_html=True)
+        if right.button("Approve", key=f"approve_{row['CLAIM_ID']}", use_container_width=True, type="primary"):
             approve_claim(row["CLAIM_ID"])
             st.success("Claim approved")
             st.rerun()
@@ -276,6 +282,7 @@ def _render_claim_header(row, role_key: str) -> None:
         ("DATE REQUESTED", _safe(row["DATE_REQUESTED"])),
         ("REVIEWER", "Dr. Robert Martinez"),
         ("MAGMUTUAL CONTACT", "Sarah Johnson"),
+        ("CONTACT EMAIL", "analyst@magmutual.com"),
     ]
     meta_html = "".join(
         [
