@@ -42,31 +42,42 @@ def render_claim_header_card(row, role_key: str) -> None:
     with top_left:
         st.markdown(
             f"""
-            <div class="claim-main-title">
-                {_safe(row['PATIENT_NAME'])} <span class="vs-text">vs</span> {_safe(row['DEFENDANT_NAME'])}
-                {_status_chip(row['STATUS'])}
-                {_priority_chip(row['PRIORITY'])}
+            <div class="claim-header-top">
+                <div class="claim-title-row">
+                    <div class="claim-title">
+                        {_safe(row['PATIENT_NAME'])} <span class="claim-vs">vs</span> {_safe(row['DEFENDANT_NAME'])}
+                    </div>
+                    <div class="claim-badge-wrap">
+                        <span class="claim-badge">{_status_chip(row['STATUS'])}</span>
+                        <span class="claim-badge">{_priority_chip(row['PRIORITY'])}</span>
+                    </div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
     with top_right:
+        st.markdown("""<div class="claim-actions"></div>""", unsafe_allow_html=True)
         b1, b2 = st.columns(2)
         if role_key in {"CLAIMS_ANALYST", "ADMIN"}:
-            if b1.button("Assign to Faculty", use_container_width=True, key="assign_faculty_btn"):
+            b1.markdown("""<div class="btn-primary"></div>""", unsafe_allow_html=True)
+            if b1.button("Assign to Faculty", key="assign_faculty_btn"):
                 st.info("Connect this to assignment workflow.")
-            if b2.button("Approve", use_container_width=True, key=f"approve_{row['CLAIM_ID']}"):
+            b2.markdown("""<div class="btn-success"></div>""", unsafe_allow_html=True)
+            if b2.button("Approve", type="primary", key=f"approve_{row['CLAIM_ID']}"):
                 approve_claim(row["CLAIM_ID"])
                 st.success("Claim approved")
                 st.rerun()
 
+    st.markdown("""<div class="claim-meta-grid">""", unsafe_allow_html=True)
     c1, c2, c3, c4, c5 = st.columns(5)
-    c1.markdown(f"**FILE NUMBER**  \n{_safe(row['FILE_NUMBER'])}")
-    c2.markdown(f"**DEFENDANT SPECIALTY**  \n{_safe(row['DEFENDANT_SPECIALTY'])}")
-    c3.markdown(f"**DATE REQUESTED**  \n{_safe(row['DATE_REQUESTED'])}")
-    c4.markdown("**MAGMUTUAL CONTACT**  \nSarah Johnson")
-    c5.markdown("**CONTACT EMAIL**  \nanalyst@magmutual.com")
+    c1.markdown(f"""<div class="claim-meta-item"><div class="claim-meta-label">FILE NUMBER</div><div class="claim-meta-value">{_safe(row['FILE_NUMBER'])}</div></div>""", unsafe_allow_html=True)
+    c2.markdown(f"""<div class="claim-meta-item"><div class="claim-meta-label">DEFENDANT SPECIALTY</div><div class="claim-meta-value">{_safe(row['DEFENDANT_SPECIALTY'])}</div></div>""", unsafe_allow_html=True)
+    c3.markdown(f"""<div class="claim-meta-item"><div class="claim-meta-label">DATE REQUESTED</div><div class="claim-meta-value">{_safe(row['DATE_REQUESTED'])}</div></div>""", unsafe_allow_html=True)
+    c4.markdown("""<div class="claim-meta-item"><div class="claim-meta-label">MAGMUTUAL CONTACT</div><div class="claim-meta-value">Sarah Johnson</div></div>""", unsafe_allow_html=True)
+    c5.markdown("""<div class="claim-meta-item"><div class="claim-meta-label">CONTACT EMAIL</div><div class="claim-meta-value"><a href="mailto:analyst@magmutual.com">analyst@magmutual.com</a></div></div>""", unsafe_allow_html=True)
+    st.markdown("""</div>""", unsafe_allow_html=True)
 
     st.markdown("""</div>""", unsafe_allow_html=True)
 

@@ -42,7 +42,11 @@ def render_claim_detail_page(user_id: str, role_key: str) -> None:
     row = header_df.iloc[0]
     defendant_id = row["DEFENDANT_ID"]
 
-    if st.button("← Back to Dashboard", key="back_to_dashboard_btn"):
+    st.markdown('<div class="review-page"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="review-breadcrumb"></div>', unsafe_allow_html=True)
+
+    breadcrumb_label = f"← Back to Dashboard  /  {_safe(row['FILE_NUMBER'])}"
+    if st.button(breadcrumb_label, key="back_to_dashboard_btn"):
         st.session_state.page = "Dashboard"
         st.session_state.selected_claim_id = None
         st.rerun()
