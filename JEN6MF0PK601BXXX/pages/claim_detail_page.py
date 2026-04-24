@@ -16,13 +16,13 @@ from repositories.mfq_repository import (
 from services.claim_service import approve_claim
 
 REVIEW_TABS = [
-    "🩺 MFQ Form",
-    "📋 Records Summary",
-    "🕒 MedCron",
-    "🛡️ Legal Memo",
-    "💬 Enquiries",
-    "🤖 AI Assist",
-    "📥 Documents",
+    "MFQ Form",
+    "Records Summary",
+    "MedCron",
+    "Legal Memo",
+    "Enquiries",
+    "AI Assist",
+    "Documents",
 ]
 
 
@@ -58,6 +58,12 @@ def _inject_review_styles() -> None:
         """
         <style>
         .review-v2-shell { margin-top: 0.15rem; }
+        .main .block-container {
+            padding-top: 1rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            max-width: 1400px;
+        }
         .review-v2-breadcrumb button {
             background: transparent !important;
             border: none !important;
@@ -65,6 +71,7 @@ def _inject_review_styles() -> None:
             justify-content: flex-start !important;
             padding: 0 !important;
             min-height: 24px !important;
+            font-size: 12px !important;
             text-decoration: none !important;
             box-shadow: none !important;
         }
@@ -77,37 +84,72 @@ def _inject_review_styles() -> None:
             overflow: hidden;
         }
         .review-v2-head {
-            font-size: 42px;
-            line-height: 1.05;
-            font-weight: 800;
+            font-size: 26px;
+            line-height: 1.2;
+            font-weight: 700;
             color: #13213d;
-            letter-spacing: -0.02em;
-            margin-bottom: .45rem;
+            letter-spacing: -0.01em;
+            margin-bottom: 0;
         }
-        .review-v2-head .vs { font-size: .65em; color: #6b7280; font-weight: 600; }
+        .review-v2-head .vs { font-size: .72em; color: #6b7280; font-weight: 600; }
+        .review-v2-title-row {
+            display: flex;
+            align-items: center;
+            gap: .55rem;
+            flex-wrap: wrap;
+        }
+        .review-v2-header-actions { display: flex; justify-content: flex-end; gap: .5rem; }
+        .review-v2-header-actions button {
+            min-height: 36px !important;
+            font-size: 13px !important;
+            padding: .25rem .65rem !important;
+        }
         .review-v2-chip {
             display: inline-flex;
+            align-items: center;
             font-size: 12px;
             font-weight: 700;
             border-radius: 8px;
-            padding: .25rem .58rem;
-            margin-left: .35rem;
+            padding: .2rem .5rem;
+            margin-left: 0;
         }
-        .review-v2-meta-label { font-size: 12px; letter-spacing: .08em; color: #667085; font-weight: 700; }
-        .review-v2-meta-value { font-size: 30px; font-weight: 500; color: #1f2937; line-height: 1.25; }
-        .review-v2-tabs .stRadio [role="radiogroup"] { gap: 0 !important; width: 100%; flex-wrap: wrap; }
-        .review-v2-tabs .stRadio [role="radio"] {
-            border-radius: 0 !important;
-            min-height: 48px !important;
-            border-bottom: 2px solid transparent !important;
-            padding: .4rem .85rem !important;
-            background: #fff !important;
+        .review-v2-meta-grid {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: .65rem .9rem;
+            margin-top: .75rem;
         }
-        .review-v2-tabs .stRadio [role="radio"][aria-checked="true"] {
+        .review-v2-meta-cell { min-width: 0; }
+        .review-v2-meta-label {
+            font-size: 10px;
+            letter-spacing: .08em;
+            color: #667085;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .review-v2-meta-value {
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2937;
+            line-height: 1.3;
+            word-break: break-word;
+        }
+        .review-v2-tabs .stTabs [data-baseweb="tab-list"] {
+            gap: 0;
+            border-bottom: 1px solid #dbe4f0;
+            padding: 0 .5rem;
+        }
+        .review-v2-tabs .stTabs [data-baseweb="tab"] {
+            padding: .55rem .9rem;
+            min-height: 44px;
+            font-size: 13px;
+            font-weight: 600;
+            border-bottom: 2px solid transparent;
+        }
+        .review-v2-tabs .stTabs [aria-selected="true"] {
+            color: #0b2f6b !important;
             border-bottom-color: #0b2f6b !important;
-            background: #f7faff !important;
         }
-        .review-v2-tabs .stRadio label p { font-weight: 600 !important; }
 
         .review-v2-title { font-size: 40px; color: #0b2f6b; font-weight: 800; line-height: 1.1; }
         .review-v2-subtitle { color: #667085; margin-top: .2rem; }
@@ -148,9 +190,14 @@ def _inject_review_styles() -> None:
         .review-v2-eval textarea { background: #f8fafc !important; }
 
         @media (max-width: 900px) {
-            .review-v2-head { font-size: 30px; }
-            .review-v2-title { font-size: 30px; }
-            .review-v2-meta-value { font-size: 24px; }
+            .review-v2-head { font-size: 24px; }
+            .review-v2-title { font-size: 26px; }
+            .review-v2-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        }
+        @media (max-width: 700px) {
+            .review-v2-header-actions { justify-content: stretch; }
+            .review-v2-header-actions button { width: 100%; }
+            .review-v2-meta-grid { grid-template-columns: 1fr; }
             .review-v2-grid-two { grid-template-columns: 1fr; }
         }
         </style>
@@ -201,12 +248,14 @@ def _section_score_map(section_conf_df):
 
 
 def _render_claim_header(row, role_key: str) -> None:
-    st.markdown('<div class="review-v2-card" style="padding:1.4rem 1.55rem 1.2rem;">', unsafe_allow_html=True)
+    st.markdown('<div class="review-v2-card" style="padding:.85rem 1rem .75rem;">', unsafe_allow_html=True)
     left, right = st.columns([5, 2])
     left.markdown(
         f"""
-        <div class='review-v2-head'>
+        <div class='review-v2-title-row'>
+          <div class='review-v2-head'>
             {_safe(row['PATIENT_NAME'])} <span class='vs'>vs</span> {_safe(row['DEFENDANT_NAME'])}
+          </div>
             {_status_chip(row['STATUS'])}
             {_priority_chip(row['PRIORITY'])}
         </div>
@@ -215,13 +264,15 @@ def _render_claim_header(row, role_key: str) -> None:
     )
 
     if role_key in {"CLAIMS_ANALYST", "ADMIN"}:
-        b1, b2 = right.columns(2)
-        if b1.button("🧑‍⚕️  Assign to Faculty", key="assign_faculty_btn", use_container_width=True):
+        st.markdown("<div class='review-v2-header-actions'>", unsafe_allow_html=True)
+        b1, b2 = right.columns(2, gap="small")
+        if b1.button("Assign to Faculty", key="assign_faculty_btn", use_container_width=True):
             st.info("Connect this to assignment workflow.")
         if b2.button("Approve", key=f"approve_{row['CLAIM_ID']}", use_container_width=True, type="primary"):
             approve_claim(row["CLAIM_ID"])
             st.success("Claim approved")
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
     metadata = [
         ("FILE NUMBER", _safe(row["FILE_NUMBER"])),
@@ -229,14 +280,14 @@ def _render_claim_header(row, role_key: str) -> None:
         ("DATE REQUESTED", _safe(row["DATE_REQUESTED"])),
         ("REVIEWER", "Dr. Robert Martinez"),
         ("MAGMUTUAL CONTACT", "Sarah Johnson"),
-        ("CONTACT EMAIL", "analyst@magmutual.com"),
     ]
-    cols = st.columns(3)
-    for idx, (label, value) in enumerate(metadata):
-        cols[idx % 3].markdown(
-            f"<div class='review-v2-meta-label'>{label}</div><div class='review-v2-meta-value'>{value}</div>",
-            unsafe_allow_html=True,
-        )
+    meta_html = "".join(
+        [
+            f"<div class='review-v2-meta-cell'><div class='review-v2-meta-label'>{label}</div><div class='review-v2-meta-value'>{value}</div></div>"
+            for label, value in metadata
+        ]
+    )
+    st.markdown(f"<div class='review-v2-meta-grid'>{meta_html}</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -409,20 +460,9 @@ def _render_questionnaire(sections_df, answers_map, selected_key: str) -> None:
 
 def _render_tabbed_content(row, claim_id: str, defendant_id: str) -> None:
     st.markdown('<div class="review-v2-card review-v2-tabs" style="margin-top:.8rem;">', unsafe_allow_html=True)
-    selected_tab = st.radio(
-        "Claim detail tabs",
-        REVIEW_TABS,
-        key="claim_detail_tab",
-        horizontal=True,
-        label_visibility="collapsed",
-    )
+    tab_objects = st.tabs(REVIEW_TABS)
     st.markdown("</div>", unsafe_allow_html=True)
-
-    selected_clean = (
-        selected_tab.replace("🩺 ", "").replace("📋 ", "").replace("🕒 ", "").replace("🛡️ ", "").replace("💬 ", "").replace("🤖 ", "").replace("📥 ", "")
-    )
-
-    if selected_clean == "MFQ Form":
+    with tab_objects[0]:
         st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem 1.05rem;">', unsafe_allow_html=True)
         st.markdown("<div class='review-v2-title'>Medical Faculty Questionnaire</div>", unsafe_allow_html=True)
         st.markdown("<div class='review-v2-subtitle'>Complete evaluation based on accepted medical practice standards.</div>", unsafe_allow_html=True)
@@ -443,31 +483,40 @@ def _render_tabbed_content(row, claim_id: str, defendant_id: str) -> None:
         with right:
             selected_key = st.session_state.get("selected_mfq_section", str(sections_df.iloc[0]["SECTION_KEY"]) if not sections_df.empty else "")
             _render_questionnaire(sections_df, answers_map, selected_key)
-        return
-
     summaries_df = get_claim_summaries(claim_id, defendant_id)
     summary_map = {r["SUMMARY_TYPE"]: r["SUMMARY_TEXT"] for _, r in summaries_df.iterrows()}
-    st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
-    if selected_clean == "Records Summary":
+
+    with tab_objects[1]:
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("Records Summary")
         st.write(summary_map.get("RECORDS_SUMMARY", "No records summary available"))
-    elif selected_clean == "MedCron":
+        st.markdown("</div>", unsafe_allow_html=True)
+    with tab_objects[2]:
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("MedCron")
         st.write(summary_map.get("MEDCRON", "No MedCron summary available"))
-    elif selected_clean == "Legal Memo":
+        st.markdown("</div>", unsafe_allow_html=True)
+    with tab_objects[3]:
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("Legal Memo")
         st.write(summary_map.get("LEGAL_MEMO", "No legal memo summary available"))
-    elif selected_clean == "Enquiries":
+        st.markdown("</div>", unsafe_allow_html=True)
+    with tab_objects[4]:
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("Enquiries")
         st.text_area("Ask a role-safe question", key="claim_detail_enquiry")
         st.button("Ask", key="claim_detail_enquiry_btn")
-    elif selected_clean == "AI Assist":
+        st.markdown("</div>", unsafe_allow_html=True)
+    with tab_objects[5]:
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("AI Assist")
         st.write("Use this tab for guided AI analysis and evidence lookup.")
-    elif selected_clean == "Documents":
+        st.markdown("</div>", unsafe_allow_html=True)
+    with tab_objects[6]:
+        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem;">', unsafe_allow_html=True)
         st.subheader("Documents")
         st.write("Add document viewer and PDF download links here.")
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_claim_detail_page(user_id: str, role_key: str) -> None:  # noqa: ARG001
