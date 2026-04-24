@@ -66,19 +66,30 @@ def _inject_review_styles() -> None:
         }
         .st-key-claim_header_card [data-testid="stVerticalBlockBorderWrapper"] {
             background: #ffffff;
-            border: 1px solid #dbe4f0;
+            border: 1px solid #e1e5eb;
             border-radius: 16px;
-            box-shadow: 0 2px 10px rgba(16,24,40,.06);
-            padding: 1rem 1.25rem 1.05rem !important;
+            box-shadow: 0 1px 3px rgba(16,24,40,.08);
+            padding: 1.05rem 1.35rem 1.15rem !important;
         }
-        .review-v2-back button {
+        .review-v2-breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: .35rem;
+            margin-bottom: .85rem;
+            color: #5f6b80;
+            font-size: 22px;
+            font-weight: 500;
+        }
+        .st-key-back_to_dashboard_btn button {
             color: #5f6b80 !important;
             justify-content: flex-start !important;
-            min-height: 24px !important;
+            min-height: 20px !important;
             font-size: 12px !important;
-            padding-left: 0 !important;
+            padding: 0 !important;
+            margin-top: .05rem !important;
         }
-        .review-v2-back button:hover { color: #0b2f6b !important; text-decoration: underline !important; }
+        .review-v2-breadcrumb-sep { color: #98a2b3; }
+        .review-v2-breadcrumb-file { color: #13213d; font-weight: 700; }
         .review-v2-panel {
             background: #ffffff;
             border: 1px solid #dbe4f0;
@@ -94,7 +105,7 @@ def _inject_review_styles() -> None:
             letter-spacing: -0.01em;
             margin-bottom: 0;
         }
-        .review-v2-head .vs { font-size: .72em; color: #6b7280; font-weight: 600; }
+        .review-v2-head .vs { font-size: .7em; color: #6b7280; font-weight: 600; }
         .review-v2-title-row {
             display: flex;
             align-items: center;
@@ -103,21 +114,25 @@ def _inject_review_styles() -> None:
         }
         .review-v2-header-actions { display: flex; justify-content: flex-end; gap: .5rem; }
         .review-v2-header-actions button {
-            min-height: 40px !important;
-            font-size: 20px !important;
+            min-height: 36px !important;
+            font-size: 13px !important;
             font-weight: 600 !important;
-            border-radius: 8px !important;
+            border-radius: 6px !important;
             padding: .3rem .9rem !important;
             background: #0a3a78 !important;
             border: 1px solid #0a3a78 !important;
         }
+        .st-key-approve_btn button {
+            background: #079455 !important;
+            border: 1px solid #079455 !important;
+        }
         .review-v2-chip {
             display: inline-flex;
             align-items: center;
-            font-size: 12px;
-            font-weight: 700;
-            border-radius: 8px;
-            padding: .2rem .5rem;
+            font-size: 11px;
+            font-weight: 600;
+            border-radius: 7px;
+            padding: .17rem .48rem;
             margin-left: 0;
         }
         .review-v2-meta-grid {
@@ -128,15 +143,15 @@ def _inject_review_styles() -> None:
         }
         .review-v2-meta-cell { min-width: 0; }
         .review-v2-meta-label {
-            font-size: 10px;
+            font-size: 11px;
             letter-spacing: .08em;
             color: #667085;
-            font-weight: 700;
+            font-weight: 500;
             text-transform: uppercase;
         }
         .review-v2-meta-value {
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             color: #1f2937;
             line-height: 1.3;
             word-break: break-word;
@@ -197,8 +212,10 @@ def _inject_review_styles() -> None:
         .review-v2-eval textarea { background: #f8fafc !important; }
 
         @media (max-width: 900px) {
-            .review-v2-head { font-size: 24px; }
+            .review-v2-head { font-size: 28px; }
             .review-v2-title { font-size: 26px; }
+            .review-v2-breadcrumb { font-size: 14px; }
+            .review-v2-meta-value { font-size: 14px; }
             .review-v2-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
         @media (max-width: 700px) {
@@ -255,18 +272,19 @@ def _section_score_map(section_conf_df):
 
 
 def _render_claim_header(row, role_key: str) -> None:
-    with st.container(border=True, key="claim_header_card"):
-        st.markdown("<div class='review-v2-back'>", unsafe_allow_html=True)
-        if st.button(
-            f"← Back to Dashboard  /  {_safe(row['FILE_NUMBER'])}",
-            key="back_to_dashboard_btn",
-            type="tertiary",
-        ):
+    crumb_left, crumb_right = st.columns([1, 6])
+    with crumb_left:
+        if st.button("← Back to Dashboard", key="back_to_dashboard_btn", type="tertiary"):
             st.session_state.page = "Dashboard"
             st.session_state.selected_claim_id = None
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+    with crumb_right:
+        st.markdown(
+            f"<div class='review-v2-breadcrumb'><span class='review-v2-breadcrumb-sep'>/</span><span class='review-v2-breadcrumb-file'>{_safe(row['FILE_NUMBER'])}</span></div>",
+            unsafe_allow_html=True,
+        )
 
+    with st.container(border=True, key="claim_header_card"):
         left, right = st.columns([5, 2])
         left.markdown(
             f"""
@@ -281,24 +299,26 @@ def _render_claim_header(row, role_key: str) -> None:
             unsafe_allow_html=True,
         )
 
+        st.markdown("<div class='review-v2-header-actions'>", unsafe_allow_html=True)
+        r1, r2 = right.columns(2)
         if role_key in {"CLAIMS_ANALYST", "ADMIN"}:
-            st.markdown("<div class='review-v2-header-actions'>", unsafe_allow_html=True)
-            if right.button("Reassign", key="assign_faculty_btn", use_container_width=True, type="primary"):
+            if r1.button("⇪  Assign to Faculty", key="assign_faculty_btn", use_container_width=True, type="primary"):
                 st.info("Connect this to assignment workflow.")
-            st.markdown("</div>", unsafe_allow_html=True)
-        elif role_key == "FACULTY":
-            st.markdown("<div class='review-v2-header-actions'>", unsafe_allow_html=True)
-            if right.button("Approve", key=f"approve_{row['CLAIM_ID']}", use_container_width=True, type="primary"):
+            if r2.button("Approve", key="approve_btn", use_container_width=True, type="primary"):
                 approve_claim(row["CLAIM_ID"])
                 st.success("Claim approved")
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+        elif role_key == "FACULTY":
+            if r2.button("Approve", key=f"approve_{row['CLAIM_ID']}", use_container_width=True, type="primary"):
+                approve_claim(row["CLAIM_ID"])
+                st.success("Claim approved")
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
 
         metadata = [
             ("FILE NUMBER", _safe(row["FILE_NUMBER"])),
             ("DEFENDANT SPECIALTY", _safe(row["DEFENDANT_SPECIALTY"])),
             ("DATE REQUESTED", _safe(row["DATE_REQUESTED"])),
-            ("REVIEWER", "Dr. Robert Martinez"),
             ("MAGMUTUAL CONTACT", "Sarah Johnson"),
             ("CONTACT EMAIL", "analyst@magmutual.com"),
         ]
