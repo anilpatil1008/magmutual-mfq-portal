@@ -53,9 +53,18 @@ def render_claim_detail_page(user_id: str, role_key: str) -> None:
 
     render_claim_header_card(row=row, role_key=role_key)
 
+    st.markdown('<div class="content-card claim-tabs-card">', unsafe_allow_html=True)
     selected_tab = render_claim_tabs()
+    st.markdown("</div>", unsafe_allow_html=True)
 
     if selected_tab == "MFQ Form":
+        st.markdown("""<div class="content-card mfq-title-card">""", unsafe_allow_html=True)
+        title_col, action_col = st.columns([5, 1])
+        title_col.markdown("""<div class="mfq-title">Medical Faculty Questionnaire</div>""", unsafe_allow_html=True)
+        title_col.markdown("""<div class="mfq-subtitle">Complete evaluation based on accepted medical practice standards.</div>""", unsafe_allow_html=True)
+        action_col.button("✎  Edit", key="mfq_edit_btn", use_container_width=True)
+        st.markdown("""</div>""", unsafe_allow_html=True)
+
         sections_df = get_sections()
         section_conf_df = get_section_confidence(claim_id, defendant_id)
         render_ai_confidence_panel(section_conf_df, float(row["AI_CONFIDENCE"]))
@@ -79,6 +88,7 @@ def render_claim_detail_page(user_id: str, role_key: str) -> None:
                 editable_sections=editable_sections,
                 get_questions_by_section_fn=get_questions_by_section,
                 user_id=user_id,
+                show_title=False,
             )
     else:
         summaries_df = get_claim_summaries(claim_id, defendant_id)
