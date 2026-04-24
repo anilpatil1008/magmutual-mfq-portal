@@ -1027,20 +1027,82 @@ def inject_theme() -> None:
         }
 
         /* Claim detail / MFQ review */
-        .claim-main-title {
-            font-size: 2rem;
-            font-weight: 800;
-            color: #13213d;
+        .review-page {
+            display: none;
+        }
+
+        .review-breadcrumb {
+            display: none;
+        }
+
+        div[data-testid="element-container"]:has(.review-breadcrumb) + div[data-testid="element-container"] div[data-testid="stButton"] {
+            margin-bottom: 0.45rem;
+        }
+
+        div[data-testid="element-container"]:has(.review-breadcrumb) + div[data-testid="element-container"] div[data-testid="stButton"] button {
+            min-height: 26px !important;
+            height: 26px !important;
+            border: 0 !important;
+            border-radius: 0 !important;
+            padding: 0 !important;
+            background: transparent !important;
+            color: #6b7280 !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            justify-content: flex-start !important;
+            box-shadow: none !important;
+        }
+
+        div[data-testid="element-container"]:has(.review-breadcrumb) + div[data-testid="element-container"] div[data-testid="stButton"] button:hover {
+            color: #1f2937 !important;
+            background: transparent !important;
+            text-decoration: underline !important;
+        }
+
+        .claim-header-card {
+            margin-top: 0.2rem;
+            padding: 1.4rem 1.6rem 1.25rem 1.6rem;
+            border: 1px solid #dde4ee;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(16, 24, 40, 0.07);
+            max-width: 1100px;
+        }
+
+        .claim-header-top {
+            margin-bottom: 0.35rem;
+        }
+
+        .claim-title-row {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
-            gap: 0.45rem;
+            gap: 0.7rem;
         }
 
-        .vs-text {
+        .claim-title {
+            font-size: 2.7rem;
+            line-height: 1.08;
+            font-weight: 800;
+            color: #13213d;
+            letter-spacing: -0.02em;
+        }
+
+        .claim-vs {
             color: #5f6b80;
             font-weight: 600;
-            font-size: 1.55rem;
+            font-size: 0.7em;
+            margin: 0 0.2rem;
+        }
+
+        .claim-badge-wrap {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.42rem;
+            transform: translateY(2px);
+        }
+
+        .claim-badge .inline-chip {
+            border-radius: 8px;
         }
 
         .inline-chip {
@@ -1051,6 +1113,68 @@ def inject_theme() -> None:
             font-size: 12px;
             font-weight: 700;
             line-height: 1;
+        }
+
+        .claim-meta-grid {
+            margin-top: 0.45rem;
+        }
+
+        .claim-meta-item {
+            padding-top: 0.1rem;
+        }
+
+        .claim-meta-label {
+            color: #667085;
+            font-size: 12px;
+            letter-spacing: 0.09em;
+            font-weight: 600;
+            margin-bottom: 0.22rem;
+        }
+
+        .claim-meta-value {
+            color: #1f2937;
+            font-size: 1.7rem;
+            font-weight: 500;
+            line-height: 1.25;
+        }
+
+        .claim-meta-value a {
+            color: #2563eb;
+            text-decoration: underline;
+        }
+
+        div[data-testid="column"]:has(.claim-actions) {
+            display: flex;
+            align-items: flex-start;
+            justify-content: flex-end;
+            padding-top: 0.15rem;
+        }
+
+        div[data-testid="column"]:has(.claim-actions) div[data-testid="stButton"] > div {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        div[data-testid="column"]:has(.claim-actions) button {
+            min-height: 44px !important;
+            height: 44px !important;
+            min-width: 142px !important;
+            padding: 0 1.1rem !important;
+            font-size: 17px !important;
+            font-weight: 600 !important;
+            border-radius: 14px !important;
+        }
+
+        div[data-testid="column"]:has(.btn-primary) button {
+            border: 1px solid #0b3c86 !important;
+            color: #0b3c86 !important;
+            background: #ffffff !important;
+        }
+
+        div[data-testid="column"]:has(.btn-success) button {
+            border: 1px solid #10a25f !important;
+            background: #10a25f !important;
+            color: #ffffff !important;
         }
 
         div[data-testid="stHorizontalBlock"]:has(input[id*="claim_detail_tab"]) {
@@ -1246,17 +1370,26 @@ def inject_theme() -> None:
         }
 
         @media (max-width: 1200px) {
-            .claim-main-title { font-size: 1.6rem; }
+            .claim-title { font-size: 2.2rem; }
             .mfq-title { font-size: 1.6rem; }
             .eval-header { font-size: 1.35rem; }
         }
 
         @media (max-width: 768px) {
-            .claim-main-title { font-size: 1.3rem; }
-            .vs-text { font-size: 1.1rem; }
+            .claim-header-card {
+                padding: 1rem 0.95rem;
+            }
+            .claim-title { font-size: 1.65rem; }
+            .claim-badge-wrap {
+                transform: none;
+            }
             .confidence-overall { font-size: 1.4rem; }
-            .content-card, .claim-header-card { padding: 0.85rem; }
+            .content-card { padding: 0.85rem; }
             .question-card { margin-left: 0.55rem; margin-right: 0.55rem; }
+            div[data-testid="column"]:has(.claim-actions) {
+                justify-content: flex-start;
+                margin-top: 0.45rem;
+            }
         }
         </style>
         """,
