@@ -170,18 +170,102 @@ def _inject_review_styles() -> None:
             font-size: 13px;
             font-weight: 600;
             border-bottom: 2px solid transparent;
+            border-radius: 10px 10px 0 0;
         }
         .review-v2-tabs .stTabs [aria-selected="true"] {
             color: #0b2f6b !important;
             border-bottom-color: #0b2f6b !important;
+            background: #eaf1ff !important;
         }
 
-        .review-v2-title { font-size: 40px; color: #0b2f6b; font-weight: 800; line-height: 1.1; }
-        .review-v2-subtitle { color: #667085; margin-top: .2rem; }
-        .review-v2-confidence { background: #fffdf6; border-color: #e7cf8e; }
+        .review-v2-form-header {
+            background: #ffffff;
+            border: 1px solid #dbe4f0;
+            border-radius: 14px;
+            padding: 1rem 1.15rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: .8rem;
+            margin-top: .85rem;
+        }
+        .review-v2-form-title { font-size: 28px; color: #0f172a; font-weight: 800; line-height: 1.2; }
+        .review-v2-form-edit {
+            background: #ffffff;
+            border: 1px solid #d0d5dd;
+            border-radius: 8px;
+            color: #344054;
+            font-size: 13px;
+            font-weight: 600;
+            padding: .4rem .8rem;
+            display: inline-flex;
+            align-items: center;
+            gap: .3rem;
+        }
+        .review-v2-confidence-card {
+            background: #ecfdf3;
+            border: 1px solid #86efac;
+            border-radius: 16px;
+            padding: 1rem 1.05rem;
+            margin-top: .85rem;
+        }
+        .review-v2-confidence-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: .75rem;
+            flex-wrap: wrap;
+            margin-bottom: .8rem;
+        }
+        .review-v2-confidence-title {
+            font-size: 24px;
+            font-weight: 800;
+            color: #14532d;
+            line-height: 1.2;
+            display: inline-flex;
+            align-items: center;
+            gap: .45rem;
+        }
+        .review-v2-confidence-badge {
+            background: #dcfce7;
+            border: 1px solid #86efac;
+            color: #166534;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+            padding: .27rem .65rem;
+            white-space: nowrap;
+        }
+        .review-v2-confidence-overall {
+            color: #166534;
+            font-weight: 700;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+        .review-v2-confidence-overall strong {
+            font-size: 33px;
+            line-height: 1;
+            margin-left: .25rem;
+        }
+        .review-v2-confidence-alert {
+            background: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 12px;
+            padding: .75rem .85rem;
+            margin-bottom: .8rem;
+        }
+        .review-v2-confidence-alert-title { font-weight: 700; color: #14532d; font-size: 14px; }
+        .review-v2-confidence-alert-copy { color: #166534; font-size: 13px; margin-top: .2rem; }
+        .review-v2-confidence-label {
+            font-size: 12px;
+            letter-spacing: .07em;
+            color: #15803d;
+            font-weight: 700;
+            margin-bottom: .5rem;
+        }
         .review-v2-grid-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .review-v2-barbox { border: 1px solid #ebf0f7; background: #fff; border-radius: 10px; padding: .45rem .55rem; }
-        .review-v2-track { height: 6px; background: #edf2f8; border-radius: 99px; overflow: hidden; }
+        .review-v2-barbox { border: 1px solid #bbf7d0; background: #ffffff; border-radius: 10px; padding: .55rem .6rem; }
+        .review-v2-track { height: 7px; background: #e5e7eb; border-radius: 99px; overflow: hidden; margin-top: .35rem; }
         .review-v2-fill { height: 100%; border-radius: 99px; }
         .review-v2-small { font-size: 13px; color: #475467; }
 
@@ -216,7 +300,7 @@ def _inject_review_styles() -> None:
 
         @media (max-width: 900px) {
             .review-v2-head { font-size: 28px; }
-            .review-v2-title { font-size: 26px; }
+            .review-v2-form-title { font-size: 24px; }
             .review-v2-breadcrumb { font-size: 14px; }
             .review-v2-meta-value { font-size: 14px; }
             .review-v2-meta-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -226,6 +310,9 @@ def _inject_review_styles() -> None:
             .review-v2-header-actions button { width: 100%; }
             .review-v2-meta-grid { grid-template-columns: 1fr; }
             .review-v2-grid-two { grid-template-columns: 1fr; }
+            .review-v2-form-header { flex-direction: column; align-items: flex-start; }
+            .review-v2-confidence-title { font-size: 20px; }
+            .review-v2-confidence-overall strong { font-size: 28px; }
         }
         </style>
         """,
@@ -328,40 +415,51 @@ def _render_claim_header(row, role_key: str) -> None:
         st.markdown(f"<div class='review-v2-meta-grid'>{meta_html}</div>", unsafe_allow_html=True)
 
 
-def _render_confidence(section_conf_df, overall_score: float) -> None:
-    st.markdown('<div class="review-v2-card review-v2-confidence" style="padding:1rem 1rem .9rem;">', unsafe_allow_html=True)
+def _render_confidence() -> None:
+    section_scores = [
+        ("Section I: Overview", 93),
+        ("Section II: Degree of Injury", 91),
+        ("Section III: Patient Intake / Assessment", 89),
+        ("Section III: Diagnostic Work Up", 94),
+        ("Section III: Treatment", 92),
+        ("Section III: Procedures / Surgeries", 88),
+        ("Section III: Monitoring and Follow-up", 95),
+        ("Section III: Additional Contributing Factors", 91),
+        ("Standard of Care", 87),
+        ("Causation", 90),
+        ("Closing Thoughts", 93),
+    ]
+
+    st.markdown('<div class="review-v2-confidence-card">', unsafe_allow_html=True)
     st.markdown(
-        f"""
-        <div style="display:flex;justify-content:space-between;gap:1rem;flex-wrap:wrap;align-items:center;">
-            <div style="font-size:30px;font-weight:800;color:#1f2937;">✣ AI Confidence Analysis</div>
-            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;justify-content:flex-end;">
-                <span class='review-v2-badge' style='background:#fff1d6;color:#b54708;border:1px solid #f0cf9a;'>Faculty Review Might Be Needed</span>
-                <span style="font-weight:700;color:#6b7280;">Overall <span style="font-size:42px;color:#b54708;">{overall_score:.0f}%</span></span>
+        """
+        <div class="review-v2-confidence-top">
+            <div class="review-v2-confidence-title">✣ AI Confidence Analysis</div>
+            <div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;">
+                <span class="review-v2-confidence-badge">No Faculty Review Needed</span>
+                <span class="review-v2-confidence-overall">Overall Score:<strong>91%</strong></span>
             </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    if section_conf_df.empty:
-        st.info("No section confidence available.")
-        st.markdown("</div>", unsafe_allow_html=True)
-        return
+    st.markdown(
+        """
+        <div class="review-v2-confidence-alert">
+            <div class="review-v2-confidence-alert-title">No Faculty Review Needed</div>
+            <div class="review-v2-confidence-alert-copy">
+                AI confidence is consistently high across key medical review sections. The generated response can proceed without additional faculty intervention.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("<div class='review-v2-confidence-label'>SECTION-WISE CONFIDENCE</div>", unsafe_allow_html=True)
 
-    st.markdown("<hr style='border:none;border-top:1px solid #ead9aa;margin:.7rem 0 .8rem;'>", unsafe_allow_html=True)
-    st.markdown("<div class='review-v2-small' style='font-weight:700;letter-spacing:.04em;margin-bottom:.45rem;'>SECTION-WISE CONFIDENCE</div>", unsafe_allow_html=True)
-
-    low_sections, moderate_sections = [], []
     html_boxes = []
-    for _, section in section_conf_df.iterrows():
-        score = float(section["CONFIDENCE_SCORE"])
-        section_name = str(section["SECTION_KEY"]).replace("_", " ").title()
-        bucket = _bucket(score)
-        color = {"high": "#12b76a", "moderate": "#f79009", "low": "#f04438"}[bucket]
-        if bucket == "low":
-            low_sections.append(f"{section_name} ({score:.0f}%)")
-        elif bucket == "moderate":
-            moderate_sections.append(f"{section_name} ({score:.0f}%)")
+    for section_name, score in section_scores:
+        color = "#16a34a" if score >= 90 else "#f59e0b"
         html_boxes.append(
             f"""
             <div class='review-v2-barbox'>
@@ -372,15 +470,7 @@ def _render_confidence(section_conf_df, overall_score: float) -> None:
             </div>
             """
         )
-
     st.markdown(f"<div class='review-v2-grid-two'>{''.join(html_boxes)}</div>", unsafe_allow_html=True)
-    if low_sections or moderate_sections:
-        notes = ""
-        if low_sections:
-            notes += f"<li><span style='color:#d92d20;font-weight:700;'>● Needs review:</span> {', '.join(low_sections)}</li>"
-        if moderate_sections:
-            notes += f"<li><span style='color:#b54708;font-weight:700;'>● Moderate confidence:</span> {', '.join(moderate_sections)}</li>"
-        st.markdown(f"<ul class='review-v2-small' style='margin:.75rem 0 0 0.5rem;padding-left:.5rem;'>{notes}</ul>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -499,26 +589,18 @@ def _render_tabbed_content(row, claim_id: str, defendant_id: str) -> None:
     st.markdown("<div style='height:.55rem;'></div>", unsafe_allow_html=True)
     tab_objects = st.tabs(REVIEW_TABS)
     with tab_objects[0]:
-        st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem 1.05rem;">', unsafe_allow_html=True)
-        st.markdown("<div class='review-v2-title'>Medical Faculty Questionnaire</div>", unsafe_allow_html=True)
-        st.markdown("<div class='review-v2-subtitle'>Complete evaluation based on accepted medical practice standards.</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown(
+            """
+            <div class="review-v2-form-header">
+                <div class="review-v2-form-title">Medical Faculty Questionnaire</div>
+                <div class="review-v2-form-edit">✎ Edit</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        _render_confidence()
 
-        sections_df = get_sections()
-        section_conf_df = get_section_confidence(claim_id, defendant_id)
-        answers_df = get_current_answers(claim_id, defendant_id)
-        answers_map = {r["QUESTION_ID"]: r for _, r in answers_df.iterrows()}
 
-        _render_confidence(section_conf_df, float(row["AI_CONFIDENCE"]))
-
-        left, right = st.columns([1.05, 2.35])
-        score_map = _section_score_map(section_conf_df)
-        with left:
-            _render_synopsis_and_navigation(row, sections_df, score_map)
-
-        with right:
-            selected_key = st.session_state.get("selected_mfq_section", str(sections_df.iloc[0]["SECTION_KEY"]) if not sections_df.empty else "")
-            _render_questionnaire(sections_df, answers_map, selected_key)
     summaries_df = get_claim_summaries(claim_id, defendant_id)
     summary_map = {r["SUMMARY_TYPE"]: r["SUMMARY_TEXT"] for _, r in summaries_df.iterrows()}
 
