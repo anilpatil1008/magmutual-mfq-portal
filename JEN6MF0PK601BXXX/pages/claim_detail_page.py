@@ -64,18 +64,14 @@ def _inject_review_styles() -> None:
             padding-right: 1rem;
             max-width: 1400px;
         }
-        .review-v2-breadcrumb button {
-            background: transparent !important;
-            border: none !important;
+        .review-v2-back button {
             color: #5f6b80 !important;
             justify-content: flex-start !important;
-            padding: 0 !important;
             min-height: 24px !important;
             font-size: 12px !important;
-            text-decoration: none !important;
-            box-shadow: none !important;
+            padding-left: 0 !important;
         }
-        .review-v2-breadcrumb button:hover { color: #0b2f6b !important; text-decoration: underline !important; }
+        .review-v2-back button:hover { color: #0b2f6b !important; text-decoration: underline !important; }
         .review-v2-card {
             background: #ffffff;
             border: 1px solid #dbe4f0;
@@ -535,8 +531,12 @@ def render_claim_detail_page(user_id: str, role_key: str) -> None:  # noqa: ARG0
 
     _inject_review_styles()
     st.markdown("<div class='review-v2-shell'></div>", unsafe_allow_html=True)
-    st.markdown("<div class='review-v2-breadcrumb'></div>", unsafe_allow_html=True)
-    if st.button(f"← Back to Dashboard  /  {_safe(row['FILE_NUMBER'])}", key="back_to_dashboard_btn"):
+    st.markdown("<div class='review-v2-back'></div>", unsafe_allow_html=True)
+    if st.button(
+        f"← Back to Dashboard  /  {_safe(row['FILE_NUMBER'])}",
+        key="back_to_dashboard_btn",
+        type="tertiary",
+    ):
         st.session_state.page = "Dashboard"
         st.session_state.selected_claim_id = None
         st.rerun()
