@@ -64,6 +64,13 @@ def _inject_review_styles() -> None:
             padding-right: 1rem;
             max-width: 1400px;
         }
+        .st-key-claim_header_card [data-testid="stVerticalBlockBorderWrapper"] {
+            background: #ffffff;
+            border: 1px solid #dbe4f0;
+            border-radius: 16px;
+            box-shadow: 0 2px 10px rgba(16,24,40,.06);
+            padding: 1rem 1.25rem 1.05rem !important;
+        }
         .review-v2-back button {
             color: #5f6b80 !important;
             justify-content: flex-start !important;
@@ -248,50 +255,60 @@ def _section_score_map(section_conf_df):
 
 
 def _render_claim_header(row, role_key: str) -> None:
-    st.markdown('<div class="review-v2-card" style="padding:1.1rem 1.35rem 1.05rem;">', unsafe_allow_html=True)
-    left, right = st.columns([5, 2])
-    left.markdown(
-        f"""
-        <div class='review-v2-title-row'>
-          <div class='review-v2-head'>
-            {_safe(row['PATIENT_NAME'])} <span class='vs'>vs</span> {_safe(row['DEFENDANT_NAME'])}
-          </div>
-            {_status_chip(row['STATUS'])}
-            {_priority_chip(row['PRIORITY'])}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    if role_key in {"CLAIMS_ANALYST", "ADMIN"}:
-        st.markdown("<div class='review-v2-header-actions'>", unsafe_allow_html=True)
-        if right.button("Reassign", key="assign_faculty_btn", use_container_width=True, type="primary"):
-            st.info("Connect this to assignment workflow.")
-        st.markdown("</div>", unsafe_allow_html=True)
-    elif role_key == "FACULTY":
-        st.markdown("<div class='review-v2-header-actions'>", unsafe_allow_html=True)
-        if right.button("Approve", key=f"approve_{row['CLAIM_ID']}", use_container_width=True, type="primary"):
-            approve_claim(row["CLAIM_ID"])
-            st.success("Claim approved")
+    with st.container(border=True, key="claim_header_card"):
+        st.markdown("<div class='review-v2-back'>", unsafe_allow_html=True)
+        if st.button(
+            f"← Back to Dashboard  /  {_safe(row['FILE_NUMBER'])}",
+            key="back_to_dashboard_btn",
+            type="tertiary",
+        ):
+            st.session_state.page = "Dashboard"
+            st.session_state.selected_claim_id = None
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 
-    metadata = [
-        ("FILE NUMBER", _safe(row["FILE_NUMBER"])),
-        ("DEFENDANT SPECIALTY", _safe(row["DEFENDANT_SPECIALTY"])),
-        ("DATE REQUESTED", _safe(row["DATE_REQUESTED"])),
-        ("REVIEWER", "Dr. Robert Martinez"),
-        ("MAGMUTUAL CONTACT", "Sarah Johnson"),
-        ("CONTACT EMAIL", "analyst@magmutual.com"),
-    ]
-    meta_html = "".join(
-        [
-            f"<div class='review-v2-meta-cell'><div class='review-v2-meta-label'>{label}</div><div class='review-v2-meta-value'>{value}</div></div>"
-            for label, value in metadata
+        left, right = st.columns([5, 2])
+        left.markdown(
+            f"""
+            <div class='review-v2-title-row'>
+              <div class='review-v2-head'>
+                {_safe(row['PATIENT_NAME'])} <span class='vs'>vs</span> {_safe(row['DEFENDANT_NAME'])}
+              </div>
+                {_status_chip(row['STATUS'])}
+                {_priority_chip(row['PRIORITY'])}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if role_key in {"CLAIMS_ANALYST", "ADMIN"}:
+            st.markdown("<div class='review-v2-header-actions'>", unsafe_allow_html=True)
+            if right.button("Reassign", key="assign_faculty_btn", use_container_width=True, type="primary"):
+                st.info("Connect this to assignment workflow.")
+            st.markdown("</div>", unsafe_allow_html=True)
+        elif role_key == "FACULTY":
+            st.markdown("<div class='review-v2-header-actions'>", unsafe_allow_html=True)
+            if right.button("Approve", key=f"approve_{row['CLAIM_ID']}", use_container_width=True, type="primary"):
+                approve_claim(row["CLAIM_ID"])
+                st.success("Claim approved")
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        metadata = [
+            ("FILE NUMBER", _safe(row["FILE_NUMBER"])),
+            ("DEFENDANT SPECIALTY", _safe(row["DEFENDANT_SPECIALTY"])),
+            ("DATE REQUESTED", _safe(row["DATE_REQUESTED"])),
+            ("REVIEWER", "Dr. Robert Martinez"),
+            ("MAGMUTUAL CONTACT", "Sarah Johnson"),
+            ("CONTACT EMAIL", "analyst@magmutual.com"),
         ]
-    )
-    st.markdown(f"<div class='review-v2-meta-grid'>{meta_html}</div>", unsafe_allow_html=True)
-    st.markdown("</div>", unsafe_allow_html=True)
+        meta_html = "".join(
+            [
+                f"<div class='review-v2-meta-cell'><div class='review-v2-meta-label'>{label}</div><div class='review-v2-meta-value'>{value}</div></div>"
+                for label, value in metadata
+            ]
+        )
+        st.markdown(f"<div class='review-v2-meta-grid'>{meta_html}</div>", unsafe_allow_html=True)
 
 
 def _render_confidence(section_conf_df, overall_score: float) -> None:
@@ -462,7 +479,7 @@ def _render_questionnaire(sections_df, answers_map, selected_key: str) -> None:
 
 
 def _render_tabbed_content(row, claim_id: str, defendant_id: str) -> None:
-    st.markdown('<div class="review-v2-tabs" style="margin-top:.8rem;"></div>', unsafe_allow_html=True)
+    st.markdown("<div style='height:.55rem;'></div>", unsafe_allow_html=True)
     tab_objects = st.tabs(REVIEW_TABS)
     with tab_objects[0]:
         st.markdown('<div class="review-v2-card" style="margin-top:.85rem;padding:1rem 1.05rem;">', unsafe_allow_html=True)
@@ -537,15 +554,5 @@ def render_claim_detail_page(user_id: str, role_key: str) -> None:  # noqa: ARG0
 
     _inject_review_styles()
     st.markdown("<div class='review-v2-shell'></div>", unsafe_allow_html=True)
-    st.markdown("<div class='review-v2-back'></div>", unsafe_allow_html=True)
-    if st.button(
-        f"← Back to Dashboard  /  {_safe(row['FILE_NUMBER'])}",
-        key="back_to_dashboard_btn",
-        type="tertiary",
-    ):
-        st.session_state.page = "Dashboard"
-        st.session_state.selected_claim_id = None
-        st.rerun()
-
     _render_claim_header(row, role_key)
     _render_tabbed_content(row, claim_id, defendant_id)
