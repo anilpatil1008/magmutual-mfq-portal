@@ -32,6 +32,17 @@ def _render_mfq_form(session, ctx, claim: dict) -> None:
 
     if sections.empty:
         st.info("No MFQ sections are available for this claim.")
+        with st.expander("Why nothing is loading / what to check", expanded=False):
+            st.markdown(
+                "\n".join(
+                    [
+                        "- Verify this claim was processed by MFQ generation and has answer rows in `MFQ_SECTIONS_VW`.",
+                        f"- Confirm the selected claim id (`{claim_id}`) matches the value stored in the sections view.",
+                        "- Check the claim identifier column in `MFQ_SECTIONS_VW` (supported: `CLAIM_ID`, `CLAIM_NUMBER`, `CLAIMNO`, `CLAIM`).",
+                        "- If the claim has rows but still does not load, inspect column names and data types in the view.",
+                    ]
+                )
+            )
         return
 
     editable = can_edit_claim(ctx.app_role, str(claim.get("STATUS", "")), claim.get("ASSIGNED_TO"), ctx.username)
