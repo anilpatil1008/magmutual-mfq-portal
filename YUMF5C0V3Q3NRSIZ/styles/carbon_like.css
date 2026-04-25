@@ -20,6 +20,15 @@ section[data-testid="stSidebar"] {
   min-width: 270px !important;
   max-width: 270px !important;
 }
+section[data-testid="stSidebar"] > div {
+  width: 270px !important;
+}
+div[data-testid="stSidebarUserContent"] {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
 .brand { color: #fff; font-size: 24px; font-weight: 700; margin: 8px 0 24px; }
 .top-header {
   position: sticky;
@@ -27,7 +36,7 @@ section[data-testid="stSidebar"] {
   z-index: 100;
   background: var(--surface);
   border-bottom: 1px solid #e0e0e0;
-  padding: 8px 20px;
+  padding: 12px 20px;
   margin-top: 0;
   display: flex;
   justify-content: space-between;
@@ -127,6 +136,7 @@ section[data-testid="stSidebar"] {
 .claim-title { font-size: 18px; color: var(--primary); font-weight: 600; margin-bottom: 10px; }
 .claim-grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
 .claims-table { width: 100%; background: #fff; border-collapse: collapse; font-size: 14px; }
+.claims-table-wrap { width: 100%; overflow-x: auto; }
 .claims-table th, .claims-table td { border-bottom: 1px solid #e8e8e8; padding: 10px; text-align: left; }
 .badge { padding: 3px 8px; border-radius: 14px; color: #fff; font-size: 12px; font-weight: 600; }
 .badge-success { background: #24a148; }
