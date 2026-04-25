@@ -37,34 +37,17 @@ def _render_role_selector(current_role: str) -> None:
     if current_role not in role_options:
         role_options = [current_role, *role_options]
 
-    safe_role = escape(current_role)
-    st.markdown(
-        f"""
-        <div class="mm-role-pill" aria-hidden="true">
-            <span class="mm-role-pill-icon">🛡️</span>
-            <span class="mm-role-pill-text">{safe_role}</span>
-            <span class="mm-role-pill-chevron">▾</span>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    selected_role = st.selectbox(
+        "Role",
+        role_options,
+        index=role_options.index(current_role),
+        key="header_role_select",
+        label_visibility="collapsed",
     )
 
-    with st.popover("\u200b", use_container_width=True, key="header_role_popover"):
-        st.markdown("<div class='mm-role-popover'>", unsafe_allow_html=True)
-        st.markdown("<div class='mm-role-popover-title'>Switch Role</div>", unsafe_allow_html=True)
-        for role in role_options:
-            selected = role == current_role
-            label = f"✓ {role}" if selected else role
-            if st.button(
-                label,
-                key=f"header_role_option_{role}",
-                use_container_width=True,
-                type="secondary" if selected else "tertiary",
-            ):
-                if not selected:
-                    set_active_role(role)
-                    st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
+    if selected_role != current_role:
+        set_active_role(selected_role)
+        st.rerun()
 
 
 def render_header(ctx, notifications_df) -> None:
@@ -88,32 +71,17 @@ def render_header(ctx, notifications_df) -> None:
 
     with bell_col:
         st.markdown("<div class='mm-header-item mm-header-item-bell'>", unsafe_allow_html=True)
-        st.markdown(
-            f"""
-            <div class='mm-bell-badge-wrap' aria-hidden='true'>
-                <span class='mm-bell-icon'>🔔</span>
-                <span class='mm-bell-badge'>{unread}</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        with st.popover("\u200b", use_container_width=True, key="header_notifications_popover"):
+        with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
             render_notification_center(notifications_df)
         st.markdown("</div>", unsafe_allow_html=True)
 
     with profile_col:
         st.markdown("<div class='mm-header-item mm-header-item-profile'>", unsafe_allow_html=True)
-        st.markdown(
-            f"""
-            <div class="mm-profile-pill" aria-hidden="true">
-                <span class="mm-avatar">{escape(initials)}</span>
-                <span class="mm-profile-name">{safe_full_name}</span>
-                <span class="mm-profile-arrow">▾</span>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-        with st.popover("\u200b", use_container_width=True, key="header_profile_popover"):
+        with st.popover(
+            f"{initials}  {full_name} ▾",
+            use_container_width=True,
+            key="header_profile_popover",
+        ):
             st.markdown(
                 f"""
                 <div class="mm-profile-card">
