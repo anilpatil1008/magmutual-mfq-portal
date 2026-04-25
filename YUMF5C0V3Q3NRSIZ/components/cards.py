@@ -40,21 +40,28 @@ def _icon_markup(label: str) -> str:
 
 
 def render_kpi_cards(metrics: dict) -> None:
-    cols = st.columns(len(metrics))
-    for idx, (label, value) in enumerate(metrics.items()):
-        with cols[idx]:
-            st.markdown(
-                f"""
-                <div class='kpi-card'>
-                    <div class='kpi-main'>
-                        <div class='kpi-label'>{label}</div>
-                        <div class='kpi-value'>{value}</div>
-                    </div>
-                    {_icon_markup(label)}
+    cards_html = []
+    for label, value in metrics.items():
+        cards_html.append(
+            f"""
+            <div class='kpi-card'>
+                <div class='kpi-main'>
+                    <div class='kpi-label'>{label}</div>
+                    <div class='kpi-value'>{value}</div>
                 </div>
-                """,
-                unsafe_allow_html=True,
-            )
+                {_icon_markup(label)}
+            </div>
+            """
+        )
+
+    st.markdown(
+        f"""
+        <div class='kpi-grid'>
+            {''.join(cards_html)}
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def render_claim_header(claim: dict) -> None:
