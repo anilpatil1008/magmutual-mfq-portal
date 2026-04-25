@@ -7,124 +7,60 @@ import pandas as pd
 from services.snowflake_service import quote_sql, safe_collect_df
 
 
-CLAIMS_VIEW = "MFQ_CLAIMS_VW"
-SECTIONS_VIEW = "MFQ_SECTIONS_VW"
+CLAIMS_VIEW = "MFQ_RECENT_CLAIMS_VW"
+DETAIL_VIEW = "MFQ_CLAIM_DETAIL_VW"
+FORM_VIEW = "MFQ_FORM_WORKSPACE_VW"
 
 
 def _apply_rbac(df: pd.DataFrame, app_role: str, username: str) -> pd.DataFrame:
     if df.empty or app_role in {"Admin", "Executive"}:
         return df
-
     if app_role in {"Claims Analyst", "Advice Team"}:
-        return df[df["STATUS"].isin(["MFQ Generated", "Assigned", "Approved", "Rejected"])].copy()
-
+        return df
     if app_role == "Medical Faculty":
-        return df[(df["ASSIGNED_TO"].fillna("").str.upper() == username.upper())].copy()
-
+        return df[df["ASSIGNED_TO"].fillna("").str.upper() == username.upper()].copy()
     return df.head(0)
 
 
-def get_claims_queue(
-    session,
-    app_role: str,
-    username: str,
-    search_text: str = "",
-    status_filter: str = "All",
-) -> pd.DataFrame:
+def get_claims_queue(session, app_role: str, username: str, search_text: str = "", status_filter: str = "All") -> pd.DataFrame:
     df = safe_collect_df(session, f"SELECT * FROM {CLAIMS_VIEW}")
     if df.empty:
         return df
 
     scoped = _apply_rbac(df, app_role, username)
-
     if search_text.strip():
         needle = search_text.strip().lower()
-        mask = (
+        scoped = scoped[
             scoped["CLAIM_ID"].astype(str).str.lower().str.contains(needle)
             | scoped["PATIENT_NAME"].astype(str).str.lower().str.contains(needle)
             | scoped["DEFENDANT_NAME"].astype(str).str.lower().str.contains(needle)
             | scoped["FILE_NUMBER"].astype(str).str.lower().str.contains(needle)
-        )
-        scoped = scoped[mask]
+        ]
 
     if status_filter != "All":
         scoped = scoped[scoped["STATUS"] == status_filter]
 
-    if "DATE_REQUESTED" in scoped.columns:
-        scoped = scoped.sort_values("DATE_REQUESTED", ascending=False)
-
-    return scoped
+    return scoped.sort_values("LAST_UPDATED_TS", ascending=False)
 
 
 def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
     claim_id_q = quote_sql(claim_id)
-    df = safe_collect_df(session, f"SELECT * FROM {CLAIMS_VIEW} WHERE CLAIM_ID = '{claim_id_q}'")
+    df = safe_collect_df(session, f"SELECT * FROM {DETAIL_VIEW} WHERE CLAIM_ID = '{claim_id_q}'")
     if df.empty:
         return None
     return df.iloc[0].to_dict()
 
 
-def get_claim_sections(session, claim_id: str, form_key: str = "MFQ_V1") -> pd.DataFrame:
+def get_claim_sections(session, claim_id: str) -> pd.DataFrame:
     claim_id_q = quote_sql(claim_id)
-    form_key_q = quote_sql(form_key)
-
-    defendant_df = safe_collect_df(
-        session,
-        f"SELECT DEFENDANT_ID FROM {CLAIMS_VIEW} WHERE CLAIM_ID = '{claim_id_q}' LIMIT 1",
-    )
-    defendant_id = None
-    if not defendant_df.empty and "DEFENDANT_ID" in defendant_df.columns:
-        defendant_id = str(defendant_df.iloc[0]["DEFENDANT_ID"])
-
-    defendant_sql = "NULL"
-    if defendant_id:
-        defendant_sql = f"'{quote_sql(defendant_id)}'"
-
     sql = f"""
-    SELECT
-        s.FORM_KEY,
-        s.SECTION_ID,
-        s.SECTION_KEY,
-        s.SECTION_NAME,
-        s.SECTION_ORDER,
-        q.QUESTION_ID,
-        q.QUESTION_KEY,
-        q.QUESTION_TEXT,
-        q.QUESTION_ORDER,
-        q.ANSWER_TYPE,
-        q.ALLOWED_VALUES,
-        q.VISIBILITY_RULE,
-        a.ANSWER_ID,
-        a.ANSWER_TEXT,
-        a.CONFIDENCE_SCORE,
-        a.STATUS AS ANSWER_STATUS,
-        a.DEFENDANT_ID
-    FROM MFQ_SECTIONS_VW s
-    JOIN MFQ_QUESTIONS_VW q
-      ON s.FORM_KEY = q.FORM_KEY
-     AND s.SECTION_ID = q.SECTION_ID
-    LEFT JOIN (
-        SELECT
-            ANSWER_ID,
-            DEFENDANT_ID,
-            QUESTION_ID,
-            ANSWER_TEXT,
-            CONFIDENCE_SCORE,
-            STATUS
-        FROM MFQ_ANSWER
-        WHERE IS_CURRENT = TRUE
-          AND DEFENDANT_ID = {defendant_sql}
-    ) a
-      ON q.QUESTION_ID = a.QUESTION_ID
-    WHERE s.FORM_KEY = '{form_key_q}'
-      AND q.FORM_KEY = '{form_key_q}'
-    ORDER BY s.SECTION_ORDER, q.QUESTION_ORDER
+      SELECT *
+      FROM {FORM_VIEW}
+      WHERE CLAIM_ID = '{claim_id_q}'
+      ORDER BY SECTION_ORDER, QUESTION_ORDER
     """
     df = safe_collect_df(session, sql)
-    if df.empty:
-        return df
-
-    if "ANSWER_TEXT" in df.columns:
+    if not df.empty and "ANSWER_TEXT" in df.columns:
         df["ANSWER_TEXT"] = df["ANSWER_TEXT"].fillna("")
     return df
 
@@ -138,23 +74,26 @@ def get_status_values(session) -> list[str]:
 def update_claim_status(session, claim_id: str, new_status: str, assigned_to: str | None = None) -> None:
     claim_id_q = quote_sql(claim_id)
     status_q = quote_sql(new_status)
-    assigned_sql = (
-        f", ASSIGNED_TO = '{quote_sql(assigned_to)}'" if assigned_to else ""
-    )
-    sql = f"""
-    UPDATE MFQ_CLAIMS
-    SET STATUS = '{status_q}', LAST_UPDATED_TS = CURRENT_TIMESTAMP() {assigned_sql}
-    WHERE CLAIM_ID = '{claim_id_q}'
-    """
-    session.sql(sql).collect()
+    session.sql(
+        f"UPDATE CLAIM SET CLAIM_STATUS = '{status_q}', LAST_UPDATED_TS = CURRENT_TIMESTAMP() WHERE CLAIM_ID = '{claim_id_q}'"
+    ).collect()
+    if assigned_to:
+        assigned_q = quote_sql(assigned_to)
+        session.sql(
+            f"""
+            UPDATE CLAIM_ASSIGNMENT ca
+               SET LAST_UPDATED_TS = CURRENT_TIMESTAMP()
+             WHERE CLAIM_ID = '{claim_id_q}'
+               AND ASSIGNED_TO_USER_ID IN (SELECT USER_ID FROM APP_USER WHERE USERNAME = '{assigned_q}')
+            """
+        ).collect()
 
 
 def save_section_answer(session, answer_id: str, answer_text: str) -> None:
     answer_q = quote_sql(answer_text)
     answer_id_q = quote_sql(answer_id)
-    sql = f"""
-    UPDATE MFQ_ANSWER
-    SET ANSWER_TEXT = '{answer_q}'
-    WHERE ANSWER_ID = '{answer_id_q}'
-    """
-    session.sql(sql).collect()
+    if not answer_id_q:
+        return
+    session.sql(
+        f"UPDATE MFQ_ANSWER SET ANSWER_TEXT = '{answer_q}', LAST_UPDATED_TS = CURRENT_TIMESTAMP() WHERE ANSWER_ID = '{answer_id_q}'"
+    ).collect()

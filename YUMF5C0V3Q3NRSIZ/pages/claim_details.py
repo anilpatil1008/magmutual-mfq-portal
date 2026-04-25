@@ -54,7 +54,7 @@ def _render_mfq_form(session, ctx, claim: dict) -> None:
                 q = row.get("QUESTION_TEXT", "")
                 answer = row.get("ANSWER_TEXT", "")
                 conf = row.get("CONFIDENCE_SCORE", "")
-                answer_id = row.get("ANSWER_ID", "")
+                answer_id = row.get("ANSWER_ID", "") or row.get("QUESTION_ID", "")
                 st.markdown(f"**Q:** {q}")
                 new_value = st.text_area(
                     "Answer",

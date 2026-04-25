@@ -15,7 +15,7 @@ def get_user_notifications(session, username: str, limit: int = 10) -> pd.DataFr
         LOWER(COALESCE(EVENT_PRIORITY, 'info')) AS SEVERITY,
         EVENT_TS AS CREATED_TS,
         IS_READ
-    FROM MFQ_NOTIFICATION_VW
+    FROM MFQ_NOTIFICATIONS_VW
     WHERE UPPER(COALESCE(USERNAME, '')) = UPPER('{username_q}')
        OR UPPER(COALESCE(USERNAME, '')) = 'ALL'
     ORDER BY EVENT_TS DESC
