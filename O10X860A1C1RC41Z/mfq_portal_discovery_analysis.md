@@ -4,7 +4,7 @@ _Date: 2026-04-25_
 
 ## 1) Current repository structure (as-is)
 
-- Root repo currently contains a single implementation directory `YUMF5C0V3Q3NRSIZ/` and minimal top-level docs (`README.md`).
+- Root repo currently contains a single implementation directory `O10X860A1C1RC41Z/` and minimal top-level docs (`README.md`).
 - Current app is a Streamlit in Snowflake prototype with these top-level modules:
   - `streamlit_app.py` (entrypoint / page router)
   - `pages/` (dashboard, claims, claim details, reports)
@@ -12,7 +12,7 @@ _Date: 2026-04-25_
   - `services/` (Snowflake session + CRUD/query helper functions)
   - `utils/` (constants, session-state helpers)
   - `styles/` (single custom CSS file)
-- Uploaded artifacts are present in `YUMF5C0V3Q3NRSIZ/`:
+- Uploaded artifacts are present in `O10X860A1C1RC41Z/`:
   - `MFQ_UI_Portal_Requirements_and_Screen_Design.docx`
   - `MagM - UI Portal Prototype.zip` (contains `.pptx`)
   - `tables and SQL's for questionarire.zip`
