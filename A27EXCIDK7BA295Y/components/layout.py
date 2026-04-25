@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from html import escape
+from textwrap import dedent
 from pathlib import Path
 import re
 
@@ -133,20 +134,25 @@ def render_header(ctx, notifications_df) -> None:
             use_container_width=True,
             key="header_profile_popover",
         ):
+            profile_email_html = (
+                f"<div class='mm-profile-email'>Email: {safe_email}</div>" if safe_email else ""
+            )
             st.markdown(
-                f"""
-                <div class="mm-profile-card">
-                    <div class="mm-profile-card-head">
-                        <span class="mm-avatar mm-avatar-lg">{escape(initials)}</span>
-                        <div class="mm-profile-meta">
-                            <div class="mm-profile-fullname">{safe_full_name}</div>
-                            <div class="mm-profile-username">Username: {safe_username}</div>
-                            {"<div class='mm-profile-email'>Email: " + safe_email + "</div>" if safe_email else ""}
-                            <div class="mm-profile-role">Role: {safe_app_role}{(" • " + safe_sf_role) if safe_sf_role else ""}</div>
+                dedent(
+                    f"""
+                    <div class="mm-profile-card">
+                        <div class="mm-profile-card-head">
+                            <span class="mm-avatar mm-avatar-lg">{escape(initials)}</span>
+                            <div class="mm-profile-meta">
+                                <div class="mm-profile-fullname">{safe_full_name}</div>
+                                <div class="mm-profile-username">Username: {safe_username}</div>
+                                {profile_email_html}
+                                <div class="mm-profile-role">Role: {safe_app_role}{(" • " + safe_sf_role) if safe_sf_role else ""}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                """,
+                    """
+                ).strip(),
                 unsafe_allow_html=True,
             )
 
