@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from html import escape
+from html import escape, unescape
 from pathlib import Path
 import re
 
@@ -59,6 +59,23 @@ def _to_title_name(raw_value: str) -> str:
     return " ".join(parts)
 
 
+def _normalize_profile_text(raw_value: object) -> str:
+    text = str(raw_value or "").strip()
+    if not text:
+        return ""
+
+    # Guard against accidentally persisted HTML fragments in session state.
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = unescape(text)
+    text = re.sub(r"\s+", " ", text).strip()
+
+    # Drop likely markup fragments that survived stripping.
+    if not text or any(token in text.lower() for token in ("div class", "</", "/>")):
+        return ""
+
+    return text
+
+
 def _resolve_profile_display(ctx) -> tuple[str, str, str, str | None, str]:
     username = str(getattr(ctx, "username", "") or "").strip()
 
@@ -74,7 +91,7 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str | None, str]:
 
     full_name = ""
     for candidate in full_name_candidates:
-        value = str(candidate or "").strip()
+        value = _normalize_profile_text(candidate)
         if value:
             full_name = value
             break
@@ -96,7 +113,7 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str | None, str]:
 
     email_value = None
     for candidate in email_candidates:
-        value = str(candidate or "").strip()
+        value = _normalize_profile_text(candidate)
         if value and "@" in value:
             email_value = value
             break

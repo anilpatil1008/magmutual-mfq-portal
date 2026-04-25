@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from html import escape
+from html import escape, unescape
+import re
 
 import streamlit as st
 
@@ -9,6 +10,23 @@ from components.cards import render_kpi_cards
 from components.tables import render_recent_claims_table
 from services.claim_service import get_claims_queue
 from services.dashboard_service import get_dashboard_metrics
+
+
+
+
+def _normalize_display_value(raw_value: object) -> str:
+    text = str(raw_value or "").strip()
+    if not text:
+        return ""
+
+    text = re.sub(r"<[^>]+>", " ", text)
+    text = unescape(text)
+    text = re.sub(r"\s+", " ", text).strip()
+
+    if not text or any(token in text.lower() for token in ("div class", "</", "/>")):
+        return ""
+
+    return text
 
 
 def _resolve_user_display_name(ctx) -> str:
@@ -33,11 +51,11 @@ def _resolve_user_display_name(ctx) -> str:
         )
 
     for candidate in candidate_values:
-        value = str(candidate or "").strip()
+        value = _normalize_display_value(candidate)
         if value:
             return value
 
-    return str(getattr(ctx, "username", "") or "").strip()
+    return _normalize_display_value(getattr(ctx, "username", ""))
 
 
 def render(session, ctx) -> None:
