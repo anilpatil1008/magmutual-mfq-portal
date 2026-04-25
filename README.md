@@ -4,20 +4,20 @@ Streamlit + Snowflake (Snowpark) portal for MFQ claim review workflows.
 
 ## Repository layout
 
-- `YUMF5C0V3Q3NRSIZ/streamlit_app.py` – Streamlit entrypoint.
-- `YUMF5C0V3Q3NRSIZ/sql/` – Snowflake SQL setup scripts (run in order).
+- `O10X860A1C1RC41Z/streamlit_app.py` – Streamlit entrypoint.
+- `O10X860A1C1RC41Z/sql/` – Snowflake SQL setup scripts (run in order).
 
 ## Snowflake deployment (Snowsight worksheet)
 
 Run these commands in order:
 
 ```sql
-!source YUMF5C0V3Q3NRSIZ/sql/00_session_context.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/01_create_core_objects.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/02_create_views.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/03_seed_system_config.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/04_create_ui_portal_objects.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/05_seed_questionnaire.sql;
+!source O10X860A1C1RC41Z/sql/00_session_context.sql;
+!source O10X860A1C1RC41Z/sql/01_create_core_objects.sql;
+!source O10X860A1C1RC41Z/sql/02_create_views.sql;
+!source O10X860A1C1RC41Z/sql/03_seed_system_config.sql;
+!source O10X860A1C1RC41Z/sql/04_create_ui_portal_objects.sql;
+!source O10X860A1C1RC41Z/sql/05_seed_questionnaire.sql;
 ```
 
 If `!source` is not enabled in your worksheet, open each script file and execute it manually in the same order.
@@ -27,7 +27,7 @@ If `!source` is not enabled in your worksheet, open each script file and execute
 From repository root:
 
 ```bash
-cd YUMF5C0V3Q3NRSIZ
+cd O10X860A1C1RC41Z
 pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
@@ -73,7 +73,7 @@ Run SQL in order after core scripts:
 ## Local Development
 
 ```bash
-pip install -r YUMF5C0V3Q3NRSIZ/requirements.txt
+pip install -r O10X860A1C1RC41Z/requirements.txt
 streamlit run streamlit_app.py
 ```
 
@@ -82,8 +82,8 @@ For local execution outside Snowflake, mock `get_active_session()` or run inside
 ## Snowflake packaging behavior and fix
 
 - Deploy this app as source code (not as an installable Python project package).
-- Runtime dependency resolution for Streamlit in Snowflake should come from `YUMF5C0V3Q3NRSIZ/environment.yml`.
-- The root `pyproject.toml` build configuration was removed so Snowflake does not attempt to build and install `magmutual-mfq-portal @ file:///opt/streamlit-runtime`.
+- Runtime dependency resolution for Streamlit in Snowflake should come from `O10X860A1C1RC41Z/environment.yml`.
+- The root `pyproject.toml` build configuration was removed so Snowflake does not attempt to build and install `O10X860A1C1RC41Z @ file:///opt/streamlit-runtime`.
 
 ## Package install troubleshooting (PyPI DNS / EAI)
 

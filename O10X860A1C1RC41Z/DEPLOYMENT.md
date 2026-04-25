@@ -22,3 +22,12 @@ If your app still depends on packages that must be fetched from PyPI:
    - `files.pythonhosted.org`
 
 If all required dependencies are available via Snowflake-supported channels and listed in `environment.yml`, PyPI EAI is typically not required.
+
+
+## Streamlit source folder mapping
+
+Deploy the app from source folder `O10X860A1C1RC41Z` and keep:
+
+- `MAIN_FILE = '/O10X860A1C1RC41Z/streamlit_app.py'`
+
+A ready-to-run SQL example is provided in `deployment.sql`.

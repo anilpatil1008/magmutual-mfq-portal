@@ -6,7 +6,7 @@ import runpy
 import sys
 from pathlib import Path
 
-PROJECT_SUBDIR = Path(__file__).resolve().parent / "YUMF5C0V3Q3NRSIZ"
+PROJECT_SUBDIR = Path(__file__).resolve().parent / "O10X860A1C1RC41Z"
 TARGET_APP = PROJECT_SUBDIR / "streamlit_app.py"
 
 # Ensure legacy absolute imports inside the app (e.g., `from components...`) continue to work.
