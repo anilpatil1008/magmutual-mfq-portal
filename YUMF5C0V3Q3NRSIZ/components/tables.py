@@ -34,7 +34,10 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
         "ACTION",
     ]
     styled = _format_claims_for_display(df)[display_cols]
-    st.markdown(styled.to_html(index=False, escape=False, classes="claims-table"), unsafe_allow_html=True)
+    st.markdown(
+        f"<div class='table-card'>{styled.to_html(index=False, escape=False, classes='claims-table')}</div>",
+        unsafe_allow_html=True,
+    )
 
     with st.container(border=True):
         c1, c2, c3 = st.columns([2, 2, 1])

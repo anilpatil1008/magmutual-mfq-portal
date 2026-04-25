@@ -54,7 +54,7 @@ def render(session, role: str, _username: str, claim_id: str | None):
     render_claim_header(claim)
     _render_actions(session, claim, role)
 
-    tabs = st.tabs(["MFQ Form", "Records Summary", "MedCron", "Legal Memo", "Enquiries", "AI Assist", "Documents"])
+    tabs = st.tabs(["MFQ Form Review", "Records Summary", "MedCron", "Legal Memo", "Enquiries", "AI Assist", "Documents"])
 
     with tabs[0]:
         st.toggle("Edit mode", key="mfq_edit_mode")

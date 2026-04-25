@@ -9,7 +9,8 @@ NAV_ITEMS = [
     "Dashboard",
     "Claims",
     "Claim Details",
-    "Reports & Analytics",
+    "Reports Dashboard",
+    "Admin / RBAC",
 ]
 
 STATUS_COLORS = {
