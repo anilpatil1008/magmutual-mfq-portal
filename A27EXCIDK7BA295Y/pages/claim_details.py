@@ -8,15 +8,15 @@ from services.rbac_service import can_edit_claim
 
 
 def _action_bar(session, ctx, claim: dict) -> None:
-    st.markdown("<div class='mm-claim-action-head'>Workflow Actions</div>", unsafe_allow_html=True)
-    c1, c2, c3 = st.columns([1, 1, 1])
+    st.markdown("#### Workflow Actions")
+    c1, c2, c3 = st.columns(3)
     claim_id = str(claim["CLAIM_ID"])
 
-    if c1.button("Assign to Faculty", use_container_width=True, type="primary"):
+    if c1.button("Assign to Faculty", use_container_width=True):
         update_claim_status(session, claim_id, "Assigned", assigned_to=ctx.username)
         st.success("Claim assigned.")
         st.rerun()
-    if c2.button("Approve", use_container_width=True, type="secondary"):
+    if c2.button("Approve", use_container_width=True):
         update_claim_status(session, claim_id, "Approved")
         st.success("Claim approved.")
         st.rerun()
@@ -32,6 +32,17 @@ def _render_mfq_form(session, ctx, claim: dict) -> None:
 
     if sections.empty:
         st.info("No MFQ sections are available for this claim.")
+        with st.expander("Why nothing is loading / what to check", expanded=False):
+            st.markdown(
+                "\n".join(
+                    [
+                        "- Verify master data exists in `MFQ_SECTIONS_VW` and `MFQ_QUESTIONS_VW` for `FORM_KEY = 'MFQ_V1'`.",
+                        f"- Confirm claim `{claim_id}` resolves to a `DEFENDANT_ID` in `MFQ_CLAIMS_VW`.",
+                        "- Validate answers are in `MFQ_ANSWER` and join on (`DEFENDANT_ID`, `QUESTION_ID`).",
+                        "- The MFQ form should still render sections/questions even when no answer rows exist.",
+                    ]
+                )
+            )
         return
 
     editable = can_edit_claim(ctx.app_role, str(claim.get("STATUS", "")), claim.get("ASSIGNED_TO"), ctx.username)
@@ -53,13 +64,13 @@ def _render_mfq_form(session, ctx, claim: dict) -> None:
                     label_visibility="collapsed",
                 )
                 st.caption(f"AI Confidence: {conf}")
-                if editable and st.button("Save", key=f"save_{answer_id}", type="secondary"):
+                if editable and st.button("Save", key=f"save_{answer_id}"):
                     save_section_answer(session, str(answer_id), new_value)
                     st.success("Answer saved.")
 
 
 def render(session, ctx) -> None:
-    st.markdown("<h1 class='mm-page-title'>Claim Details</h1>", unsafe_allow_html=True)
+    st.subheader("Claim Details")
     claim_id = st.session_state.get("selected_claim_id")
     if not claim_id:
         st.info("Open a claim from Dashboard or Claims page.")
@@ -70,7 +81,6 @@ def render(session, ctx) -> None:
         st.error(f"Claim {claim_id} not found.")
         return
 
-    st.markdown(f"<div class='mm-breadcrumb'>← Back to Dashboard / {claim_id}</div>", unsafe_allow_html=True)
     render_claim_header(claim)
     _action_bar(session, ctx, claim)
 
@@ -86,10 +96,10 @@ def render(session, ctx) -> None:
         st.write(claim.get("LEGAL_MEMO_TEXT", "No legal memo summary available."))
     with tabs[4]:
         st.text_area("Raise enquiry", placeholder="Enter question for analyst/faculty")
-        st.button("Post enquiry", type="secondary")
+        st.button("Post enquiry")
     with tabs[5]:
         prompt = st.text_input("Ask AI Assist")
-        if st.button("Run AI Assist", type="secondary") and prompt:
+        if st.button("Run AI Assist") and prompt:
             st.info("AI Assist run submitted with RBAC-scoped retrieval.")
     with tabs[6]:
         st.download_button("Download MFQ Snapshot", data=str(claim), file_name=f"MFQ_{claim_id}.txt")

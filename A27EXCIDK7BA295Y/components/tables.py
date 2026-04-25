@@ -5,6 +5,7 @@ import streamlit as st
 
 from components.badges import priority_badge, status_badge
 
+
 VISIBLE_COLUMNS = [
     "CLAIM_ID",
     "PATIENT_NAME",
@@ -12,6 +13,7 @@ VISIBLE_COLUMNS = [
     "STATUS",
     "PRIORITY",
     "DATE_REQUESTED",
+    "ASSIGNED_TO",
 ]
 
 
@@ -23,34 +25,23 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
     show_df = df.copy()
     show_df = show_df[[c for c in VISIBLE_COLUMNS if c in show_df.columns]]
 
-    st.markdown("<div class='mm-table-wrap'>", unsafe_allow_html=True)
+    if "STATUS" in show_df.columns:
+        show_df["STATUS"] = show_df["STATUS"].apply(lambda x: status_badge(str(x)))
+    if "PRIORITY" in show_df.columns:
+        show_df["PRIORITY"] = show_df["PRIORITY"].apply(lambda x: priority_badge(str(x)))
 
-    hcols = st.columns([1.1, 1.95, 1.1, 0.9, 1.1, 0.7], gap="small")
-    headers = ["FILE NUMBER", "PATIENT / DEFENDANT", "STATUS", "PRIORITY", "DATE REQUESTED", "ACTION"]
-    for col, header in zip(hcols, headers):
-        col.markdown(f"<div class='mm-table-head-cell'>{header}</div>", unsafe_allow_html=True)
-
+    rows = []
     for _, row in show_df.iterrows():
-        claim_id = str(row.get("CLAIM_ID", ""))
-        patient = str(row.get("PATIENT_NAME", "-"))
-        defendant = str(row.get("DEFENDANT_NAME", "-"))
-        status = status_badge(str(row.get("STATUS", "-")))
-        priority = priority_badge(str(row.get("PRIORITY", "-")))
-        date_requested = str(row.get("DATE_REQUESTED", "-"))
-
-        cols = st.columns([1.1, 1.95, 1.1, 0.9, 1.1, 0.7], gap="small")
-        cols[0].markdown(f"<div class='mm-table-cell mm-table-file'>{claim_id}</div>", unsafe_allow_html=True)
-        cols[1].markdown(
-            f"<div class='mm-table-cell'><div class='mm-table-patient'>{patient}</div><div class='mm-table-defendant'>vs. {defendant}</div></div>",
-            unsafe_allow_html=True,
-        )
-        cols[2].markdown(f"<div class='mm-table-cell'>{status}</div>", unsafe_allow_html=True)
-        cols[3].markdown(f"<div class='mm-table-cell'>{priority}</div>", unsafe_allow_html=True)
-        cols[4].markdown(f"<div class='mm-table-cell'>{date_requested}</div>", unsafe_allow_html=True)
-        if cols[5].button("Review →", key=f"{key_prefix}_open_{claim_id}", use_container_width=True, type="tertiary"):
+        claim_id = row.get("CLAIM_ID", "")
+        btn_key = f"{key_prefix}_open_{claim_id}"
+        if st.button(f"Open {claim_id}", key=btn_key):
             st.session_state.selected_claim_id = claim_id
             st.session_state.active_page = "Claim Details"
             st.rerun()
-        st.markdown("<div class='mm-table-row-divider'></div>", unsafe_allow_html=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+        row_html = "".join([f"<td>{value}</td>" for value in row.values])
+        rows.append(f"<tr>{row_html}</tr>")
+
+    head_html = "".join([f"<th>{h}</th>" for h in show_df.columns])
+    table_html = f"<table class='mm-table'><thead><tr>{head_html}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
+    st.markdown(table_html, unsafe_allow_html=True)
