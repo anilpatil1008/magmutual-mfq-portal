@@ -4,7 +4,7 @@ from services.snowflake_service import get_report_metrics
 
 
 def render(session, role: str, username: str):
-    st.subheader("Reports & Analytics")
+    st.subheader("Reports Dashboard")
     metrics = get_report_metrics(session, role, username)
     if (
         metrics["status"].empty
@@ -14,6 +14,11 @@ def render(session, role: str, username: str):
     ):
         st.info("No report data is available for your role yet.")
         return
+
+    top_a, top_b, top_c = st.columns(3)
+    top_a.metric("Open Claims", int(metrics["status"]["COUNT"].sum()))
+    top_b.metric("Specialties Covered", int(metrics["specialty"]["SPECIALTY"].nunique()))
+    top_c.metric("Faculty in Rotation", int(metrics["faculty"]["ASSIGNED_TO"].nunique()))
 
     c1, c2 = st.columns(2)
     with c1:

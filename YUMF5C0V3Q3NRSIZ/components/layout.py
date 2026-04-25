@@ -21,29 +21,37 @@ def load_css() -> None:
         return
 
 
-def render_shell():
+def render_shell(username: str):
     st.markdown("<div class='app-shell'>", unsafe_allow_html=True)
-
-    st.markdown(
-        """
-        <div class='top-header'>
-            <div class='header-title'>MagMutual MFQ Enterprise Portal</div>
-            <div class='header-right'>
-                <div class='notif'>🔔</div>
-                <div class='user-chip'>Signed in via Snowflake</div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
 
     with st.sidebar:
         st.markdown("<div class='brand'>MagMutual</div>", unsafe_allow_html=True)
-        selected_role = st.selectbox("Role", ROLES, key="active_role")
+        st.caption("MFQ Enterprise Portal")
+        st.markdown("<div class='nav-header'>Navigation</div>", unsafe_allow_html=True)
         for item in NAV_ITEMS:
             if st.button(item, use_container_width=True, key=f"nav_{item}"):
                 set_page(item)
                 st.rerun()
+
+    selected_role = st.session_state.active_role
+    c1, c2, c3 = st.columns([5, 2, 2])
+    with c1:
+        st.markdown("<h1 class='header-title'>MagMutual MFQ Enterprise Portal</h1>", unsafe_allow_html=True)
+    with c2:
+        selected_role = st.selectbox(
+            "Role",
+            ROLES,
+            key="active_role",
+            label_visibility="collapsed",
+            help="Role switcher",
+        )
+    with c3:
+        notifications = st.session_state.get("notifications", 0)
+        st.markdown(
+            f"<div class='header-user-group'><span class='notif-bell'>🔔 {notifications}</span>"
+            f"<span class='user-chip'>Snowflake • {username}</span></div>",
+            unsafe_allow_html=True,
+        )
 
     st.markdown("<div class='content-wrap'>", unsafe_allow_html=True)
     return selected_role
