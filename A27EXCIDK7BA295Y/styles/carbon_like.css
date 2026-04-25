@@ -3,7 +3,7 @@
   --mm-surface: #ffffff;
   --mm-text: #161616;
   --mm-subtle: #525252;
-  --mm-border: #e0e0e0;
+  --mm-border: #dde1e6;
   --mm-blue: #0f62fe;
   --mm-blue-2: #0043ce;
   --mm-success: #24a148;
@@ -11,8 +11,12 @@
   --mm-warning: #f1c21b;
 }
 
-.stApp { background: var(--mm-bg); color: var(--mm-text); }
-.block-container { max-width: 1400px; padding-top: .5rem; }
+.stApp {
+  background: var(--mm-bg);
+  color: var(--mm-text);
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+.block-container { max-width: 1400px; padding-top: .2rem; }
 
 section[data-testid="stSidebar"] {
   background: #161616;
@@ -791,8 +795,87 @@ section[data-testid="stSidebar"] .stButton button:hover {
 }
 
 .mm-dashboard-welcome {
-  margin: -0.45rem 0 1.1rem;
+  margin: -0.2rem 0 1rem;
   color: #6b7280;
   font-size: 0.95rem;
   line-height: 1.5;
+}
+
+/* Final enterprise topbar overrides for consistent fixed header behavior. */
+.mm-fixed-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  background: #ffffff;
+  border: 1px solid var(--mm-border);
+  border-radius: 8px;
+  margin: 0 0 18px;
+  padding: 0 14px;
+}
+
+.st-key-mm_header_controls {
+  width: 100%;
+  margin: 0 !important;
+}
+
+.st-key-mm_header_controls [data-testid="stHorizontalBlock"] {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  gap: 12px !important;
+  height: 56px;
+}
+
+.st-key-mm_header_controls [data-testid="column"]:nth-child(1) {
+  width: clamp(220px, 24vw, 260px) !important;
+}
+
+.st-key-mm_header_controls [data-testid="column"]:nth-child(2) {
+  width: clamp(90px, 10vw, 110px) !important;
+}
+
+.st-key-mm_header_controls [data-testid="column"]:nth-child(3) {
+  width: clamp(300px, 31vw, 360px) !important;
+}
+
+.mm-header-item {
+  min-height: 40px !important;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.mm-header-item-role [data-baseweb="select"] > div,
+.mm-header-item-bell .stPopover > div > button,
+.mm-header-item-profile .stPopover > div > button {
+  min-height: 40px !important;
+  height: 40px !important;
+  border: 1px solid var(--mm-border) !important;
+  border-radius: 7px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.mm-header-item-role .stSelectbox [data-baseweb="select"] > div {
+  border: 1px solid var(--mm-border) !important;
+  border-radius: 7px !important;
+}
+
+.mm-header-item-bell .stPopover > div > button {
+  justify-content: center !important;
+}
+
+.mm-header-item-profile .stPopover > div > button p {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+.st-key-mm_header_controls + div [data-testid="stHeading"] {
+  margin-top: 0 !important;
+  padding-top: 0 !important;
 }
