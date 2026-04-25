@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import html
-from textwrap import dedent
-
 import streamlit as st
 
 
@@ -16,31 +14,26 @@ CARD_ICONS = {
 
 
 def render_kpi_cards(metrics: dict[str, int]) -> None:
-    cards = []
+    cards: list[str] = []
     for metric, value in metrics.items():
         icon = CARD_ICONS.get(metric, "📊")
+        safe_metric = html.escape(str(metric))
+        safe_value = html.escape(str(value))
         cards.append(
-            dedent(
-                f"""
-                <div class="mm-card">
-                    <div class="mm-card-main">
-                        <div class="mm-card-label">{html.escape(metric)}</div>
-                        <div class="mm-card-value">{html.escape(str(value))}</div>
-                    </div>
-                    <div class="mm-card-icon" aria-hidden="true">{icon}</div>
-                </div>
-                """
-            ).strip()
+            "".join(
+                [
+                    '<article class="mm-card">',
+                    '<div class="mm-card-main">',
+                    f'<div class="mm-card-label">{safe_metric}</div>',
+                    f'<div class="mm-card-value">{safe_value}</div>',
+                    "</div>",
+                    f'<div class="mm-card-icon" aria-hidden="true">{icon}</div>',
+                    "</article>",
+                ]
+            )
         )
 
-    kpi_html = dedent(
-        f"""
-        <section class="mm-kpi-grid">
-            {''.join(cards)}
-        </section>
-        """
-    ).strip()
-
+    kpi_html = f'<section class="mm-kpi-grid">{"".join(cards)}</section>'
     st.markdown(kpi_html, unsafe_allow_html=True)
 
 
