@@ -30,3 +30,4 @@ CREATE OR REPLACE STREAMLIT MAGMUTUAL_MFQ_APP.PUBLIC.MAGMUTUAL_MFQ_ENTERPRISE_PO
 - Uses Snowflake active session via `get_active_session()`.
 - Uses `environment.yml` for Snowflake Streamlit package resolution.
 - CSS is loaded safely with `pathlib`.
+- See `DEPLOYMENT.md` for packaging/EAI troubleshooting guidance.

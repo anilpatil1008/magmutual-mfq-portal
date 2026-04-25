@@ -73,11 +73,17 @@ Run SQL in order after core scripts:
 ## Local Development
 
 ```bash
-pip install -e .
+pip install -r YUMF5C0V3Q3NRSIZ/requirements.txt
 streamlit run streamlit_app.py
 ```
 
 For local execution outside Snowflake, mock `get_active_session()` or run inside a Snowflake-native Streamlit app.
+
+## Snowflake packaging behavior and fix
+
+- Deploy this app as source code (not as an installable Python project package).
+- Runtime dependency resolution for Streamlit in Snowflake should come from `YUMF5C0V3Q3NRSIZ/environment.yml`.
+- The root `pyproject.toml` build configuration was removed so Snowflake does not attempt to build and install `magmutual-mfq-portal @ file:///opt/streamlit-runtime`.
 
 ## Package install troubleshooting (PyPI DNS / EAI)
 
@@ -97,11 +103,14 @@ the runtime environment cannot resolve or reach `pypi.org`.
 
 ### How to fix
 
-1. Enable outbound package access (EAI) for the execution environment.
-2. Allow DNS + HTTPS egress to package domains such as:
+1. Have `ACCOUNTADMIN` create/enable an External Access Integration (EAI) for package downloads.
+2. Attach that EAI to the Streamlit object deployment.
+3. Allow DNS + HTTPS egress to package domains such as:
    - `pypi.org`
    - `files.pythonhosted.org`
-3. Retry installation.
+4. Retry installation.
+
+If all required packages are available through Snowflake-supported channels in `environment.yml`, no PyPI EAI is required.
 
 ### Quick validation commands
 
