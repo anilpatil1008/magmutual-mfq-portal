@@ -522,6 +522,25 @@ section[data-testid="stSidebar"] .stButton button:hover {
   display: none;
 }
 
+.mm-header-item [data-testid="stPopoverButton"] {
+  width: 100% !important;
+  min-height: 42px !important;
+  height: 100% !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: transparent !important;
+  font-size: 0 !important;
+}
+
+.mm-header-item [data-testid="stPopoverButton"] > div,
+.mm-header-item [data-testid="stPopoverButton"] p,
+.mm-header-item [data-testid="stPopoverButton"] span {
+  color: transparent !important;
+  font-size: 0 !important;
+}
+
 .mm-role-pill,
 .mm-profile-pill,
 .mm-bell-badge-wrap {
