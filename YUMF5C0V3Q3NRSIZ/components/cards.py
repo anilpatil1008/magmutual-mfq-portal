@@ -1,3 +1,5 @@
+import html
+
 import streamlit as st
 
 
@@ -25,43 +27,47 @@ KPI_ICON_CONFIG = {
 }
 
 
-def _icon_markup(label: str) -> str:
-    icon = KPI_ICON_CONFIG.get(
-        label,
-        {"icon_class": "kpi-icon-claims", "svg_path": "M14 2H6a2 2 0 0 0-2 2v16l4-3 4 3 4-3 4 3V8z"},
-    )
+DEFAULT_ICON = KPI_ICON_CONFIG["Total Active Claims"]
+
+
+def render_kpi_card(title: str, value: int | str, icon: str, icon_class: str) -> str:
+    safe_title = html.escape(str(title))
+    safe_value = html.escape(str(value))
+
     return f"""
-    <div class='kpi-icon-wrap {icon["icon_class"]}'>
-        <svg class='kpi-icon' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'>
-            <path d='{icon["svg_path"]}' stroke='currentColor' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'></path>
-        </svg>
-    </div>
+    <article class='kpi-card'>
+        <div class='kpi-main'>
+            <div class='kpi-label'>{safe_title}</div>
+            <div class='kpi-value'>{safe_value}</div>
+        </div>
+        <div class='kpi-icon-wrap {icon_class}'>
+            <svg class='kpi-icon' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg' aria-hidden='true'>
+                <path d='{icon}' stroke='currentColor' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'></path>
+            </svg>
+        </div>
+    </article>
     """
 
 
 def render_kpi_cards(metrics: dict) -> None:
     cards_html = []
-    for label, value in metrics.items():
+    for title, value in metrics.items():
+        icon_cfg = KPI_ICON_CONFIG.get(title, DEFAULT_ICON)
         cards_html.append(
-            f"""
-            <div class='kpi-card'>
-                <div class='kpi-main'>
-                    <div class='kpi-label'>{label}</div>
-                    <div class='kpi-value'>{value}</div>
-                </div>
-                {_icon_markup(label)}
-            </div>
-            """
+            render_kpi_card(
+                title=title,
+                value=value,
+                icon=icon_cfg["svg_path"],
+                icon_class=icon_cfg["icon_class"],
+            )
         )
 
-    st.markdown(
-        f"""
-        <div class='kpi-grid'>
-            {''.join(cards_html)}
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+    grid_html = f"""
+    <section class='kpi-grid' aria-label='Dashboard KPIs'>
+        {''.join(cards_html)}
+    </section>
+    """
+    st.markdown(grid_html, unsafe_allow_html=True)
 
 
 def render_claim_header(claim: dict) -> None:
