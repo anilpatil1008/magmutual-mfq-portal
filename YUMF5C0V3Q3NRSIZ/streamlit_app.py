@@ -1,28 +1,40 @@
+from __future__ import annotations
+
 import streamlit as st
 
-from components.layout import close_shell, load_css, render_shell
-from pages import claim_details, claims, dashboard, reports
-from services.snowflake_service import get_active_session
-from utils.helpers import init_state
+from components.layout import load_css, render_header, render_sidebar
+from pages import admin, claim_details, claims, dashboard, reports
+from services.notification_service import get_user_notifications
+from services.rbac_service import get_current_user_context
+from services.snowflake_service import get_session
 
-st.set_page_config(page_title="MagMutual MFQ Portal", layout="wide")
-init_state()
+st.set_page_config(
+    page_title="MagMutual MFQ Enterprise Portal",
+    page_icon="🧭",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
 load_css()
+session = get_session()
+ctx = get_current_user_context(session)
 
-session = get_active_session()
-username = session.sql("SELECT CURRENT_USER() AS USERNAME").to_pandas().iloc[0]["USERNAME"]
-role = render_shell(username)
+if "active_page" not in st.session_state:
+    st.session_state.active_page = "Dashboard"
+if "selected_claim_id" not in st.session_state:
+    st.session_state.selected_claim_id = None
 
-page = st.session_state.active_page
-if page == "Dashboard":
-    dashboard.render(session, role, username)
-elif page == "Claims":
-    claims.render(session, role, username)
-elif page == "Claim Details":
-    claim_details.render(session, role, username, st.session_state.selected_claim_id)
-elif page == "Admin / RBAC":
-    admin.render(session, role, username)
-else:
-    reports.render(session, role, username)
+notifications = get_user_notifications(session, ctx.username, limit=6)
+render_header(ctx, notifications)
+render_sidebar(ctx)
 
-close_shell()
+page_map = {
+    "Dashboard": dashboard.render,
+    "Claims": claims.render,
+    "Claim Details": claim_details.render,
+    "Reports": reports.render,
+    "Admin": admin.render,
+}
+
+render_fn = page_map.get(st.session_state.active_page, dashboard.render)
+render_fn(session=session, ctx=ctx)
