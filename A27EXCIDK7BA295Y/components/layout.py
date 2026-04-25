@@ -60,17 +60,23 @@ def render_header(ctx, notifications_df) -> None:
     safe_username = escape(str(ctx.username))
     email = f"{str(ctx.username).lower().replace(' ', '.')}@magmutual.com"
 
-    header_container = st.container(key="app_topbar")
+    st.markdown("<div class='mm-fixed-topbar'>", unsafe_allow_html=True)
+    header_container = st.container(key="mm_header_controls")
     role_col, bell_col, profile_col = header_container.columns([2.5, 1.0, 3.5], gap="small")
 
     with role_col:
+        st.markdown("<div class='mm-header-item mm-header-item-role'>", unsafe_allow_html=True)
         _render_role_selector(ctx.app_role)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with bell_col:
+        st.markdown("<div class='mm-header-item mm-header-item-bell'>", unsafe_allow_html=True)
         with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
             render_notification_center(notifications_df)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with profile_col:
+        st.markdown("<div class='mm-header-item mm-header-item-profile'>", unsafe_allow_html=True)
         with st.popover(
             f"{initials}  {full_name} ▾",
             use_container_width=True,
@@ -92,7 +98,9 @@ def render_header(ctx, notifications_df) -> None:
                 unsafe_allow_html=True,
             )
             st.caption(f"User ID: {safe_username}")
+        st.markdown("</div>", unsafe_allow_html=True)
 
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def render_sidebar(ctx) -> None:
