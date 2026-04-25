@@ -42,3 +42,9 @@ def render_legend() -> None:
         ),
         unsafe_allow_html=True,
     )
+
+
+def confidence_badge(score: float) -> str:
+    """Render a confidence badge from numeric percentage."""
+    tone = "success" if score >= 85 else "warning" if score >= 65 else "danger"
+    return badge_html(f"Confidence {score:.0f}%", tone)

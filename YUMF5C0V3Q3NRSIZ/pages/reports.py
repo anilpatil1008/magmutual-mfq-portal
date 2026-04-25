@@ -1,45 +1,27 @@
+from __future__ import annotations
+
 import streamlit as st
 
-from services.snowflake_service import get_report_metrics
+from components.charts import render_bar
+from services.report_service import get_report_frames
 
 
-def render(session, role: str, username: str):
-    st.subheader("Reports Dashboard")
-    metrics = get_report_metrics(session, role, username)
-    if (
-        metrics["status"].empty
-        and metrics["priority"].empty
-        and metrics["specialty"].empty
-        and metrics["faculty"].empty
-    ):
-        st.info("No report data is available for your role yet.")
+def render(session, ctx) -> None:
+    st.subheader("Reports & Analytics")
+    metrics = get_report_frames(session, app_role=ctx.app_role, username=ctx.username)
+
+    if all(frame.empty for frame in metrics.values()):
+        st.info("No report data available.")
         return
-
-    top_a, top_b, top_c = st.columns(3)
-    top_a.metric("Open Claims", int(metrics["status"]["COUNT"].sum()))
-    top_b.metric("Specialties Covered", int(metrics["specialty"]["SPECIALTY"].nunique()))
-    top_c.metric("Faculty in Rotation", int(metrics["faculty"]["ASSIGNED_TO"].nunique()))
 
     c1, c2 = st.columns(2)
     with c1:
-        st.markdown("#### Claims by Status")
-        if metrics["status"].empty:
-            st.caption("No status data.")
-        else:
-            st.bar_chart(metrics["status"].set_index("STATUS"))
-        st.markdown("#### Claims by Priority")
-        if metrics["priority"].empty:
-            st.caption("No priority data.")
-        else:
-            st.bar_chart(metrics["priority"].set_index("PRIORITY"))
+        st.markdown("#### Throughput by status")
+        render_bar(metrics["status"], "STATUS")
+        st.markdown("#### Priority mix")
+        render_bar(metrics["priority"], "PRIORITY")
     with c2:
-        st.markdown("#### Claims by Specialty")
-        if metrics["specialty"].empty:
-            st.caption("No specialty data.")
-        else:
-            st.bar_chart(metrics["specialty"].set_index("SPECIALTY"))
-        st.markdown("#### Faculty Performance")
-        if metrics["faculty"].empty:
-            st.caption("No faculty performance data.")
-        else:
-            st.dataframe(metrics["faculty"], use_container_width=True)
+        st.markdown("#### Specialty mix")
+        render_bar(metrics["specialty"], "SPECIALTY")
+        st.markdown("#### Faculty load")
+        st.dataframe(metrics["faculty"], use_container_width=True)
