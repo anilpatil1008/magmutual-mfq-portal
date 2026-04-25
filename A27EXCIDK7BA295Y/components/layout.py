@@ -61,51 +61,52 @@ def render_header(ctx, notifications_df) -> None:
     email = f"{str(ctx.username).lower().replace(' ', '.')}@magmutual.com"
 
     header_container = st.container(key="app_topbar")
-    st.markdown(
-        """
-        <div class="mm-topbar-shell">
-            <div class="mm-topbar-title-wrap">
+    left_col, right_col = header_container.columns([1.7, 1.3], gap="small")
+
+    with left_col:
+        st.markdown(
+            """
+            <div class="mm-topbar-title-wrap portal-header-left">
                 <div class="mm-topbar-eyebrow">MagMutual Portal</div>
                 <div class="mm-topbar-title">Medical Faculty Questionnaire</div>
             </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    title_col, role_col, bell_col, profile_col = header_container.columns([4.5, 2.2, 1.0, 2.6], gap="small")
+            """,
+            unsafe_allow_html=True,
+        )
 
-    with title_col:
-        st.markdown("", unsafe_allow_html=True)
+    with right_col:
+        actions_container = st.container(key="portal_header_actions")
+        role_col, bell_col, profile_col = actions_container.columns([2.2, 1.0, 2.8], gap="small")
 
-    with role_col:
-        _render_role_selector(ctx.app_role)
+        with role_col:
+            _render_role_selector(ctx.app_role)
 
-    with bell_col:
-        with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
-            render_notification_center(notifications_df)
+        with bell_col:
+            with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
+                render_notification_center(notifications_df)
 
-    with profile_col:
-        with st.popover(
-            f"{initials}  {full_name} ▾",
-            use_container_width=True,
-            key="header_profile_popover",
-        ):
-            st.markdown(
-                f"""
-                <div class="mm-profile-card">
-                    <div class="mm-profile-card-head">
-                        <span class="mm-avatar mm-avatar-lg">{escape(initials)}</span>
-                        <div class="mm-profile-meta">
-                            <div class="mm-profile-fullname">{safe_full_name}</div>
-                            <div class="mm-profile-email">{escape(email)}</div>
-                            <div class="mm-profile-role">{escape(ctx.app_role)} • {escape(ctx.sf_role)}</div>
+        with profile_col:
+            with st.popover(
+                f"{initials}  {full_name} ▾",
+                use_container_width=True,
+                key="header_profile_popover",
+            ):
+                st.markdown(
+                    f"""
+                    <div class="mm-profile-card">
+                        <div class="mm-profile-card-head">
+                            <span class="mm-avatar mm-avatar-lg">{escape(initials)}</span>
+                            <div class="mm-profile-meta">
+                                <div class="mm-profile-fullname">{safe_full_name}</div>
+                                <div class="mm-profile-email">{escape(email)}</div>
+                                <div class="mm-profile-role">{escape(ctx.app_role)} • {escape(ctx.sf_role)}</div>
+                            </div>
                         </div>
                     </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-            st.caption(f"User ID: {safe_username}")
+                    """,
+                    unsafe_allow_html=True,
+                )
+                st.caption(f"User ID: {safe_username}")
 
 
 
