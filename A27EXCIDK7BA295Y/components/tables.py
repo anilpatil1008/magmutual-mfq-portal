@@ -30,16 +30,6 @@ ENTERPRISE_COLUMNS = [
     "AI_CONFIDENCE",
 ]
 
-SORTABLE_COLUMNS = {
-    "Claim ID": "CLAIM_ID",
-    "Patient / Defendant": "PATIENT_NAME",
-    "Status": "STATUS",
-    "Priority": "PRIORITY",
-    "Date Requested": "DATE_REQUESTED",
-    "AI Confidence": "AI_CONFIDENCE",
-}
-
-
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
     return "".join(ch for ch in text if ch.isalnum() or ch == "-") or "unknown"
@@ -182,41 +172,35 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
     show_df = df.copy()
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
 
-    sort_column_key = f"{key_prefix}_recent_sort_column"
-    sort_direction_key = f"{key_prefix}_recent_sort_direction"
-    sort_column = st.session_state.get(sort_column_key, "DATE_REQUESTED")
-    sort_direction = st.session_state.get(sort_direction_key, "desc")
-    sort_ascending = sort_direction == "asc"
-    show_df = _sort_recent_claims(show_df, sort_column, sort_ascending)
+    show_df = _sort_recent_claims(show_df, "DATE_REQUESTED", False)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
         st.markdown("<div class='enterprise-table-wrapper'>", unsafe_allow_html=True)
         with st.container(key=f"{key_prefix}_recent_sort_header"):
-            sort_header_cols = st.columns([1.05, 2.3, 1.15, 1.0, 1.2, 1.05, 1.45], vertical_alignment="center")
-            for idx, (label, column_name) in enumerate(SORTABLE_COLUMNS.items()):
-                is_active_sort = sort_column == column_name
-                indicator = "▲" if (is_active_sort and sort_ascending) else "▼" if is_active_sort else "↕"
-                sort_label = f"{label} {indicator}"
-                if sort_header_cols[idx].button(
-                    sort_label,
-                    key=f"{key_prefix}_sort_{column_name}",
-                    use_container_width=True,
-                    help=f"Sort by {label}",
-                ):
-                    if is_active_sort:
-                        st.session_state[sort_direction_key] = "desc" if sort_ascending else "asc"
-                    else:
-                        st.session_state[sort_column_key] = column_name
-                        st.session_state[sort_direction_key] = "asc" if column_name == "CLAIM_ID" else "desc"
-                    st.rerun()
-            sort_header_cols[6].markdown("<div class='enterprise-header-cell action-header'>Action</div>", unsafe_allow_html=True)
+            header_cols = st.columns([1.1, 2.7, 1.2, 1.0, 1.3, 1.2, 1.6], vertical_alignment="center")
+            header_labels = [
+                "Claim ID",
+                "Patient / Defendant",
+                "Status",
+                "Priority",
+                "Date Requested",
+                "AI Confidence",
+                "Action",
+            ]
+
+            for idx, label in enumerate(header_labels):
+                alignment = "action-header" if label == "Action" else ""
+                header_cols[idx].markdown(
+                    f"<div class='enterprise-header-cell {alignment}'>{label}</div>",
+                    unsafe_allow_html=True,
+                )
 
         for _, row in show_df.iterrows():
             claim_id = str(row.get("CLAIM_ID", "")).strip()
             status = str(row.get("STATUS", "")).strip()
             patient_name = str(row.get("PATIENT_NAME", "")).strip() or "Unknown Patient"
             defendant_name = str(row.get("DEFENDANT_NAME", "")).strip()
-            grid = st.columns([1.05, 2.3, 1.15, 1.0, 1.2, 1.05, 1.45], vertical_alignment="center")
+            grid = st.columns([1.1, 2.7, 1.2, 1.0, 1.3, 1.2, 1.6], vertical_alignment="center")
 
             grid[0].markdown(f"<div class='enterprise-cell claim-id'>{escape(claim_id or '—')}</div>", unsafe_allow_html=True)
 
@@ -253,7 +237,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                 running_key = f"{key_prefix}_running_{claim_id}"
 
                 if show_regenerate:
-                    action_cols = st.columns([1.15, 1.0], vertical_alignment="center")
+                    action_cols = st.columns([1.15, 0.25, 0.95], vertical_alignment="center")
                     regen_clicked = action_cols[0].button(
                         "↻ Regenerate",
                         key=f"{key_prefix}_regenerate_{claim_id}",
@@ -265,7 +249,9 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                     if regen_clicked:
                         st.session_state[pending_key] = True
 
-                    review_pressed = action_cols[1].button(
+                    action_cols[1].markdown("<span class='action-divider'>|</span>", unsafe_allow_html=True)
+
+                    review_pressed = action_cols[2].button(
                         "Review →",
                         key=f"{key_prefix}_review_{claim_id}",
                         type="tertiary",
