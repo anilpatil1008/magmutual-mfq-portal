@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import streamlit as st
 
 from components.layout import load_css, render_header, render_sidebar

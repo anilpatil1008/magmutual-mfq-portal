@@ -35,3 +35,19 @@ cd YUMF5C0V3Q3NRSIZ
 pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
+
+## Troubleshooting: `SyntaxError` on line 1 in Snowflake runtime
+
+If you see an error similar to:
+
+```text
+SyntaxError: invalid syntax
+```
+
+with an object name prefix (for example `...MFQ_SECTIONSfrom ...`) on line 1, the deployed
+`streamlit_app.py` has been corrupted during upload/paste. Re-upload the project source and confirm
+the first line of `streamlit_app.py` starts cleanly with:
+
+```python
+import streamlit as st
+```
