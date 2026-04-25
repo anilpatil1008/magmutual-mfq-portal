@@ -38,71 +38,101 @@ section[data-testid="stSidebar"] > div:first-child {
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-brand {
-  padding: .1rem .2rem .6rem;
+  padding: .25rem .3rem .65rem;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-brand-eyebrow {
-  font-size: .66rem;
-  letter-spacing: .08em;
+  font-size: .7rem;
+  letter-spacing: .1em;
   text-transform: uppercase;
-  color: #6f6f6f;
-  margin-bottom: .18rem;
+  color: #525252;
+  margin-bottom: .2rem;
+  font-weight: 600;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-brand-title {
-  font-size: 1.74rem;
-  font-weight: 800;
+  font-size: 1.5rem;
+  font-weight: 700;
   color: #161616;
-  letter-spacing: -0.015em;
+  letter-spacing: -0.01em;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-divider {
   border-top: 1px solid #dde1e6;
-  margin: .15rem 0 .8rem;
+  margin: .2rem 0 .8rem;
 }
 
 section[data-testid="stSidebar"] .stButton {
-  margin-bottom: .45rem;
+  width: 100%;
+  margin-bottom: 12px;
 }
 
 section[data-testid="stSidebar"] .stButton button {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  width: 100%;
   min-height: 48px;
   height: 48px;
-  border-radius: 12px;
-  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
+  padding: 0 16px;
+  border-radius: 8px;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  background: #ffffff;
   color: #161616;
-  border: 1px solid #d8dfe8;
   text-align: left;
-  justify-content: flex-start;
-  padding: .5rem .9rem;
-  font-size: 1rem;
-  font-weight: 550;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  font-size: .95rem;
+  font-weight: 500;
+  line-height: 1.2;
 }
 
 section[data-testid="stSidebar"] .stButton button:hover {
-  background: #eff4ff;
-  border-color: #bfcfe8;
+  background: #edf5ff;
+  border-color: #dde1e6;
+  color: #161616;
+}
+
+section[data-testid="stSidebar"] .stButton button [data-testid="stIconMaterial"],
+section[data-testid="stSidebar"] .stButton button .material-symbols-rounded {
+  width: 18px;
+  min-width: 18px;
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+section[data-testid="stSidebar"] .stButton button p {
+  margin: 0;
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
   color: #161616;
 }
 
 section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button {
   position: relative;
-  background: linear-gradient(90deg, #edf5ff 0%, #f4f8ff 100%);
-  border-color: #9dc0ff;
-  color: #0043ce;
-  font-weight: 600;
+  background: #edf5ff;
+  border-color: #dde1e6;
+  color: #0f62fe;
+  padding-left: 13px;
 }
 
 section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
   content: "";
   position: absolute;
-  left: -1px;
-  top: 8px;
-  bottom: 8px;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
   width: 3px;
   border-radius: 999px;
   background: #0f62fe;
+}
+
+section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
+  color: #161616;
+  font-weight: 600;
 }
 
 /* top bar redesign */
