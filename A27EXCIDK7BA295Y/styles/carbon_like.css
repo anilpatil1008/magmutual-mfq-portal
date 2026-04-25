@@ -468,3 +468,190 @@ section[data-testid="stSidebar"] .stButton button:hover {
   background: #e8f0ff;
   color: #0043ce;
 }
+
+/* Header control refresh */
+.mm-header {
+  overflow: visible;
+}
+
+.mm-header-right {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: .7rem;
+  max-width: 900px;
+  margin-left: auto;
+}
+
+.mm-header-item {
+  position: relative;
+  min-height: 42px;
+  width: 100%;
+  max-width: 320px;
+  overflow: visible;
+}
+
+.mm-header-item + .mm-header-item {
+  border-left: 1px solid #dde3ea;
+  padding-left: .7rem;
+}
+
+.mm-header-item .stPopover {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+}
+
+.mm-header-item .stPopover > div {
+  width: 100%;
+  height: 100%;
+}
+
+.mm-header-item .stPopover > div > button {
+  width: 100%;
+  height: 100%;
+  min-height: 42px;
+  border: none !important;
+  background: transparent !important;
+  color: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.mm-header-item .stPopover > div > button p {
+  display: none;
+}
+
+.mm-role-pill,
+.mm-profile-pill,
+.mm-bell-badge-wrap {
+  pointer-events: none;
+}
+
+.mm-role-pill,
+.mm-profile-pill {
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.mm-header-item-role .mm-role-pill {
+  min-height: 42px;
+}
+
+.mm-role-popover-title {
+  font-size: .7rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: #6b7280;
+  margin-bottom: .5rem;
+}
+
+.mm-role-popover .stButton button {
+  text-align: left;
+  border: 1px solid transparent;
+  background: #fff;
+  min-height: 38px;
+}
+
+.mm-role-popover .stButton button:hover {
+  background: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+.mm-bell-badge-wrap {
+  width: 42px;
+  height: 42px;
+}
+
+.mm-bell-badge {
+  top: -4px;
+  right: -4px;
+}
+
+.mm-notif-scroll {
+  max-height: 380px;
+}
+
+.mm-notif-item-top {
+  align-items: flex-start;
+}
+
+.mm-notif-time {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.mm-notif-message {
+  word-break: normal;
+}
+
+.mm-profile-card {
+  background: #fff;
+}
+
+.mm-profile-card-head {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: .65rem;
+  align-items: center;
+}
+
+.mm-avatar-lg {
+  width: 44px;
+  height: 44px;
+  font-size: .86rem;
+}
+
+.mm-profile-meta {
+  min-width: 0;
+}
+
+.mm-profile-fullname {
+  font-size: .9rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.mm-profile-email,
+.mm-profile-role {
+  font-size: .76rem;
+  color: #4b5563;
+  margin-top: .14rem;
+  overflow-wrap: anywhere;
+}
+
+.mm-profile-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: .65rem 0 .5rem;
+}
+
+.mm-profile-signout {
+  font-size: .82rem;
+  font-weight: 600;
+  color: #b91c1c;
+}
+
+/* Popover panel sizing and stack order */
+[data-testid="stPopoverContent"] {
+  z-index: 9999 !important;
+}
+
+[data-testid="stPopoverContent"] > div {
+  border-radius: 12px !important;
+  border: 1px solid #dbe2ea !important;
+  box-shadow: 0 14px 40px rgba(15, 23, 42, 0.16) !important;
+}
+
+.mm-header-item-role ~ [data-testid="stPopoverContent"] > div,
+.mm-header-item-profile ~ [data-testid="stPopoverContent"] > div,
+.mm-header-item-bell ~ [data-testid="stPopoverContent"] > div {
+  width: 320px;
+}
+
+.mm-notif-panel {
+  width: min(420px, 82vw);
+}
+
+.mm-profile-card {
+  width: min(320px, 78vw);
+}
