@@ -8,7 +8,6 @@ from services.snowflake_service import quote_sql, safe_collect_df
 
 
 CLAIMS_VIEW = "MFQ_CLAIMS_VW"
-SECTIONS_VIEW = "MFQ_SECTIONS_VW"
 
 
 def _apply_rbac(df: pd.DataFrame, app_role: str, username: str) -> pd.DataFrame:
@@ -67,10 +66,43 @@ def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
 def get_claim_sections(session, claim_id: str) -> pd.DataFrame:
     claim_id_q = quote_sql(claim_id)
     sql = f"""
-    SELECT *
-    FROM {SECTIONS_VIEW}
-    WHERE CLAIM_ID = '{claim_id_q}'
-    ORDER BY SECTION_ORDER, QUESTION_ORDER
+    WITH claim_defendant AS (
+      SELECT DEFENDANT_ID
+      FROM CLAIM_DEFENDANT
+      WHERE CLAIM_ID = '{claim_id_q}'
+      QUALIFY ROW_NUMBER() OVER (ORDER BY UPDATED_AT DESC, CREATED_AT DESC, DEFENDANT_ID) = 1
+    ),
+    latest_answers AS (
+      SELECT
+        a.ANSWER_ID,
+        a.QUESTION_ID,
+        a.ANSWER_TEXT,
+        a.CONFIDENCE_SCORE
+      FROM MFQ_ANSWER a
+      INNER JOIN claim_defendant cd
+        ON cd.DEFENDANT_ID = a.DEFENDANT_ID
+      QUALIFY ROW_NUMBER() OVER (
+        PARTITION BY a.QUESTION_ID
+        ORDER BY IFF(a.IS_CURRENT, 1, 0) DESC, a.ANSWER_VERSION DESC, a.CREATED_AT DESC
+      ) = 1
+    )
+    SELECT
+      s.SECTION_NAME,
+      s.DISPLAY_ORDER AS SECTION_ORDER,
+      q.QUESTION_TEXT,
+      q.DISPLAY_ORDER AS QUESTION_ORDER,
+      COALESCE(la.ANSWER_TEXT, '') AS ANSWER_TEXT,
+      la.CONFIDENCE_SCORE,
+      la.ANSWER_ID
+    FROM QST_SECTION s
+    INNER JOIN QST_QUESTION q
+      ON q.SECTION_ID = s.SECTION_ID
+    LEFT JOIN latest_answers la
+      ON la.QUESTION_ID = q.QUESTION_ID
+    WHERE q.IS_CURRENT = TRUE
+      AND q.IS_ACTIVE = TRUE
+      AND s.IS_ACTIVE = TRUE
+    ORDER BY s.DISPLAY_ORDER, q.DISPLAY_ORDER
     """
     return safe_collect_df(session, sql)
 
