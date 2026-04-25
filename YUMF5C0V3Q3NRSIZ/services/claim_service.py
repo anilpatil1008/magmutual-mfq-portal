@@ -64,28 +64,69 @@ def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
     return df.iloc[0].to_dict()
 
 
-def get_claim_sections(session, claim_id: str) -> pd.DataFrame:
-    # Some environments expose MFQ_SECTIONS_VW with a different claim identifier
-    # column shape than CLAIM_ID (for example CLAIM_NUMBER). To avoid runtime SQL
-    # compilation failures on unknown identifiers, load then filter in-memory.
-    df = safe_collect_df(session, f"SELECT * FROM {SECTIONS_VIEW}")
+def get_claim_sections(session, claim_id: str, form_key: str = "MFQ_V1") -> pd.DataFrame:
+    claim_id_q = quote_sql(claim_id)
+    form_key_q = quote_sql(form_key)
+
+    defendant_df = safe_collect_df(
+        session,
+        f"SELECT DEFENDANT_ID FROM {CLAIMS_VIEW} WHERE CLAIM_ID = '{claim_id_q}' LIMIT 1",
+    )
+    defendant_id = None
+    if not defendant_df.empty and "DEFENDANT_ID" in defendant_df.columns:
+        defendant_id = str(defendant_df.iloc[0]["DEFENDANT_ID"])
+
+    defendant_sql = "NULL"
+    if defendant_id:
+        defendant_sql = f"'{quote_sql(defendant_id)}'"
+
+    sql = f"""
+    SELECT
+        s.FORM_KEY,
+        s.SECTION_ID,
+        s.SECTION_KEY,
+        s.SECTION_NAME,
+        s.SECTION_ORDER,
+        q.QUESTION_ID,
+        q.QUESTION_KEY,
+        q.QUESTION_TEXT,
+        q.QUESTION_ORDER,
+        q.ANSWER_TYPE,
+        q.ALLOWED_VALUES,
+        q.VISIBILITY_RULE,
+        a.ANSWER_ID,
+        a.ANSWER_TEXT,
+        a.CONFIDENCE_SCORE,
+        a.STATUS AS ANSWER_STATUS,
+        a.DEFENDANT_ID
+    FROM MFQ_SECTIONS_VW s
+    JOIN MFQ_QUESTIONS_VW q
+      ON s.FORM_KEY = q.FORM_KEY
+     AND s.SECTION_ID = q.SECTION_ID
+    LEFT JOIN (
+        SELECT
+            ANSWER_ID,
+            DEFENDANT_ID,
+            QUESTION_ID,
+            ANSWER_TEXT,
+            CONFIDENCE_SCORE,
+            STATUS
+        FROM MFQ_ANSWER
+        WHERE IS_CURRENT = TRUE
+          AND DEFENDANT_ID = {defendant_sql}
+    ) a
+      ON q.QUESTION_ID = a.QUESTION_ID
+    WHERE s.FORM_KEY = '{form_key_q}'
+      AND q.FORM_KEY = '{form_key_q}'
+    ORDER BY s.SECTION_ORDER, q.QUESTION_ORDER
+    """
+    df = safe_collect_df(session, sql)
     if df.empty:
         return df
 
-    claim_columns = ("CLAIM_ID", "CLAIM_NUMBER", "CLAIMNO", "CLAIM")
-    scoped = df
-    for column in claim_columns:
-        if column in scoped.columns:
-            scoped = scoped[scoped[column].astype(str) == str(claim_id)]
-            break
-    else:
-        return df.head(0)
-
-    order_cols = [c for c in ("SECTION_ORDER", "QUESTION_ORDER") if c in scoped.columns]
-    if order_cols:
-        scoped = scoped.sort_values(order_cols)
-
-    return scoped
+    if "ANSWER_TEXT" in df.columns:
+        df["ANSWER_TEXT"] = df["ANSWER_TEXT"].fillna("")
+    return df
 
 
 def get_status_values(session) -> list[str]:
@@ -112,8 +153,8 @@ def save_section_answer(session, answer_id: str, answer_text: str) -> None:
     answer_q = quote_sql(answer_text)
     answer_id_q = quote_sql(answer_id)
     sql = f"""
-    UPDATE MFQ_ANSWERS
-    SET ANSWER_TEXT = '{answer_q}', LAST_UPDATED_TS = CURRENT_TIMESTAMP()
+    UPDATE MFQ_ANSWER
+    SET ANSWER_TEXT = '{answer_q}'
     WHERE ANSWER_ID = '{answer_id_q}'
     """
     session.sql(sql).collect()
