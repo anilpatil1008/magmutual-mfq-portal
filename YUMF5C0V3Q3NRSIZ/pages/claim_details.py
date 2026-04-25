@@ -36,10 +36,10 @@ def _render_mfq_form(session, ctx, claim: dict) -> None:
             st.markdown(
                 "\n".join(
                     [
-                        "- Verify this claim was processed by MFQ generation and has answer rows in `MFQ_SECTIONS_VW`.",
-                        f"- Confirm the selected claim id (`{claim_id}`) matches the value stored in the sections view.",
-                        "- Check the claim identifier column in `MFQ_SECTIONS_VW` (supported: `CLAIM_ID`, `CLAIM_NUMBER`, `CLAIMNO`, `CLAIM`).",
-                        "- If the claim has rows but still does not load, inspect column names and data types in the view.",
+                        "- Verify master data exists in `MFQ_SECTIONS_VW` and `MFQ_QUESTIONS_VW` for `FORM_KEY = 'MFQ_V1'`.",
+                        f"- Confirm claim `{claim_id}` resolves to a `DEFENDANT_ID` in `MFQ_CLAIMS_VW`.",
+                        "- Validate answers are in `MFQ_ANSWER` and join on (`DEFENDANT_ID`, `QUESTION_ID`).",
+                        "- The MFQ form should still render sections/questions even when no answer rows exist.",
                     ]
                 )
             )
