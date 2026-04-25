@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+from textwrap import dedent
 
 import streamlit as st
 
@@ -19,15 +20,25 @@ def render_kpi_cards(metrics: dict[str, int]) -> None:
     for metric, value in metrics.items():
         icon = CARD_ICONS.get(metric, "📊")
         cards.append(
-            f"""
-            <article class="mm-card">
-                <div class="mm-card-label">{html.escape(metric)}</div>
-                <div class="mm-card-value">{value}</div>
-                <div class="mm-card-icon">{icon}</div>
-            </article>
-            """
+            dedent(
+                f"""
+                <article class="mm-card">
+                    <div class="mm-card-label">{html.escape(metric)}</div>
+                    <div class="mm-card-value">{html.escape(str(value))}</div>
+                    <div class="mm-card-icon">{icon}</div>
+                </article>
+                """
+            ).strip()
         )
-    st.markdown(f"<section class='mm-card-grid'>{''.join(cards)}</section>", unsafe_allow_html=True)
+    cards_html = "".join(cards)
+    st.markdown(
+        dedent(
+            f"""
+            <section class="mm-card-grid">{cards_html}</section>
+            """
+        ).strip(),
+        unsafe_allow_html=True,
+    )
 
 
 def render_claim_header(claim: dict) -> None:
