@@ -956,6 +956,10 @@ section[data-testid="stSidebar"] .stButton button:hover {
   padding-right: .4rem;
 }
 
+.st-key-recent_claims_card [data-testid="stHorizontalBlock"] {
+  align-items: center;
+}
+
 .recent-claims-title,
 .recent-claims-header h3 {
   margin: 0;
@@ -1002,64 +1006,44 @@ section[data-testid="stSidebar"] .stButton button:hover {
   min-width: 0;
 }
 
-.enterprise-table table {
-  width: 100%;
-  border-collapse: collapse;
-  table-layout: auto;
-}
-
 .enterprise-header-cell {
   background: #f4f4f4;
-  color: #6f6f6f;
+  color: #525252;
   text-transform: uppercase;
-  letter-spacing: .04em;
-  font-size: .67rem;
+  letter-spacing: .03em;
+  font-size: .68rem;
   font-weight: 700;
-  padding: .58rem .5rem;
+  padding: .6rem .52rem;
   border-bottom: 1px solid #e0e0e0;
   white-space: nowrap;
 }
 
 .st-key-recent_claims_card .stButton button {
-  min-height: 30px;
+  min-height: 28px;
   white-space: nowrap;
   box-shadow: none;
+  border-radius: 6px;
 }
 
 .st-key-recent_claims_card .stButton button p {
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-[class*="st-key-"][class*="_recent_sort_header"] [data-testid="column"] .stButton button {
-  background: #f4f4f4;
-  color: #525252;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  font-size: .64rem;
-  font-weight: 700;
-  justify-content: center;
-  border-bottom: 1px solid #e0e0e0;
-  border-top: 0;
-  border-left: 0;
-  border-right: 0;
-  border-radius: 0;
-  padding: .4rem .45rem;
-}
-
-[class*="st-key-"][class*="_recent_sort_header"] [data-testid="column"] .stButton button:hover {
-  background: #f4f4f4;
-  color: #161616;
+[class*="st-key-"][class*="_recent_sort_header"] [data-testid="column"] {
+  min-width: 0 !important;
 }
 
 [class*="st-key-"][class*="_recent_claims_table"] [data-testid="column"] {
-  min-width: max-content;
+  min-width: 0 !important;
 }
 
 .enterprise-cell {
-  padding: .5rem .22rem;
+  padding: .54rem .52rem;
   font-size: .82rem;
   color: #161616;
-  min-width: max-content;
+  min-width: 0;
 }
 
 .center-cell {
@@ -1067,7 +1051,7 @@ section[data-testid="stSidebar"] .stButton button:hover {
 }
 
 .patient-cell {
-  min-width: 260px;
+  min-width: 220px;
 }
 
 .patient-name {
@@ -1091,7 +1075,7 @@ section[data-testid="stSidebar"] .stButton button:hover {
 
 .enterprise-row-separator {
   border-bottom: 1px solid #e0e0e0;
-  margin: .1rem 0;
+  margin: .05rem 0;
 }
 
 .status-badge,
@@ -1126,7 +1110,11 @@ section[data-testid="stSidebar"] .stButton button:hover {
 
 .action-cell {
   width: 100%;
-  min-width: 210px;
+  min-width: 170px;
+  max-width: 220px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .action-link,
@@ -1134,6 +1122,7 @@ section[data-testid="stSidebar"] .stButton button:hover {
   color: #0f62fe;
   text-decoration: none;
   font-weight: 600;
+  font-size: .78rem;
 }
 
 .st-key-recent_claims_card button[kind="secondary"] {
@@ -1141,8 +1130,8 @@ section[data-testid="stSidebar"] .stButton button:hover {
   border-radius: 6px;
   background: #ffffff;
   color: #0f62fe;
-  font-size: .72rem;
-  padding: .08rem .5rem;
+  font-size: .7rem;
+  padding: .02rem .45rem;
 }
 
 .st-key-recent_claims_card button[kind="secondary"]:hover {
@@ -1154,6 +1143,16 @@ section[data-testid="stSidebar"] .stButton button:hover {
   min-width: 130px;
 }
 
+.action-divider {
+  color: #8d8d8d;
+  font-size: .78rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
 .regenerate-confirm {
   color: #525252;
   font-size: .72rem;
@@ -1163,5 +1162,16 @@ section[data-testid="stSidebar"] .stButton button:hover {
 
 .action-header {
   text-align: center;
-  min-width: 210px;
+  min-width: 170px;
+}
+
+@media (max-width: 1150px) {
+  .enterprise-table-wrapper {
+    overflow-x: auto;
+  }
+
+  [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
+  [class*="st-key-"][class*="_recent_claims_table"] [data-testid="stHorizontalBlock"] {
+    min-width: 1080px;
+  }
 }
