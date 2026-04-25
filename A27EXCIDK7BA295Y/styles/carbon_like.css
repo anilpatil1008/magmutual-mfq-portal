@@ -953,11 +953,19 @@ section[data-testid="stSidebar"] .stButton button:hover {
 }
 
 .recent-claims-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.recent-claims-heading {
   padding-right: .4rem;
 }
 
 .st-key-recent_claims_card [data-testid="stHorizontalBlock"] {
-  align-items: center;
+  align-items: flex-start;
 }
 
 .recent-claims-title,
@@ -977,10 +985,11 @@ section[data-testid="stSidebar"] .stButton button:hover {
 }
 
 .recent-claims-search {
-  width: 100%;
+  width: 320px;
+  max-width: 100%;
   display: flex;
   justify-content: flex-end;
-  align-items: center;
+  align-items: flex-start;
 }
 
 .st-key-recent_claims_search input {
@@ -1013,7 +1022,7 @@ section[data-testid="stSidebar"] .stButton button:hover {
   letter-spacing: .03em;
   font-size: .68rem;
   font-weight: 700;
-  padding: .6rem .52rem;
+  padding: 16px 14px;
   border-bottom: 1px solid #e0e0e0;
   white-space: nowrap;
 }
@@ -1025,12 +1034,6 @@ section[data-testid="stSidebar"] .stButton button:hover {
   border-radius: 6px;
 }
 
-.st-key-recent_claims_card .stButton button p {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 [class*="st-key-"][class*="_recent_sort_header"] [data-testid="column"] {
   min-width: 0 !important;
 }
@@ -1040,7 +1043,7 @@ section[data-testid="stSidebar"] .stButton button:hover {
 }
 
 .enterprise-cell {
-  padding: .54rem .52rem;
+  padding: 16px 14px;
   font-size: .82rem;
   color: #161616;
   min-width: 0;
@@ -1110,11 +1113,9 @@ section[data-testid="stSidebar"] .stButton button:hover {
 
 .action-cell {
   width: 100%;
-  min-width: 170px;
-  max-width: 220px;
-  text-align: center;
+  min-width: 110px;
+  text-align: right;
   white-space: nowrap;
-  overflow: hidden;
 }
 
 .action-link,
@@ -1123,6 +1124,10 @@ section[data-testid="stSidebar"] .stButton button:hover {
   text-decoration: none;
   font-weight: 600;
   font-size: .78rem;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .st-key-recent_claims_card button[kind="secondary"] {
@@ -1161,8 +1166,16 @@ section[data-testid="stSidebar"] .stButton button:hover {
 }
 
 .action-header {
-  text-align: center;
-  min-width: 170px;
+  text-align: right;
+  min-width: 110px;
+}
+
+.enterprise-table-wrapper [data-testid="stHorizontalBlock"] {
+  width: 100%;
+}
+
+.enterprise-table-wrapper [data-testid="column"] {
+  min-width: 0 !important;
 }
 
 @media (max-width: 1150px) {
@@ -1172,6 +1185,6 @@ section[data-testid="stSidebar"] .stButton button:hover {
 
   [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
   [class*="st-key-"][class*="_recent_claims_table"] [data-testid="stHorizontalBlock"] {
-    min-width: 1080px;
+    min-width: 950px;
   }
 }
