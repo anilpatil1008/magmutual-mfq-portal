@@ -65,14 +65,27 @@ def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
 
 
 def get_claim_sections(session, claim_id: str) -> pd.DataFrame:
-    claim_id_q = quote_sql(claim_id)
-    sql = f"""
-    SELECT *
-    FROM {SECTIONS_VIEW}
-    WHERE CLAIM_ID = '{claim_id_q}'
-    ORDER BY SECTION_ORDER, QUESTION_ORDER
-    """
-    return safe_collect_df(session, sql)
+    # Some environments expose MFQ_SECTIONS_VW with a different claim identifier
+    # column shape than CLAIM_ID (for example CLAIM_NUMBER). To avoid runtime SQL
+    # compilation failures on unknown identifiers, load then filter in-memory.
+    df = safe_collect_df(session, f"SELECT * FROM {SECTIONS_VIEW}")
+    if df.empty:
+        return df
+
+    claim_columns = ("CLAIM_ID", "CLAIM_NUMBER", "CLAIMNO", "CLAIM")
+    scoped = df
+    for column in claim_columns:
+        if column in scoped.columns:
+            scoped = scoped[scoped[column].astype(str) == str(claim_id)]
+            break
+    else:
+        return df.head(0)
+
+    order_cols = [c for c in ("SECTION_ORDER", "QUESTION_ORDER") if c in scoped.columns]
+    if order_cols:
+        scoped = scoped.sort_values(order_cols)
+
+    return scoped
 
 
 def get_status_values(session) -> list[str]:
