@@ -741,3 +741,10 @@ section[data-testid="stSidebar"] .stButton button:hover {
     padding-left: .35rem;
   }
 }
+
+.mm-dashboard-welcome {
+  margin: -0.45rem 0 1.1rem;
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}

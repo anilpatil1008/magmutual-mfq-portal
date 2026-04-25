@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from html import escape
+
 import streamlit as st
 
 from components.badges import render_legend
@@ -9,8 +11,51 @@ from services.claim_service import get_claims_queue, get_status_values
 from services.dashboard_service import get_dashboard_charts, get_dashboard_metrics
 
 
+def _resolve_user_display_name(ctx) -> str:
+    candidate_values = [
+        getattr(ctx, "full_name", None),
+        getattr(ctx, "name", None),
+        st.session_state.get("full_name"),
+        st.session_state.get("user_full_name"),
+        st.session_state.get("username"),
+        st.session_state.get("user_email"),
+    ]
+
+    user_profile = st.session_state.get("user_profile")
+    if isinstance(user_profile, dict):
+        candidate_values.extend(
+            [
+                user_profile.get("full_name"),
+                user_profile.get("name"),
+                user_profile.get("username"),
+                user_profile.get("email"),
+            ]
+        )
+
+    for candidate in candidate_values:
+        value = str(candidate or "").strip()
+        if value:
+            return value
+
+    return str(getattr(ctx, "username", "") or "").strip()
+
+
 def render(session, ctx) -> None:
-    st.subheader("Role Dashboard")
+    st.title("Dashboard")
+    display_name = _resolve_user_display_name(ctx)
+    if display_name:
+        st.markdown(
+            (
+                f"<p class='mm-dashboard-welcome'>Welcome back, {escape(display_name)}. "
+                "Here's what's happening today.</p>"
+            ),
+            unsafe_allow_html=True,
+        )
+    else:
+        st.markdown(
+            "<p class='mm-dashboard-welcome'>Welcome back. Here's what's happening today.</p>",
+            unsafe_allow_html=True,
+        )
 
     metrics = get_dashboard_metrics(session, app_role=ctx.app_role, username=ctx.username)
     render_kpi_cards(metrics)
