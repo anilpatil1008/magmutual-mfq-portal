@@ -99,3 +99,43 @@ section[data-testid="stSidebar"] {
 @media (max-width: 768px) {
   .block-container { padding-left: .85rem; padding-right: .85rem; }
 }
+
+.mm-badge-status {
+  letter-spacing: .01em;
+}
+
+.mm-badge-priority {
+  text-transform: uppercase;
+  letter-spacing: .03em;
+}
+
+.mm-badge-confidence {
+  font-variant-numeric: tabular-nums;
+}
+.mm-badge-confidence-high {
+  box-shadow: inset 0 0 0 1px rgba(36, 161, 72, 0.35);
+}
+.mm-badge-confidence-medium {
+  box-shadow: inset 0 0 0 1px rgba(241, 194, 27, 0.65);
+}
+.mm-badge-confidence-low {
+  box-shadow: inset 0 0 0 1px rgba(218, 30, 40, 0.35);
+}
+.mm-badge-confidence-unknown {
+  box-shadow: inset 0 0 0 1px rgba(141, 141, 141, 0.4);
+}
+
+.mm-badge-boolean-true {
+  background: #198038;
+}
+.mm-badge-boolean-false {
+  background: #a2191f;
+}
+.mm-badge-boolean-unknown {
+  background: #8d8d8d;
+}
+
+.mm-badge-role {
+  text-transform: capitalize;
+}
+
