@@ -7,7 +7,7 @@ import streamlit as st
 from components.badges import render_legend
 from components.cards import render_kpi_cards
 from components.tables import render_recent_claims_table
-from services.claim_service import get_claims_queue, get_status_values
+from services.claim_service import get_claims_queue
 from services.dashboard_service import get_dashboard_charts, get_dashboard_metrics
 
 
@@ -68,7 +68,7 @@ def render(session, ctx) -> None:
         header_left, header_right = st.columns([3, 2], vertical_alignment="center")
         with header_left:
             st.markdown(
-                "<div class='recent-claims-header'><h3>Recent Claims</h3><p>Latest claims submitted for assessment.</p></div>",
+                "<div class='recent-claims-header'><h3 class='recent-claims-title'>Recent Claims</h3><p class='recent-claims-subtitle'>Latest claims submitted for assessment.</p></div>",
                 unsafe_allow_html=True,
             )
         with header_right:
@@ -83,12 +83,7 @@ def render(session, ctx) -> None:
                 )
             st.markdown("</div>", unsafe_allow_html=True)
 
-        controls_left, controls_right = st.columns([2, 1], vertical_alignment="center")
-        status = controls_left.selectbox("Status", get_status_values(session), index=0, key=f"{card_key}_status")
-        if controls_right.button("Refresh", key=f"{card_key}_refresh", use_container_width=True):
-            st.rerun()
-
-        queue = get_claims_queue(session, ctx.app_role, ctx.username, search, status)
+        queue = get_claims_queue(session, ctx.app_role, ctx.username, search_text=search)
         render_recent_claims_table(queue.head(20), key_prefix="dash")
 
     charts = get_dashboard_charts(session, ctx.app_role, ctx.username)

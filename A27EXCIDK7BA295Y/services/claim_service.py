@@ -35,6 +35,8 @@ def get_claims_queue(session, app_role: str, username: str, search_text: str = "
             | scoped["PATIENT_NAME"].astype(str).str.lower().str.contains(needle)
             | scoped["DEFENDANT_NAME"].astype(str).str.lower().str.contains(needle)
             | scoped["FILE_NUMBER"].astype(str).str.lower().str.contains(needle)
+            | scoped["STATUS"].astype(str).str.lower().str.contains(needle)
+            | scoped["PRIORITY"].astype(str).str.lower().str.contains(needle)
         ]
 
     if status_filter != "All":
