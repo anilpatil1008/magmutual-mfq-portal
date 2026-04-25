@@ -638,6 +638,65 @@ section[data-testid="stSidebar"] .stButton button:hover {
   overflow-wrap: anywhere;
 }
 
+/* Header controls: single interactive row with no hidden duplicate widgets. */
+.mm-header-item-role .stSelectbox > div[data-baseweb="select"] > div {
+  min-height: 42px;
+  border: 1px solid #cfd6de;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+
+.mm-header-item-role .stSelectbox [data-baseweb="select"] span {
+  font-size: .84rem;
+}
+
+.mm-header-item-role .stSelectbox [data-baseweb="select"] svg {
+  color: #5f6b7a;
+}
+
+.mm-header-item-bell .stPopover > div > button,
+.mm-header-item-profile .stPopover > div > button {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid #cfd6de !important;
+  border-radius: 999px;
+  background: #fff !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  color: #1b1f24 !important;
+  padding: .34rem .72rem !important;
+  margin: 0 !important;
+  justify-content: flex-start !important;
+}
+
+.mm-header-item-bell .stPopover > div > button {
+  justify-content: center !important;
+  font-size: .9rem !important;
+  padding: .34rem .55rem !important;
+}
+
+.mm-header-item-bell .stPopover > div > button p,
+.mm-header-item-profile .stPopover > div > button p {
+  color: #1b1f24 !important;
+  font-size: .84rem !important;
+  margin: 0;
+}
+
+.mm-header-item [data-testid="stPopoverButton"] {
+  color: #1b1f24 !important;
+  font-size: .84rem !important;
+}
+
+.mm-header-item-bell [data-testid="stPopoverButton"] > div,
+.mm-header-item-bell [data-testid="stPopoverButton"] p,
+.mm-header-item-bell [data-testid="stPopoverButton"] span,
+.mm-header-item-profile [data-testid="stPopoverButton"] > div,
+.mm-header-item-profile [data-testid="stPopoverButton"] p,
+.mm-header-item-profile [data-testid="stPopoverButton"] span {
+  color: #1b1f24 !important;
+  font-size: .84rem !important;
+}
+
 .mm-profile-divider {
   height: 1px;
   background: #e5e7eb;
