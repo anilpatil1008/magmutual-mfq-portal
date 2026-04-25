@@ -1,12 +1,22 @@
 import streamlit as st
+from pathlib import Path
 
 from utils.constants import NAV_ITEMS, ROLES
 from utils.helpers import set_page
 
 
 def load_css() -> None:
-    with open("styles/carbon_like.css", "r", encoding="utf-8") as f:
-        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    css_path = Path(__file__).resolve().parent.parent / "styles" / "carbon_like.css"
+
+    if not css_path.exists():
+        return
+
+    try:
+        with css_path.open("r", encoding="utf-8") as f:
+            st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+    except OSError:
+        # Safe fallback: continue rendering without custom CSS.
+        return
 
 
 def render_shell():
