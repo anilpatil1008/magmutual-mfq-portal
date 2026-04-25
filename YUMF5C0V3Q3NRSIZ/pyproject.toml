@@ -1,17 +1,13 @@
-# Streamlit in Snowflake apps run with a pre-installed version of the Streamlit library.
-# To use a different version of the Streamlit library, you must add an External Access Integration to allow package downloads from PyPI or from another repository.
-# Please visit the Streamlit in Snowflake docs (https://docs.snowflake.com/en/developer-guide/streamlit/additional-features#external-network-access-in-sis) to learn more on how to set up an External Access Integration.
-# If a package repository server is not reachable and the pyproject.toml file has not been modified, the app will fall back to the default version of the Streamlit library.
-
 [project]
-name = "streamlit-app"
-requires-python = ">= 3.11"
-version = "0.0.1"
-description = ""
+name = "magmutual-mfq-enterprise-portal"
+version = "0.1.0"
+description = "Streamlit in Snowflake enterprise prototype for MFQ operations"
+requires-python = ">=3.10"
 dependencies = [
-    "streamlit[snowflake]"
+  "streamlit>=1.37.0",
+  "snowflake-snowpark-python>=1.20.0",
+  "pandas>=2.2.2"
 ]
 
-[tool.uv]
-# earlier versions of numba require a python version < 3.11
-constraint-dependencies = ["numba>=0.56.0"]
+[tool.ruff]
+line-length = 100

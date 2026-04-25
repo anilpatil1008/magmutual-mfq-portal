@@ -28,6 +28,9 @@ ROLE_TO_TONE = {
     "ReadOnly": "muted",
 }
 
+TRUTHY_VALUES = {"true", "yes", "y", "1", "on"}
+FALSY_VALUES = {"false", "no", "n", "0", "off"}
+
 
 def badge_html(label: str, tone: str, badge_type: str, variant: str | None = None) -> str:
     classes = ["mm-badge", f"mm-badge-{tone}", f"mm-badge-{badge_type}"]
@@ -78,13 +81,23 @@ def boolean_badge(value: Any, true_label: str = "Yes", false_label: str = "No") 
     normalized = value
     if isinstance(value, str):
         lowered = value.strip().lower()
-        if lowered in {"true", "yes", "y", "1"}:
+        if lowered in TRUTHY_VALUES:
             normalized = True
-        elif lowered in {"false", "no", "n", "0"}:
+        elif lowered in FALSY_VALUES:
+            normalized = False
+    elif isinstance(value, (int, float)) and not isinstance(value, bool):
+        if value == 1:
+            normalized = True
+        elif value == 0:
             normalized = False
 
     if isinstance(normalized, bool):
-        return badge_html(true_label if normalized else false_label, "success" if normalized else "danger", "boolean", "true" if normalized else "false")
+        return badge_html(
+            true_label if normalized else false_label,
+            "success" if normalized else "danger",
+            "boolean",
+            "true" if normalized else "false",
+        )
 
     return badge_html(str(value), "muted", "boolean", "unknown")
 
