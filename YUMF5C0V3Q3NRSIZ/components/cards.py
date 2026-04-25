@@ -22,23 +22,26 @@ def render_kpi_cards(metrics: dict[str, int]) -> None:
         cards.append(
             dedent(
                 f"""
-                <article class="mm-card">
-                    <div class="mm-card-label">{html.escape(metric)}</div>
-                    <div class="mm-card-value">{html.escape(str(value))}</div>
-                    <div class="mm-card-icon">{icon}</div>
-                </article>
+                <div class="mm-card">
+                    <div class="mm-card-main">
+                        <div class="mm-card-label">{html.escape(metric)}</div>
+                        <div class="mm-card-value">{html.escape(str(value))}</div>
+                    </div>
+                    <div class="mm-card-icon" aria-hidden="true">{icon}</div>
+                </div>
                 """
             ).strip()
         )
-    cards_html = "".join(cards)
-    st.markdown(
-        dedent(
-            f"""
-            <section class="mm-card-grid">{cards_html}</section>
-            """
-        ).strip(),
-        unsafe_allow_html=True,
-    )
+
+    kpi_html = dedent(
+        f"""
+        <section class="mm-kpi-grid">
+            {''.join(cards)}
+        </section>
+        """
+    ).strip()
+
+    st.markdown(kpi_html, unsafe_allow_html=True)
 
 
 def render_claim_header(claim: dict) -> None:

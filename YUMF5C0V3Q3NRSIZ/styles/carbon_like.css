@@ -56,11 +56,13 @@ section[data-testid="stSidebar"] .stButton button:hover {
 .mm-chip { background: #edf5ff; color: #002d9c; border-radius: 16px; padding: .3rem .65rem; font-size: .8rem; }
 .mm-notif-chip { background: #fff1f1; color: #a2191f; }
 
-.mm-card-grid {
+.mm-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: .8rem;
   margin-bottom: .8rem;
+  width: 100%;
+  overflow-x: hidden;
 }
 .mm-card {
   background: var(--mm-surface);
@@ -68,13 +70,25 @@ section[data-testid="stSidebar"] .stButton button:hover {
   border-radius: 8px;
   box-shadow: 0 1px 2px rgba(0,0,0,.08);
   padding: .9rem;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  min-height: 120px;
+  height: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
-.mm-card-label { grid-column: 1 / 2; color: var(--mm-subtle); font-size: .82rem; }
-.mm-card-value { grid-column: 1 / 2; font-size: 1.8rem; font-weight: 700; color: #0b1f3d; }
-.mm-card-icon { grid-column: 2 / 3; grid-row: 1 / span 2; font-size: 1.35rem; align-self: center; }
+.mm-card-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: .55rem;
+  min-width: 0;
+}
+.mm-card-label { color: var(--mm-subtle); font-size: .82rem; }
+.mm-card-value { font-size: 1.8rem; font-weight: 700; color: #0b1f3d; line-height: 1.15; }
+.mm-card-icon { font-size: 1.35rem; line-height: 1; align-self: flex-start; }
 
 .mm-claim-header {
   background: #fff;
@@ -119,6 +133,7 @@ section[data-testid="stSidebar"] .stButton button:hover {
 
 @media (max-width: 768px) {
   .block-container { padding-left: .85rem; padding-right: .85rem; }
+  .mm-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
 }
 
 .mm-badge-status {
