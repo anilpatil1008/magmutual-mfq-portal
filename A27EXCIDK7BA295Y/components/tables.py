@@ -29,6 +29,7 @@ ENTERPRISE_COLUMNS = [
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
 ]
+RECENT_CLAIMS_COLUMN_WIDTHS = [12, 24, 12, 12, 14, 14, 12]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -177,7 +178,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
     with st.container(key=f"{key_prefix}_recent_claims_table"):
         st.markdown("<div class='enterprise-table-wrapper'>", unsafe_allow_html=True)
         with st.container(key=f"{key_prefix}_recent_sort_header"):
-            header_cols = st.columns([1.1, 2.7, 1.2, 1.0, 1.3, 1.2, 1.6], vertical_alignment="center")
+            header_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
             header_labels = [
                 "Claim ID",
                 "Patient / Defendant",
@@ -200,7 +201,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
             status = str(row.get("STATUS", "")).strip()
             patient_name = str(row.get("PATIENT_NAME", "")).strip() or "Unknown Patient"
             defendant_name = str(row.get("DEFENDANT_NAME", "")).strip()
-            grid = st.columns([1.1, 2.7, 1.2, 1.0, 1.3, 1.2, 1.6], vertical_alignment="center")
+            grid = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
 
             grid[0].markdown(f"<div class='enterprise-cell claim-id'>{escape(claim_id or '—')}</div>", unsafe_allow_html=True)
 
@@ -255,14 +256,14 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                         "Review →",
                         key=f"{key_prefix}_review_{claim_id}",
                         type="tertiary",
-                        use_container_width=True,
+                        use_container_width=False,
                     )
                 else:
                     review_pressed = st.button(
                         "Review →",
                         key=f"{key_prefix}_review_{claim_id}",
                         type="tertiary",
-                        use_container_width=True,
+                        use_container_width=False,
                     )
 
                 if review_pressed:

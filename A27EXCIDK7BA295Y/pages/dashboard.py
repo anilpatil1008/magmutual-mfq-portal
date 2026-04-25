@@ -65,10 +65,15 @@ def render(session, ctx) -> None:
     search = st.session_state.get(f"{card_key}_search", "")
 
     with st.container(key="recent_claims_card"):
-        header_left, header_right = st.columns([3, 2], vertical_alignment="center")
+        header_left, header_right = st.columns([4, 2], vertical_alignment="top")
         with header_left:
             st.markdown(
-                "<div class='recent-claims-header'><h3 class='recent-claims-title'>Recent Claims</h3><p class='recent-claims-subtitle'>Latest claims submitted for assessment.</p></div>",
+                (
+                    "<div class='recent-claims-heading'>"
+                    "<h3 class='recent-claims-title'>Recent Claims</h3>"
+                    "<p class='recent-claims-subtitle'>Latest claims submitted for assessment.</p>"
+                    "</div>"
+                ),
                 unsafe_allow_html=True,
             )
         with header_right:
