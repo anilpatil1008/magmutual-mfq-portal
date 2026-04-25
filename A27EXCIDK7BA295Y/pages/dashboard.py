@@ -8,7 +8,7 @@ from components.badges import render_legend
 from components.cards import render_kpi_cards
 from components.tables import render_recent_claims_table
 from services.claim_service import get_claims_queue
-from services.dashboard_service import get_dashboard_charts, get_dashboard_metrics
+from services.dashboard_service import get_dashboard_metrics
 
 
 def _resolve_user_display_name(ctx) -> str:
@@ -90,17 +90,3 @@ def render(session, ctx) -> None:
 
         queue = get_claims_queue(session, ctx.app_role, ctx.username, search_text=search)
         render_recent_claims_table(queue.head(20), key_prefix="dash")
-
-    charts = get_dashboard_charts(session, ctx.app_role, ctx.username)
-    left, right = st.columns(2)
-    with left:
-        st.markdown("#### Claims by status")
-        if not charts["status"].empty:
-            st.bar_chart(charts["status"].set_index("STATUS"))
-        st.markdown("#### Claims by priority")
-        if not charts["priority"].empty:
-            st.bar_chart(charts["priority"].set_index("PRIORITY"))
-    with right:
-        st.markdown("#### Claims by specialty")
-        if not charts["specialty"].empty:
-            st.bar_chart(charts["specialty"].set_index("SPECIALTY"))
