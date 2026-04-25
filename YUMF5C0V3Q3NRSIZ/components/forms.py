@@ -8,6 +8,16 @@ def render_mfq_sections(df, editable: bool = False):
         st.info("No MFQ sections found for this claim.")
         return
 
+    section_scores = df.groupby("SECTION_NAME")["SECTION_CONFIDENCE"].mean().round(1).sort_values(ascending=False)
+    st.markdown("#### Section-wise Review")
+    review_cols = st.columns(4)
+    for idx, (name, score) in enumerate(section_scores.items()):
+        review_cols[idx % 4].markdown(
+            f"<div class='section-score-card'><div class='section-score-name'>{name}</div>"
+            f"<div class='section-score-value'>{score:.0f}%</div></div>",
+            unsafe_allow_html=True,
+        )
+
     for section_name, section_df in df.groupby("SECTION_NAME"):
         section_score = float(section_df["SECTION_CONFIDENCE"].iloc[0])
         with st.expander(f"{section_name} | Confidence {section_score:.0f}%", expanded=False):
