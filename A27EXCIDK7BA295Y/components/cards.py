@@ -1,22 +1,22 @@
 from __future__ import annotations
 
 import html
+
 import streamlit as st
 
-
 CARD_ICONS = {
-    "Total Active Claims": "📁",
-    "MFQ Generated": "🧠",
-    "Assigned": "👥",
-    "Approved": "✅",
-    "Rejected": "⛔",
+    "Total Active Claims": "📄",
+    "MFQ Generated": "◉",
+    "Assigned": "◔",
+    "Approved": "✓",
+    "Rejected": "⨯",
 }
 
 
 def render_kpi_cards(metrics: dict[str, int]) -> None:
     cards: list[str] = []
     for metric, value in metrics.items():
-        icon = CARD_ICONS.get(metric, "📊")
+        icon = CARD_ICONS.get(metric, "◌")
         safe_metric = html.escape(str(metric))
         safe_value = html.escape(str(value))
         cards.append(
@@ -26,29 +26,31 @@ def render_kpi_cards(metrics: dict[str, int]) -> None:
                     '<div class="mm-card-main">',
                     f'<div class="mm-card-label">{safe_metric}</div>',
                     f'<div class="mm-card-value">{safe_value}</div>',
-                    "</div>",
+                    '</div><div class="mm-card-icon-wrap">',
                     f'<div class="mm-card-icon" aria-hidden="true">{icon}</div>',
-                    "</article>",
+                    "</div></article>",
                 ]
             )
         )
 
-    kpi_html = f'<section class="mm-kpi-grid">{"".join(cards)}</section>'
-    st.markdown(kpi_html, unsafe_allow_html=True)
+    st.markdown(f'<section class="mm-kpi-grid">{"".join(cards)}</section>', unsafe_allow_html=True)
 
 
 def render_claim_header(claim: dict) -> None:
     st.markdown(
         f"""
         <section class="mm-claim-header">
-            <h3>{html.escape(str(claim.get('CLAIM_ID', 'Unknown Claim')))} · {html.escape(str(claim.get('PATIENT_NAME', 'Unknown Patient')))}</h3>
+            <div class="mm-claim-title-row">
+                <h3>{html.escape(str(claim.get('PATIENT_NAME', 'Unknown Patient')))} vs {html.escape(str(claim.get('DEFENDANT_NAME', 'Unknown Defendant')))}</h3>
+                <div class="mm-claim-tags">{html.escape(str(claim.get('STATUS', '-')))} · {html.escape(str(claim.get('PRIORITY', '-')))}</div>
+            </div>
             <div class="mm-claim-grid">
-                <div><strong>Defendant</strong><br>{html.escape(str(claim.get('DEFENDANT_NAME', '-')))}</div>
-                <div><strong>File Number</strong><br>{html.escape(str(claim.get('FILE_NUMBER', '-')))}</div>
-                <div><strong>Specialty</strong><br>{html.escape(str(claim.get('SPECIALTY', '-')))}</div>
-                <div><strong>Date Requested</strong><br>{html.escape(str(claim.get('DATE_REQUESTED', '-')))}</div>
-                <div><strong>Assigned To</strong><br>{html.escape(str(claim.get('ASSIGNED_TO', '-')))}</div>
-                <div><strong>Priority</strong><br>{html.escape(str(claim.get('PRIORITY', '-')))}</div>
+                <div><span>File Number</span><strong>{html.escape(str(claim.get('CLAIM_ID', '-')))}</strong></div>
+                <div><span>Defendant Specialty</span><strong>{html.escape(str(claim.get('SPECIALTY', '-')))}</strong></div>
+                <div><span>Date Requested</span><strong>{html.escape(str(claim.get('DATE_REQUESTED', '-')))}</strong></div>
+                <div><span>Reviewer</span><strong>{html.escape(str(claim.get('ASSIGNED_TO', '-')))}</strong></div>
+                <div><span>MagMutual Contact</span><strong>{html.escape(str(claim.get('ASSIGNED_TO', '-')))}</strong></div>
+                <div><span>Contact Email</span><strong>{html.escape(str(claim.get('ASSIGNED_TO', '-')))}@magmutual.com</strong></div>
             </div>
         </section>
         """,
