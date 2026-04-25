@@ -1,39 +1,26 @@
-import pandas as pd
+from __future__ import annotations
+
 import streamlit as st
 
+from services.snowflake_service import safe_collect_df
 
-def render(_session, role: str, username: str):
-    st.subheader("Admin / RBAC")
 
-    if role != "Admin":
-        st.warning("You are viewing this page in read-only mode. Switch to Admin role to manage access.")
+def render(session, ctx) -> None:
+    st.subheader("Administration")
+    if ctx.app_role != "Admin":
+        st.error("Admin access is required.")
+        return
 
-    st.markdown("#### User & Role Management")
-    users = pd.DataFrame(
-        [
-            {"USER": username, "TEAM": "Claims", "ROLE": role, "STATUS": "Active"},
-            {"USER": "ANALYST_2", "TEAM": "Claims", "ROLE": "Claim Analyst", "STATUS": "Active"},
-            {"USER": "FACULTY_1", "TEAM": "Medical", "ROLE": "Medical Faculty", "STATUS": "Active"},
-            {"USER": "ADVICE_LEAD", "TEAM": "Advice", "ROLE": "Advice Team", "STATUS": "Inactive"},
-        ]
-    )
-    st.dataframe(users, use_container_width=True)
+    t1, t2, t3 = st.tabs(["Users", "Role Mappings", "Routing Config"])
 
-    st.markdown("#### RBAC Matrix")
-    matrix = pd.DataFrame(
-        [
-            {"PERMISSION": "View Claims", "Claim Analyst": "✅", "Advice Team": "✅", "Medical Faculty": "✅", "Admin": "✅"},
-            {"PERMISSION": "Approve / Reject", "Claim Analyst": "✅", "Advice Team": "✅", "Medical Faculty": "✅", "Admin": "✅"},
-            {"PERMISSION": "Role Assignment", "Claim Analyst": "❌", "Advice Team": "❌", "Medical Faculty": "❌", "Admin": "✅"},
-            {"PERMISSION": "Report Export", "Claim Analyst": "✅", "Advice Team": "✅", "Medical Faculty": "✅", "Admin": "✅"},
-        ]
-    )
-    st.dataframe(matrix, use_container_width=True, hide_index=True)
+    with t1:
+        users = safe_collect_df(session, "SELECT USERNAME, APP_ROLE, IS_ACTIVE FROM MFQ_APP_USERS ORDER BY USERNAME")
+        st.dataframe(users, use_container_width=True)
 
-    st.markdown("#### Access Controls")
-    c1, c2, c3 = st.columns(3)
-    c1.toggle("Enable SSO Enforcement", value=True, disabled=role != "Admin")
-    c2.toggle("MFA Required for Admin", value=True, disabled=role != "Admin")
-    c3.toggle("Audit Log Alerts", value=True, disabled=role != "Admin")
+    with t2:
+        mapping = safe_collect_df(session, "SELECT APP_ROLE, PAGE_KEY, IS_ALLOWED FROM MFQ_ROLE_PAGE_ACCESS ORDER BY APP_ROLE, PAGE_KEY")
+        st.dataframe(mapping, use_container_width=True)
 
-    st.button("Save RBAC Changes", disabled=role != "Admin")
+    with t3:
+        routing = safe_collect_df(session, "SELECT RULE_ID, SPECIALTY, DEFAULT_FACULTY, IS_ACTIVE FROM MFQ_ASSIGNMENT_RULES")
+        st.dataframe(routing, use_container_width=True)
