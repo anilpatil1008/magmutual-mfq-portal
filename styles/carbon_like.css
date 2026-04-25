@@ -7,6 +7,10 @@
 }
 
 .stApp { background: var(--bg); color: var(--text); }
+div[data-testid="stAppViewContainer"] > .main .block-container {
+  padding-top: 12px;
+  padding-bottom: 20px;
+}
 section[data-testid="stSidebar"] {
   background: #0b1f3d;
   min-width: 270px !important;
@@ -20,7 +24,7 @@ section[data-testid="stSidebar"] {
   background: var(--surface);
   border-bottom: 1px solid #e0e0e0;
   padding: 8px 20px;
-  margin-top: -1rem;
+  margin-top: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -28,7 +32,7 @@ section[data-testid="stSidebar"] {
 .header-title { font-size: 20px; font-weight: 600; color: var(--primary); }
 .header-right { display: flex; gap: 12px; align-items: center; }
 .user-chip { background: #edf5ff; padding: 6px 12px; border-radius: 16px; }
-.content-wrap { padding: 12px 4px 20px 4px; }
+.content-wrap { padding: 8px 4px 20px 4px; }
 .kpi-card {
   background: var(--surface);
   border-left: 4px solid var(--primary);
