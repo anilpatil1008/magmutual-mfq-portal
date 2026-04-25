@@ -34,23 +34,31 @@ section[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] > div {
   border-color: #c6c6c6;
 }
 section[data-testid="stSidebar"] > div:first-child {
-  padding-top: 1.1rem !important;
+  padding-top: .35rem !important;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-brand {
-  padding: .2rem .2rem .75rem;
+  padding: .1rem .2rem .6rem;
+}
+
+section[data-testid="stSidebar"] .mm-sidebar-brand-eyebrow {
+  font-size: .66rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: #6f6f6f;
+  margin-bottom: .18rem;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-brand-title {
-  font-size: 1.78rem;
-  font-weight: 700;
+  font-size: 1.74rem;
+  font-weight: 800;
   color: #161616;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-divider {
   border-top: 1px solid #dde1e6;
-  margin: .2rem 0 1rem;
+  margin: .15rem 0 .8rem;
 }
 
 section[data-testid="stSidebar"] .stButton {
@@ -58,30 +66,31 @@ section[data-testid="stSidebar"] .stButton {
 }
 
 section[data-testid="stSidebar"] .stButton button {
-  min-height: 46px;
-  height: 46px;
-  border-radius: 8px;
-  background: #ffffff;
+  min-height: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #ffffff 0%, #f8faff 100%);
   color: #161616;
-  border: 1px solid #dde1e6;
+  border: 1px solid #d8dfe8;
   text-align: left;
   justify-content: flex-start;
-  padding: .5rem .8rem;
-  font-size: .98rem;
-  font-weight: 500;
+  padding: .5rem .9rem;
+  font-size: 1rem;
+  font-weight: 550;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
 section[data-testid="stSidebar"] .stButton button:hover {
-  background: #e0e0e0;
-  border-color: #c6c6c6;
+  background: #eff4ff;
+  border-color: #bfcfe8;
   color: #161616;
 }
 
 section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button {
   position: relative;
-  background: #edf5ff;
-  border-color: #b8d3ff;
-  color: #0f62fe;
+  background: linear-gradient(90deg, #edf5ff 0%, #f4f8ff 100%);
+  border-color: #9dc0ff;
+  color: #0043ce;
   font-weight: 600;
 }
 
@@ -94,6 +103,54 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
   width: 3px;
   border-radius: 999px;
   background: #0f62fe;
+}
+
+/* top bar redesign */
+.st-key-app_topbar {
+  margin-bottom: .85rem;
+}
+
+.mm-topbar-shell {
+  background: linear-gradient(135deg, #ffffff 0%, #f4f8ff 100%);
+  border: 1px solid #d8e2f0;
+  border-radius: 14px;
+  padding: .7rem .95rem .6rem;
+  margin-bottom: .55rem;
+  box-shadow: 0 2px 8px rgba(15, 35, 95, 0.06);
+}
+
+.mm-topbar-eyebrow {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #5d6b82;
+  font-weight: 700;
+}
+
+.mm-topbar-title {
+  font-size: 1.06rem;
+  font-weight: 700;
+  color: #102a43;
+  margin-top: .1rem;
+}
+
+.st-key-app_topbar [data-testid="column"] {
+  display: flex;
+  align-items: center;
+}
+
+.st-key-app_topbar [data-testid="column"] .stMarkdown p {
+  margin: 0;
+}
+
+.st-key-app_topbar .stSelectbox > div[data-baseweb="select"] > div,
+.st-key-header_notifications_popover > div > button,
+.st-key-header_profile_popover > div > button {
+  min-height: 42px;
+  border-radius: 10px;
+  border: 1px solid #ccd7e6;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
 .st-key-mm_header_controls {

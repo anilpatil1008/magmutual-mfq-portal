@@ -61,7 +61,21 @@ def render_header(ctx, notifications_df) -> None:
     email = f"{str(ctx.username).lower().replace(' ', '.')}@magmutual.com"
 
     header_container = st.container(key="app_topbar")
-    role_col, bell_col, profile_col = header_container.columns([2.5, 1.0, 3.5], gap="small")
+    st.markdown(
+        """
+        <div class="mm-topbar-shell">
+            <div class="mm-topbar-title-wrap">
+                <div class="mm-topbar-eyebrow">MagMutual Portal</div>
+                <div class="mm-topbar-title">Medical Faculty Questionnaire</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    title_col, role_col, bell_col, profile_col = header_container.columns([4.5, 2.2, 1.0, 2.6], gap="small")
+
+    with title_col:
+        st.markdown("", unsafe_allow_html=True)
 
     with role_col:
         _render_role_selector(ctx.app_role)
@@ -108,6 +122,7 @@ def render_sidebar(ctx) -> None:
         st.markdown(
             """
             <div class="mm-sidebar-brand">
+                <div class="mm-sidebar-brand-eyebrow">Insurance Operations</div>
                 <div class="mm-sidebar-brand-title">MagMutual</div>
             </div>
             """,
