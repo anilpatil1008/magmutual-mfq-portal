@@ -32,6 +32,11 @@ def load_css() -> None:
 
 
 def _render_role_selector(current_role: str) -> None:
+    available_roles = st.session_state.get("available_roles", APP_ROLES)
+    role_options = [str(role) for role in available_roles if str(role).strip()]
+    if current_role not in role_options:
+        role_options = [current_role, *role_options]
+
     safe_role = escape(current_role)
     st.markdown(
         f"""
@@ -44,10 +49,10 @@ def _render_role_selector(current_role: str) -> None:
         unsafe_allow_html=True,
     )
 
-    with st.popover("Role", use_container_width=True):
+    with st.popover("\u200b", use_container_width=True, key="header_role_popover"):
         st.markdown("<div class='mm-role-popover'>", unsafe_allow_html=True)
         st.markdown("<div class='mm-role-popover-title'>Switch Role</div>", unsafe_allow_html=True)
-        for role in APP_ROLES:
+        for role in role_options:
             selected = role == current_role
             label = f"✓ {role}" if selected else role
             if st.button(
@@ -92,7 +97,7 @@ def render_header(ctx, notifications_df) -> None:
             """,
             unsafe_allow_html=True,
         )
-        with st.popover("Notifications", use_container_width=True):
+        with st.popover("\u200b", use_container_width=True, key="header_notifications_popover"):
             render_notification_center(notifications_df)
         st.markdown("</div>", unsafe_allow_html=True)
 
@@ -108,7 +113,7 @@ def render_header(ctx, notifications_df) -> None:
             """,
             unsafe_allow_html=True,
         )
-        with st.popover("Profile", use_container_width=True):
+        with st.popover("\u200b", use_container_width=True, key="header_profile_popover"):
             st.markdown(
                 f"""
                 <div class="mm-profile-card">
