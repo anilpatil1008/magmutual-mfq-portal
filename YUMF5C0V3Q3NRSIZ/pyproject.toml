@@ -1,11 +1,2 @@
-[project]
-name = "magmutual-mfq-enterprise-portal"
-version = "0.1.0"
-description = "Streamlit in Snowflake enterprise prototype for MFQ operations"
-requires-python = ">=3.10"
-dependencies = [
-    "streamlit>=1.48.0",
-]
-
-[tool.ruff]
-line-length = 100
+# Intentionally not used for Snowflake Streamlit runtime.
+# Dependency resolution is handled by environment.yml.

@@ -1,53 +1,32 @@
 # MagMutual MFQ Enterprise Portal
 
-Streamlit + Snowflake (Snowpark) portal for MFQ claim review workflows.
+Enterprise Streamlit in Snowflake application for claim intake, MFQ workspace, assignment workflows, notifications, reports, and admin RBAC.
 
-## App folder layout
+## Required SQL execution order
 
-This folder is the complete Snowflake Streamlit app source:
+Run these scripts in order:
 
-- `streamlit_app.py`
-- `components/`
-- `pages/`
-- `services/`
-- `styles/carbon_like.css`
-- `sql/00_session_context.sql` through `sql/07_validation_queries.sql`
+1. `sql/00_session_context.sql`
+2. `sql/01_create_core_objects.sql`
+3. `sql/05_seed_questionnaire.sql`
+4. `sql/04_create_ui_objects.sql`
+5. `sql/00_clean_demo_data.sql`
+6. `sql/06_seed_demo_data.sql`
+7. `sql/07_validation_queries.sql`
 
-## SQL deployment order (Snowsight)
-
-Run in this exact order:
+## Snowflake Streamlit deployment
 
 ```sql
-!source YUMF5C0V3Q3NRSIZ/sql/00_session_context.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/01_create_core_objects.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/02_create_views.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/03_seed_system_config.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/04_create_ui_objects.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/05_seed_questionnaire.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/06_seed_demo_data.sql;
-!source YUMF5C0V3Q3NRSIZ/sql/07_validation_queries.sql;
+CREATE OR REPLACE STAGE MAGMUTUAL_MFQ_APP.PUBLIC.MFQ_APP_STAGE;
+
+CREATE OR REPLACE STREAMLIT MAGMUTUAL_MFQ_APP.PUBLIC.MAGMUTUAL_MFQ_ENTERPRISE_PORTAL
+  ROOT_LOCATION = '@MAGMUTUAL_MFQ_APP.PUBLIC.MFQ_APP_STAGE'
+  MAIN_FILE = '/YUMF5C0V3Q3NRSIZ/streamlit_app.py'
+  QUERY_WAREHOUSE = COMPUTE_WH;
 ```
 
-## Local run
+## Runtime notes
 
-```bash
-cd YUMF5C0V3Q3NRSIZ
-pip install -r requirements.txt
-streamlit run streamlit_app.py
-```
-
-## Troubleshooting: `SyntaxError` on line 1 in Snowflake runtime
-
-If you see an error similar to:
-
-```text
-SyntaxError: invalid syntax
-```
-
-with an object name prefix (for example `...MFQ_SECTIONSfrom ...`) on line 1, the deployed
-`streamlit_app.py` has been corrupted during upload/paste. Re-upload the project source and confirm
-the first line of `streamlit_app.py` starts cleanly with:
-
-```python
-import streamlit as st
-```
+- Uses Snowflake active session via `get_active_session()`.
+- Uses `environment.yml` for Snowflake Streamlit package resolution.
+- CSS is loaded safely with `pathlib`.
