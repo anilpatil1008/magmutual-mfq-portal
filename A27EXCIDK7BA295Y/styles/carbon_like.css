@@ -18,6 +18,13 @@
 }
 .block-container { max-width: 1400px; padding-top: .2rem; }
 
+/* Remove Streamlit default top gap so the portal topbar starts at the app boundary. */
+[data-testid="stAppViewContainer"] .main .block-container,
+[data-testid="stAppViewContainer"] [data-testid="stAppViewBlockContainer"] {
+  padding-top: 0.35rem !important;
+  margin-top: 0 !important;
+}
+
 section[data-testid="stSidebar"] {
   background: #161616;
   border-right: 1px solid #393939;
@@ -882,13 +889,14 @@ section[data-testid="stSidebar"] .stButton button:hover {
 
 /* Main content wrapper and in-content topbar alignment */
 .st-key-app_main_content {
-  margin-left: 0;
-  padding: 24px 32px;
+  margin: 0;
+  padding: 6px 32px 24px;
 }
 
 .st-key-app_topbar {
   width: 100%;
-  margin: 0 0 20px;
+  margin: 0 0 24px;
+  padding-top: 0;
 }
 
 .st-key-app_topbar [data-testid="stHorizontalBlock"] {
@@ -922,7 +930,7 @@ section[data-testid="stSidebar"] .stButton button:hover {
 
 @media (max-width: 992px) {
   .st-key-app_main_content {
-    padding: 16px;
+    padding: 6px 16px 16px;
   }
 
   .st-key-app_topbar [data-testid="column"]:nth-child(1) {
