@@ -96,15 +96,34 @@ def render_header(ctx, notifications_df) -> None:
 
 
 def render_sidebar(ctx) -> None:
+    page_icons = {
+        "Dashboard": "📊",
+        "Claims": "🗂️",
+        "Claim Details": "📄",
+        "Reports": "📈",
+        "Admin": "⚙️",
+    }
+
     with st.sidebar:
-        st.markdown("### MagMutual")
+        st.markdown(
+            """
+            <div class="mm-sidebar-brand">
+                <div class="mm-sidebar-brand-title">MagMutual</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.markdown('<div class="mm-sidebar-divider"></div>', unsafe_allow_html=True)
 
         pages = allowed_pages(ctx.app_role)
-        st.markdown("---")
         for page in pages:
             active = st.session_state.active_page == page
-            label = f"{'●' if active else '○'} {page}"
-            if st.button(label, use_container_width=True, key=f"nav_{page}"):
+            icon = page_icons.get(page, "•")
+            key_slug = page.lower().replace(" ", "_")
+            key_prefix = "nav_active" if active else "nav"
+            label = f"{icon}  {page}"
+
+            if st.button(label, use_container_width=True, key=f"{key_prefix}_{key_slug}"):
                 st.session_state.active_page = page
                 st.rerun()
 
