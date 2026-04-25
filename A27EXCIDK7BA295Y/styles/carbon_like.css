@@ -19,28 +19,81 @@
 .block-container { max-width: 1400px; padding-top: .2rem; }
 
 section[data-testid="stSidebar"] {
-  background: #161616;
-  border-right: 1px solid #393939;
+  background: #f4f4f4;
+  border-right: 1px solid #dde1e6;
 }
 section[data-testid="stSidebar"] * {
-  color: #f4f4f4;
+  color: #161616;
 }
 section[data-testid="stSidebar"] .stSelectbox label {
-  color: #c6c6c6;
+  color: #525252;
   font-size: .8rem;
 }
 section[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] > div {
-  background: #262626;
-  border-color: #393939;
+  background: #ffffff;
+  border-color: #c6c6c6;
 }
+section[data-testid="stSidebar"] > div:first-child {
+  padding-top: 1.1rem !important;
+}
+
+section[data-testid="stSidebar"] .mm-sidebar-brand {
+  padding: .2rem .2rem .75rem;
+}
+
+section[data-testid="stSidebar"] .mm-sidebar-brand-title {
+  font-size: 1.78rem;
+  font-weight: 700;
+  color: #161616;
+  letter-spacing: -0.01em;
+}
+
+section[data-testid="stSidebar"] .mm-sidebar-divider {
+  border-top: 1px solid #dde1e6;
+  margin: .2rem 0 1rem;
+}
+
+section[data-testid="stSidebar"] .stButton {
+  margin-bottom: .45rem;
+}
+
 section[data-testid="stSidebar"] .stButton button {
-  background: #262626;
-  color: #f4f4f4;
-  border: 1px solid #393939;
+  min-height: 46px;
+  height: 46px;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #161616;
+  border: 1px solid #dde1e6;
+  text-align: left;
+  justify-content: flex-start;
+  padding: .5rem .8rem;
+  font-size: .98rem;
+  font-weight: 500;
 }
+
 section[data-testid="stSidebar"] .stButton button:hover {
-  border-color: #78a9ff;
-  color: #ffffff;
+  background: #e0e0e0;
+  border-color: #c6c6c6;
+  color: #161616;
+}
+
+section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button {
+  position: relative;
+  background: #edf5ff;
+  border-color: #b8d3ff;
+  color: #0f62fe;
+  font-weight: 600;
+}
+
+section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 999px;
+  background: #0f62fe;
 }
 
 .st-key-mm_header_controls {
