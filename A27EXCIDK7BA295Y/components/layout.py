@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from html import escape
+from html import escape, unescape
 from textwrap import dedent
 from pathlib import Path
 import re
@@ -60,8 +60,25 @@ def _to_title_name(raw_value: str) -> str:
     return " ".join(parts)
 
 
-def _resolve_profile_display(ctx) -> tuple[str, str, str, str | None, str]:
-    username = str(getattr(ctx, "username", "") or "").strip()
+def _clean_profile_value(value: object) -> str:
+    raw = str(value or "").strip()
+    if not raw:
+        return ""
+    plain = re.sub(r"<[^>]+>", " ", unescape(raw))
+    plain = re.sub(r"\s+", " ", plain).strip()
+    return plain
+
+
+def _first_non_empty(*values: object) -> str:
+    for value in values:
+        candidate = _clean_profile_value(value)
+        if candidate:
+            return candidate
+    return ""
+
+
+def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str, str]:
+    username = _clean_profile_value(getattr(ctx, "username", ""))
 
     full_name_candidates = [
         getattr(ctx, "full_name", None),
@@ -73,12 +90,7 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str | None, str]:
     if isinstance(user_profile, dict):
         full_name_candidates.extend([user_profile.get("full_name"), user_profile.get("name")])
 
-    full_name = ""
-    for candidate in full_name_candidates:
-        value = str(candidate or "").strip()
-        if value:
-            full_name = value
-            break
+    full_name = _first_non_empty(*full_name_candidates)
 
     if not full_name:
         full_name = _to_title_name(username) or "Unknown User"
@@ -95,27 +107,34 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str | None, str]:
     if isinstance(user_profile, dict):
         email_candidates.append(user_profile.get("email"))
 
-    email_value = None
-    for candidate in email_candidates:
-        value = str(candidate or "").strip()
-        if value and "@" in value:
-            email_value = value
-            break
+    email_value = _first_non_empty(*email_candidates)
+    if "@" not in email_value:
+        email_value = ""
+
+    app_role = _first_non_empty(
+        getattr(ctx, "app_role", None),
+        st.session_state.get("app_role"),
+    )
+    sf_role = _first_non_empty(
+        getattr(ctx, "sf_role", None),
+        st.session_state.get("sf_role"),
+    )
 
     initials = "".join(part[0] for part in short_name.split()[:2]).upper() or "U"
-    return short_name, full_name, username, email_value, initials
+    return short_name, full_name, username, email_value, app_role, sf_role, initials
 
 
 
 def render_header(ctx, notifications_df) -> None:
     unread = int((~notifications_df["IS_READ"]).sum()) if "IS_READ" in notifications_df.columns else 0
 
-    short_name, full_name, username, email, initials = _resolve_profile_display(ctx)
-    safe_full_name = escape(full_name)
-    safe_username = escape(username)
-    safe_email = escape(email) if email else ""
-    safe_app_role = escape(str(getattr(ctx, "app_role", "") or ""))
-    safe_sf_role = escape(str(getattr(ctx, "sf_role", "") or ""))
+    short_name, full_name, username, email, app_role, sf_role, initials = _resolve_profile_display(ctx)
+    safe_short_name = escape(short_name or "Profile")
+    safe_full_name = escape(full_name or "N/A")
+    safe_username = escape(username or "N/A")
+    safe_email = escape(email or "N/A")
+    safe_app_role = escape(app_role or "N/A")
+    safe_sf_role = escape(sf_role or "N/A")
 
     header_container = st.container(key="app_topbar")
     actions_container = header_container.container(key="portal_header_actions")
@@ -130,13 +149,10 @@ def render_header(ctx, notifications_df) -> None:
 
     with profile_col:
         with st.popover(
-            f"{short_name} ▾",
+            f"{safe_short_name} ▾",
             use_container_width=True,
             key="header_profile_popover",
         ):
-            profile_email_html = (
-                f"<div class='mm-profile-email'>Email: {safe_email}</div>" if safe_email else ""
-            )
             st.markdown(
                 dedent(
                     f"""
@@ -145,9 +161,11 @@ def render_header(ctx, notifications_df) -> None:
                             <span class="mm-avatar mm-avatar-lg">{escape(initials)}</span>
                             <div class="mm-profile-meta">
                                 <div class="mm-profile-fullname">{safe_full_name}</div>
-                                <div class="mm-profile-username">Username: {safe_username}</div>
-                                {profile_email_html}
-                                <div class="mm-profile-role">Role: {safe_app_role}{(" • " + safe_sf_role) if safe_sf_role else ""}</div>
+                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Name</span><span class="mm-profile-detail-value">{safe_full_name}</span></div>
+                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Username</span><span class="mm-profile-detail-value">{safe_username}</span></div>
+                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Role</span><span class="mm-profile-detail-value">{safe_app_role}</span></div>
+                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Snowflake Role</span><span class="mm-profile-detail-value">{safe_sf_role}</span></div>
+                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Email</span><span class="mm-profile-detail-value">{safe_email}</span></div>
                             </div>
                         </div>
                     </div>
