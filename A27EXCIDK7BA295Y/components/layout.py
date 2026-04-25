@@ -144,63 +144,49 @@ def render_header(ctx, notifications_df) -> None:
     safe_sf_role = escape(str(getattr(ctx, "sf_role", "") or ""))
 
     header_container = st.container(key="app_topbar")
-    left_col, right_col = header_container.columns([1.7, 1.3], gap="small")
+    actions_container = header_container.container(key="portal_header_actions")
+    role_col, bell_col, profile_col = actions_container.columns([2.4, 0.8, 2.2], gap="small")
 
-    with left_col:
-        st.markdown(
-            """
-            <div class="mm-topbar-title-wrap portal-header-left">
-                <div class="mm-topbar-eyebrow">MagMutual Portal</div>
-                <div class="mm-topbar-title">Medical Faculty Questionnaire</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    with role_col:
+        _render_role_selector(ctx.app_role)
 
-    with right_col:
-        actions_container = st.container(key="portal_header_actions")
-        role_col, bell_col, profile_col = actions_container.columns([2.2, 1.0, 2.8], gap="small")
+    with bell_col:
+        with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
+            render_notification_center(notifications_df)
 
-        with role_col:
-            _render_role_selector(ctx.app_role)
+    with profile_col:
+        tooltip_lines = [
+            f"Name: {full_name}",
+            f"Username: {username}",
+        ]
+        if email:
+            tooltip_lines.append(f"Email: {email}")
+        if getattr(ctx, "app_role", None):
+            tooltip_lines.append(f"Role: {str(ctx.app_role)}")
+        tooltip_text = "\n".join(tooltip_lines)
 
-        with bell_col:
-            with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
-                render_notification_center(notifications_df)
-
-        with profile_col:
-            tooltip_lines = [
-                f"Name: {full_name}",
-                f"Username: {username}",
-            ]
-            if email:
-                tooltip_lines.append(f"Email: {email}")
-            if getattr(ctx, "app_role", None):
-                tooltip_lines.append(f"Role: {str(ctx.app_role)}")
-            tooltip_text = "\n".join(tooltip_lines)
-
-            with st.popover(
-                f"{short_name} ▾",
-                use_container_width=True,
-                key="header_profile_popover",
-            ):
-                st.markdown(
-                    f"""
-                    <div class="mm-profile-card">
-                        <div class="mm-profile-card-head">
-                            <span class="mm-avatar mm-avatar-lg">{escape(initials)}</span>
-                            <div class="mm-profile-meta">
-                                <div class="mm-profile-fullname">{safe_full_name}</div>
-                                <div class="mm-profile-username">Username: {safe_username}</div>
-                                {"<div class='mm-profile-email'>Email: " + safe_email + "</div>" if safe_email else ""}
-                                <div class="mm-profile-role">Role: {safe_app_role}{(" • " + safe_sf_role) if safe_sf_role else ""}</div>
-                            </div>
+        with st.popover(
+            f"{short_name} ▾",
+            use_container_width=True,
+            key="header_profile_popover",
+        ):
+            st.markdown(
+                f"""
+                <div class="mm-profile-card">
+                    <div class="mm-profile-card-head">
+                        <span class="mm-avatar mm-avatar-lg">{escape(initials)}</span>
+                        <div class="mm-profile-meta">
+                            <div class="mm-profile-fullname">{safe_full_name}</div>
+                            <div class="mm-profile-username">Username: {safe_username}</div>
+                            {"<div class='mm-profile-email'>Email: " + safe_email + "</div>" if safe_email else ""}
+                            <div class="mm-profile-role">Role: {safe_app_role}{(" • " + safe_sf_role) if safe_sf_role else ""}</div>
                         </div>
                     </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            _attach_profile_hover_tooltip(tooltip_text)
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        _attach_profile_hover_tooltip(tooltip_text)
 
 
 
