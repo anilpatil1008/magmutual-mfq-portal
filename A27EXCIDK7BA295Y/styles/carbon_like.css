@@ -478,8 +478,9 @@ section[data-testid="stSidebar"] .stButton button:hover {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: .7rem;
-  max-width: 900px;
+  gap: .45rem;
+  width: min(100%, 620px);
+  max-width: 620px;
   margin-left: auto;
 }
 
@@ -487,13 +488,13 @@ section[data-testid="stSidebar"] .stButton button:hover {
   position: relative;
   min-height: 42px;
   width: 100%;
-  max-width: 320px;
+  max-width: 240px;
   overflow: visible;
 }
 
 .mm-header-item + .mm-header-item {
   border-left: 1px solid #dde3ea;
-  padding-left: .7rem;
+  padding-left: .45rem;
 }
 
 .mm-header-item .stPopover {
@@ -641,6 +642,7 @@ section[data-testid="stSidebar"] .stButton button:hover {
 /* Header controls: single interactive row with no hidden duplicate widgets. */
 .mm-header-item-role .stSelectbox > div[data-baseweb="select"] > div {
   min-height: 42px;
+  min-width: 168px;
   border: 1px solid #cfd6de;
   border-radius: 999px;
   background: #fff;
@@ -670,9 +672,11 @@ section[data-testid="stSidebar"] .stButton button:hover {
 }
 
 .mm-header-item-bell .stPopover > div > button {
+  width: 56px;
+  min-width: 56px;
   justify-content: center !important;
   font-size: .9rem !important;
-  padding: .34rem .55rem !important;
+  padding: .34rem .4rem !important;
 }
 
 .mm-header-item-bell .stPopover > div > button p,
@@ -695,18 +699,6 @@ section[data-testid="stSidebar"] .stButton button:hover {
 .mm-header-item-profile [data-testid="stPopoverButton"] span {
   color: #1b1f24 !important;
   font-size: .84rem !important;
-}
-
-.mm-profile-divider {
-  height: 1px;
-  background: #e5e7eb;
-  margin: .65rem 0 .5rem;
-}
-
-.mm-profile-signout {
-  font-size: .82rem;
-  font-weight: 600;
-  color: #b91c1c;
 }
 
 /* Popover panel sizing and stack order */
@@ -732,4 +724,20 @@ section[data-testid="stSidebar"] .stButton button:hover {
 
 .mm-profile-card {
   width: min(320px, 78vw);
+}
+
+@media (max-width: 900px) {
+  .mm-header-right {
+    width: 100%;
+    max-width: none;
+    gap: .4rem;
+  }
+
+  .mm-header-item {
+    max-width: none;
+  }
+
+  .mm-header-item + .mm-header-item {
+    padding-left: .35rem;
+  }
 }

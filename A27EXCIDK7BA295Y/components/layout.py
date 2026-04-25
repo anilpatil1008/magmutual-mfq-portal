@@ -62,7 +62,7 @@ def render_header(ctx, notifications_df) -> None:
 
     st.markdown("<section class='mm-header'><div class='mm-header-right'>", unsafe_allow_html=True)
 
-    role_col, bell_col, profile_col = st.columns([1.35, 0.52, 1.7], gap="small")
+    role_col, bell_col, profile_col = st.columns([1.0, 0.42, 1.2], gap="small")
 
     with role_col:
         st.markdown("<div class='mm-header-item mm-header-item-role'>", unsafe_allow_html=True)
@@ -93,8 +93,6 @@ def render_header(ctx, notifications_df) -> None:
                             <div class="mm-profile-role">{escape(ctx.app_role)} • {escape(ctx.sf_role)}</div>
                         </div>
                     </div>
-                    <div class="mm-profile-divider"></div>
-                    <div class="mm-profile-signout">↪ Sign out</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
