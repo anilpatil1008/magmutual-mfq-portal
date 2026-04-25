@@ -60,9 +60,11 @@ def render_header(ctx, notifications_df) -> None:
     safe_username = escape(str(ctx.username))
     email = f"{str(ctx.username).lower().replace(' ', '.')}@magmutual.com"
 
-    st.markdown("<section class='mm-header'><div class='mm-header-right'>", unsafe_allow_html=True)
+    header_container = st.container(key="mm_header_controls")
+    spacer_col, role_col, bell_col, profile_col = header_container.columns([6.0, 2.5, 1.1, 3.2], gap="small")
 
-    role_col, bell_col, profile_col = st.columns([1.0, 0.42, 1.2], gap="small")
+    with spacer_col:
+        st.empty()
 
     with role_col:
         st.markdown("<div class='mm-header-item mm-header-item-role'>", unsafe_allow_html=True)
@@ -99,8 +101,6 @@ def render_header(ctx, notifications_df) -> None:
             )
             st.caption(f"User ID: {safe_username}")
         st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown("</div></section>", unsafe_allow_html=True)
 
 
 def render_sidebar(ctx) -> None:

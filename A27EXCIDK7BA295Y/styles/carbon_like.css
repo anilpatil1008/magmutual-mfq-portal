@@ -12,7 +12,7 @@
 }
 
 .stApp { background: var(--mm-bg); color: var(--mm-text); }
-.block-container { max-width: 1400px; padding-top: 1rem; }
+.block-container { max-width: 1400px; padding-top: .5rem; }
 
 section[data-testid="stSidebar"] {
   background: #161616;
@@ -39,17 +39,12 @@ section[data-testid="stSidebar"] .stButton button:hover {
   color: #ffffff;
 }
 
-.mm-header {
-  background: var(--mm-surface);
-  border: 1px solid var(--mm-border);
-  border-radius: 12px;
-  padding: .5rem 1rem;
-  margin-bottom: .85rem;
+.st-key-mm_header_controls {
+  margin: 0 0 .85rem;
 }
 
-.mm-header-right {
-  margin-left: auto;
-  max-width: 720px;
+.st-key-mm_header_controls [data-testid="stHorizontalBlock"] {
+  align-items: center;
 }
 
 .mm-header-item {
@@ -60,15 +55,16 @@ section[data-testid="stSidebar"] .stButton button:hover {
   white-space: nowrap;
 }
 
-.mm-header-item + .mm-header-item {
-  border-left: 1px solid #dfe3e8;
-  padding-left: .75rem;
-}
-
 .mm-header-item-role,
 .mm-header-item-bell,
 .mm-header-item-profile {
   justify-content: flex-end;
+}
+
+.mm-header-item-role .stSelectbox,
+.mm-header-item-profile .stPopover,
+.mm-header-item-bell .stPopover {
+  width: 100%;
 }
 
 .mm-role-pill {
