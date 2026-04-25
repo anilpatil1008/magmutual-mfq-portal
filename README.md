@@ -78,3 +78,37 @@ streamlit run streamlit_app.py
 ```
 
 For local execution outside Snowflake, mock `get_active_session()` or run inside a Snowflake-native Streamlit app.
+
+## Package install troubleshooting (PyPI DNS / EAI)
+
+If installation fails with an error similar to:
+
+```text
+Failed to fetch: https://pypi.org/simple/pandas/
+... dns error ... Name does not resolve
+```
+
+the runtime environment cannot resolve or reach `pypi.org`.
+
+### What this usually means
+
+- In managed/sandbox environments, **External Access Integration (EAI)** (or equivalent outbound network access) is not enabled.
+- DNS is blocked or unavailable for public package hosts.
+
+### How to fix
+
+1. Enable outbound package access (EAI) for the execution environment.
+2. Allow DNS + HTTPS egress to package domains such as:
+   - `pypi.org`
+   - `files.pythonhosted.org`
+3. Retry installation.
+
+### Quick validation commands
+
+```bash
+python -c "import socket; print(socket.gethostbyname('pypi.org'))"
+python -m pip install --upgrade pip
+python -m pip install pandas
+```
+
+If DNS lookup fails in step 1, this is an environment/network policy issue (not a `pip` or `pandas` issue).
