@@ -18,6 +18,26 @@ section[data-testid="stSidebar"] {
   background: #161616;
   border-right: 1px solid #393939;
 }
+section[data-testid="stSidebar"] * {
+  color: #f4f4f4;
+}
+section[data-testid="stSidebar"] .stSelectbox label {
+  color: #c6c6c6;
+  font-size: .8rem;
+}
+section[data-testid="stSidebar"] .stSelectbox [data-baseweb="select"] > div {
+  background: #262626;
+  border-color: #393939;
+}
+section[data-testid="stSidebar"] .stButton button {
+  background: #262626;
+  color: #f4f4f4;
+  border: 1px solid #393939;
+}
+section[data-testid="stSidebar"] .stButton button:hover {
+  border-color: #78a9ff;
+  color: #ffffff;
+}
 
 .mm-header {
   background: var(--mm-surface);
@@ -77,6 +97,7 @@ section[data-testid="stSidebar"] {
 }
 .mm-table th, .mm-table td { padding: .6rem; border-bottom: 1px solid #f0f0f0; }
 .mm-table th { background: #f8f8f8; text-align: left; }
+.mm-table tr:hover td { background: #f8fbff; }
 
 .mm-badge { border-radius: 12px; padding: .15rem .55rem; font-size: .72rem; font-weight: 600; color: #fff; }
 .mm-badge-success { background: var(--mm-success); }
@@ -139,3 +160,7 @@ section[data-testid="stSidebar"] {
   text-transform: capitalize;
 }
 
+.mm-chip-role-switcher {
+  background: #e8f0ff;
+  color: #0043ce;
+}
