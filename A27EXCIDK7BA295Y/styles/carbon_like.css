@@ -794,6 +794,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
 }
 
 .mm-profile-email,
+.mm-profile-username,
 .mm-profile-role {
   font-size: .76rem;
   color: #4b5563;
@@ -1351,7 +1352,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
 }
 
 .st-key-portal_header_actions [data-testid="column"]:nth-child(1) {
-  width: clamp(180px, 20vw, 220px);
+  width: clamp(220px, 24vw, 260px);
 }
 
 .st-key-portal_header_actions [data-testid="column"]:nth-child(2) {
@@ -1359,7 +1360,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
 }
 
 .st-key-portal_header_actions [data-testid="column"]:nth-child(3) {
-  width: clamp(240px, 24vw, 300px);
+  width: clamp(220px, 26vw, 280px);
 }
 
 .st-key-portal_header_actions .stSelectbox > div[data-baseweb="select"] > div,
@@ -1372,14 +1373,56 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
   background: #ffffff !important;
 }
 
+.st-key-header_role_select .stSelectbox [data-baseweb="select"] > div {
+  min-width: 240px;
+}
+
 .st-key-header_profile_popover > div > button {
   justify-content: flex-start !important;
+  min-width: 250px;
+  max-width: 280px;
 }
 
 .st-key-header_profile_popover > div > button p {
   white-space: nowrap !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
+}
+
+.st-key-header_profile_popover {
+  position: relative;
+}
+
+.st-key-header_profile_popover:hover::before,
+.st-key-header_profile_popover:hover::after {
+  pointer-events: none;
+  position: absolute;
+  z-index: 1200;
+}
+
+.st-key-header_profile_popover:hover::before {
+  content: "";
+  top: calc(100% + 6px);
+  right: 22px;
+  border-width: 7px;
+  border-style: solid;
+  border-color: transparent transparent #d0d7df transparent;
+}
+
+.st-key-header_profile_popover:hover::after {
+  content: attr(data-profile-tooltip);
+  top: calc(100% + 12px);
+  right: 0;
+  width: min(360px, 80vw);
+  white-space: pre-line;
+  padding: 10px 12px;
+  border: 1px solid #d0d7df;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #161616;
+  font-size: 0.76rem;
+  line-height: 1.4;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
 }
 
 @media (max-width: 900px) {
