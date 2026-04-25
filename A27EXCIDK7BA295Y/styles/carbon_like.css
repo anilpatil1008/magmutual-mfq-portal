@@ -39,22 +39,141 @@ section[data-testid="stSidebar"] .stButton button:hover {
   color: #ffffff;
 }
 
+
 .mm-header {
   background: var(--mm-surface);
   border: 1px solid var(--mm-border);
-  border-radius: 8px;
-  padding: 1rem 1.25rem;
-  margin-bottom: 1rem;
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
+  border-radius: 12px;
+  padding: .75rem 1rem;
+  margin-bottom: .85rem;
 }
-.mm-header h1 { margin: 0; font-size: 1.4rem; color: #0b1f3d; }
-.mm-header p { margin: .35rem 0 0; color: var(--mm-subtle); }
-.mm-header-meta { display: flex; flex-wrap: wrap; gap: .5rem; align-items: flex-start; }
-.mm-chip { background: #edf5ff; color: #002d9c; border-radius: 16px; padding: .3rem .65rem; font-size: .8rem; }
-.mm-notif-chip { background: #fff1f1; color: #a2191f; }
+
+.mm-header-brand h1 { margin: 0; font-size: 1.32rem; color: #0b1f3d; line-height: 1.2; }
+.mm-header-brand p { margin: .28rem 0 0; color: var(--mm-subtle); font-size: .86rem; }
+
+.mm-header-item {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.mm-header-item + .mm-header-item {
+  border-left: 1px solid #dfe3e8;
+  padding-left: .75rem;
+}
+
+.mm-header-item-role {
+  position: relative;
+}
+
+.mm-role-icon {
+  position: absolute;
+  left: .7rem;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  font-size: .87rem;
+  opacity: .75;
+}
+
+.mm-header-item-role .stSelectbox {
+  width: 100%;
+}
+
+.mm-header-item-role .stSelectbox [data-baseweb="select"] > div {
+  min-height: 42px;
+  border: 1px solid #cfd6de;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: none;
+  padding-left: 1.75rem;
+}
+
+.mm-header-item-role .stSelectbox [data-baseweb="select"]:focus-within > div {
+  border-color: #93b4ff;
+}
+
+.mm-bell-badge-wrap {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d8dee6;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+}
+
+.mm-bell-icon { font-size: 1rem; line-height: 1; }
+
+.mm-bell-badge {
+  position: absolute;
+  right: -3px;
+  top: -6px;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #da1e28;
+  color: #fff;
+  border: 1px solid #fff;
+  font-size: .62rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  padding: 0 .18rem;
+}
+
+.mm-header-item-bell .stPopover > div > button,
+.mm-header-item-profile .stPopover > div > button {
+  margin-top: .22rem;
+  min-height: 1.25rem;
+  font-size: .72rem;
+  color: #5f6b7a;
+}
+
+.mm-profile-pill {
+  width: 100%;
+  border: 1px solid #cfd6de;
+  border-radius: 999px;
+  background: #fff;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+  padding: .34rem .72rem .34rem .36rem;
+  gap: .46rem;
+}
+
+.mm-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #edf5ff;
+  color: #0043ce;
+  font-weight: 700;
+  font-size: .74rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+}
+
+.mm-profile-name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: .84rem;
+  color: #1b1f24;
+}
+
+.mm-profile-arrow {
+  color: #5f6b7a;
+  font-size: .8rem;
+}
 
 .mm-kpi-grid {
   display: grid;
@@ -131,9 +250,19 @@ section[data-testid="stSidebar"] .stButton button:hover {
 .mm-notif-danger { border-left-color: var(--mm-danger); }
 .mm-notif-success { border-left-color: var(--mm-success); }
 
+@media (max-width: 1024px) {
+  .mm-header-brand p { display: none; }
+}
+
 @media (max-width: 768px) {
   .block-container { padding-left: .85rem; padding-right: .85rem; }
   .mm-kpi-grid { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+  .mm-header { padding: .65rem .75rem; }
+  .mm-header-brand h1 { font-size: 1.1rem; }
+  .mm-header-item { min-height: 46px; }
+  .mm-header-item + .mm-header-item { padding-left: .4rem; }
+  .mm-profile-name { display: none; }
+  .mm-profile-pill { justify-content: center; padding-right: .45rem; }
 }
 
 .mm-badge-status {
