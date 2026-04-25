@@ -61,10 +61,7 @@ def render_header(ctx, notifications_df) -> None:
     email = f"{str(ctx.username).lower().replace(' ', '.')}@magmutual.com"
 
     header_container = st.container(key="mm_header_controls")
-    spacer_col, role_col, bell_col, profile_col = header_container.columns([6.0, 2.5, 1.1, 3.2], gap="small")
-
-    with spacer_col:
-        st.empty()
+    role_col, bell_col, profile_col = header_container.columns([2.6, 1.0, 3.3], gap="small")
 
     with role_col:
         st.markdown("<div class='mm-header-item mm-header-item-role'>", unsafe_allow_html=True)
