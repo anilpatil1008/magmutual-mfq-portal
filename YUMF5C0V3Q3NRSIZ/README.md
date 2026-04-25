@@ -32,5 +32,6 @@ Run in this exact order:
 
 ```bash
 cd YUMF5C0V3Q3NRSIZ
+pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
