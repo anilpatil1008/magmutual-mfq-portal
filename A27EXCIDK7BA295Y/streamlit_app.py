@@ -23,7 +23,6 @@ if "selected_claim_id" not in st.session_state:
     st.session_state.selected_claim_id = None
 
 notifications = get_user_notifications(session, ctx.username, limit=6)
-render_header(ctx, notifications)
 render_sidebar(ctx)
 
 page_map = {
@@ -35,4 +34,8 @@ page_map = {
 }
 
 render_fn = page_map.get(st.session_state.active_page, dashboard.render)
-render_fn(session=session, ctx=ctx)
+
+main_content = st.container(key="app_main_content")
+with main_content:
+    render_header(ctx, notifications)
+    render_fn(session=session, ctx=ctx)
