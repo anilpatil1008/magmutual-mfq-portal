@@ -1,0 +1,2 @@
+# Intentionally not used for Snowflake Streamlit runtime.
+# Dependency resolution is handled by environment.yml.

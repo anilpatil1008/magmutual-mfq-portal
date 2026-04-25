@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "magmutual-mfq-portal"
+version = "0.1.0"
+description = "MagMutual MFQ Streamlit portal"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+ 
+]
