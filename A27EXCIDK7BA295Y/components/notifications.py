@@ -10,6 +10,8 @@ def render_notification_center(df: pd.DataFrame) -> None:
     total = int(len(df.index))
     unread = int((~df["IS_READ"]).sum()) if "IS_READ" in df.columns else total
 
+    st.markdown("<div class='mm-notif-panel'>", unsafe_allow_html=True)
+
     st.markdown(
         f"""
         <div class="mm-notif-panel-header">
@@ -25,6 +27,7 @@ def render_notification_center(df: pd.DataFrame) -> None:
 
     if df.empty:
         st.markdown("<div class='mm-notif-empty'>No notifications.</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
         return
 
     notif_html = ["<div class='mm-notif-scroll'>"]
@@ -55,6 +58,7 @@ def render_notification_center(df: pd.DataFrame) -> None:
 
     notif_html.append("</div>")
     st.markdown("".join(notif_html), unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _icon_for_severity(severity: str) -> str:
