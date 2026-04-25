@@ -6,7 +6,7 @@ import streamlit as st
 
 from components.badges import render_legend
 from components.cards import render_kpi_cards
-from components.tables import render_claims_table
+from components.tables import render_recent_claims_table
 from services.claim_service import get_claims_queue, get_status_values
 from services.dashboard_service import get_dashboard_charts, get_dashboard_metrics
 
@@ -61,16 +61,35 @@ def render(session, ctx) -> None:
     render_kpi_cards(metrics)
     render_legend()
 
-    c1, c2, c3 = st.columns([3, 2, 1])
-    search = c1.text_input("Search claims, patient, defendant, or file")
-    status = c2.selectbox("Status", get_status_values(session), index=0)
-    c3.write("")
-    if c3.button("Refresh", use_container_width=True):
-        st.rerun()
+    card_key = "dash_recent_claims"
+    search = st.session_state.get(f"{card_key}_search", "")
 
-    queue = get_claims_queue(session, ctx.app_role, ctx.username, search, status)
-    st.markdown("#### Recent claim queue")
-    render_claims_table(queue.head(20), key_prefix="dash")
+    with st.container(key="recent_claims_card"):
+        header_left, header_right = st.columns([3, 2], vertical_alignment="center")
+        with header_left:
+            st.markdown(
+                "<div class='recent-claims-header'><h3>Recent Claims</h3><p>Latest claims submitted for assessment.</p></div>",
+                unsafe_allow_html=True,
+            )
+        with header_right:
+            st.markdown("<div class='recent-claims-search'>", unsafe_allow_html=True)
+            with st.container(key="recent_claims_search"):
+                search = st.text_input(
+                    "Search",
+                    value=search,
+                    placeholder="Search by patient, file #...",
+                    label_visibility="collapsed",
+                    key=f"{card_key}_search",
+                )
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        controls_left, controls_right = st.columns([2, 1], vertical_alignment="center")
+        status = controls_left.selectbox("Status", get_status_values(session), index=0, key=f"{card_key}_status")
+        if controls_right.button("Refresh", key=f"{card_key}_refresh", use_container_width=True):
+            st.rerun()
+
+        queue = get_claims_queue(session, ctx.app_role, ctx.username, search, status)
+        render_recent_claims_table(queue.head(20), key_prefix="dash")
 
     charts = get_dashboard_charts(session, ctx.app_role, ctx.username)
     left, right = st.columns(2)

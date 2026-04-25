@@ -937,3 +937,138 @@ section[data-testid="stSidebar"] .stButton button:hover {
     width: min(320px, 56vw);
   }
 }
+
+/* Recent claims enterprise table */
+.st-key-recent_claims_card {
+  background: #ffffff;
+  border: 1px solid #dde1e6;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(22, 22, 22, 0.04);
+  padding: 1rem;
+  margin-top: .5rem;
+}
+
+.recent-claims-card {
+  background: #ffffff;
+}
+
+.recent-claims-header h3 {
+  margin: 0;
+  color: #161616;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.recent-claims-header p {
+  margin: .22rem 0 0;
+  font-size: .82rem;
+  color: #6f6f6f;
+}
+
+.st-key-recent_claims_search input {
+  border: 1px solid #c6c6c6;
+  border-radius: 8px;
+  min-height: 38px;
+  font-size: .84rem;
+}
+
+.enterprise-table table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  border-top: 1px solid #dde1e6;
+  border-bottom: 1px solid #dde1e6;
+  margin-top: .6rem;
+}
+
+.enterprise-table thead th {
+  background: #f4f4f4;
+  color: #6f6f6f;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  font-size: .68rem;
+  font-weight: 700;
+  padding: .68rem .5rem;
+  text-align: left;
+}
+
+.enterprise-cell {
+  padding: .52rem .22rem;
+  font-size: .82rem;
+  color: #161616;
+}
+
+.patient-name {
+  font-weight: 600;
+  color: #161616;
+}
+
+.defendant-name,
+.specialty-name {
+  color: #6f6f6f;
+  font-size: .73rem;
+  margin-top: .1rem;
+  line-height: 1.25;
+}
+
+.claim-id,
+.date-requested {
+  font-weight: 500;
+}
+
+.enterprise-row-separator {
+  border-bottom: 1px solid #eceff2;
+  margin: .1rem 0;
+}
+
+.status-badge,
+.priority-badge,
+.confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: .2rem .56rem;
+  border-radius: 999px;
+  font-size: .7rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-mfq-generated { background: #edf5ff; color: #0f62fe; }
+.status-assigned { background: #f0ebff; color: #6929c4; }
+.status-approved { background: #defbe6; color: #198038; }
+.status-rejected { background: #ffd7d9; color: #da1e28; }
+.status-pending { background: #fff4ce; color: #8a6b0f; }
+.status-unknown { background: #e0e0e0; color: #525252; }
+
+.priority-critical { background: #ffd7d9; color: #a2191f; }
+.priority-high { background: #fff1dc; color: #b25f00; }
+.priority-medium { background: #edf5ff; color: #0f62fe; }
+.priority-low { background: #e0e0e0; color: #525252; }
+.priority-unknown { background: #e0e0e0; color: #525252; }
+
+.confidence-high { background: #defbe6; color: #198038; }
+.confidence-medium { background: #fff4ce; color: #8a6b0f; }
+.confidence-low { background: #ffd7d9; color: #a2191f; }
+.confidence-na { background: #e0e0e0; color: #525252; }
+
+.action-link,
+.st-key-recent_claims_card button[kind="secondary"] {
+  color: #0f62fe;
+}
+
+.regenerate-button button {
+  border: 1px solid #0f62fe;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #0f62fe;
+  min-height: 30px;
+  font-size: .73rem;
+  padding: .1rem .5rem;
+}
+
+.regenerate-confirm {
+  color: #525252;
+  font-size: .72rem;
+  margin: .35rem 0 .3rem;
+  line-height: 1.3;
+}
