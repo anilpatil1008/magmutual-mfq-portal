@@ -9,8 +9,5 @@ description = "MagMutual MFQ Streamlit portal"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-  "streamlit>=1.35",
-  "snowflake-snowpark-python",
-  "pandas",
-  "plotly",
+ 
 ]
