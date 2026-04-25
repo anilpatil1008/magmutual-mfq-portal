@@ -21,23 +21,30 @@ section[data-testid="stSidebar"] {
   min-width: 270px !important;
   max-width: 270px !important;
 }
-.brand { color: #fff; font-size: 24px; font-weight: 700; margin: 8px 0 24px; }
-.nav-header { color: #a9bad5; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; margin: 16px 0 10px; }
-.header-title { margin: 4px 0 10px; font-size: 24px; font-weight: 700; color: var(--primary); min-width: 0; line-height: 1.25; }
-.header-user-group { display: flex; gap: 8px; align-items: center; justify-content: flex-end; white-space: nowrap; }
-.notif-bell {
-  background: #fff;
-  border: 1px solid #d9e2ef;
-  border-radius: 999px;
-  padding: 6px 10px;
-  font-size: 13px;
+section[data-testid="stSidebar"] > div {
+  width: 270px !important;
 }
-.user-chip {
-  background: #edf5ff;
-  border: 1px solid #d9e2ef;
-  padding: 6px 12px;
-  border-radius: 16px;
-  max-width: 100%;
+div[data-testid="stSidebarUserContent"] {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+.brand { color: #fff; font-size: 24px; font-weight: 700; margin: 8px 0 24px; }
+.top-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--surface);
+  border-bottom: 1px solid #e0e0e0;
+  padding: 12px 20px;
+  margin-top: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
   overflow: hidden;
   text-overflow: ellipsis;
 }
@@ -134,14 +141,8 @@ section[data-testid="stSidebar"] {
   overflow-x: auto;
 }
 .claims-table { width: 100%; background: #fff; border-collapse: collapse; font-size: 14px; }
-.claims-table th {
-  border-bottom: 1px solid #d7dfec;
-  background: #f7f9fd;
-  color: #324968;
-  padding: 10px;
-  text-align: left;
-}
-.claims-table td { border-bottom: 1px solid #edf1f7; padding: 10px; text-align: left; }
+.claims-table-wrap { width: 100%; overflow-x: auto; }
+.claims-table th, .claims-table td { border-bottom: 1px solid #e8e8e8; padding: 10px; text-align: left; }
 .badge { padding: 3px 8px; border-radius: 14px; color: #fff; font-size: 12px; font-weight: 600; }
 .badge-success { background: #24a148; }
 .badge-info { background: #0f62fe; }

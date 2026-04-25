@@ -3,11 +3,11 @@ from __future__ import annotations
 from typing import Optional
 
 import pandas as pd
-from snowflake.snowpark.context import get_active_session
+from snowflake.snowpark.context import get_active_session as snowflake_get_active_session
 
 
-def get_session():
-    return get_active_session()
+def get_active_session():
+    return snowflake_get_active_session()
 
 
 def _apply_role_filter(df: pd.DataFrame, role: str, username: str) -> pd.DataFrame:

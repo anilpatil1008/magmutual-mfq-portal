@@ -6,6 +6,14 @@ from services.snowflake_service import get_report_metrics
 def render(session, role: str, username: str):
     st.subheader("Reports Dashboard")
     metrics = get_report_metrics(session, role, username)
+    if (
+        metrics["status"].empty
+        and metrics["priority"].empty
+        and metrics["specialty"].empty
+        and metrics["faculty"].empty
+    ):
+        st.info("No report data is available for your role yet.")
+        return
 
     top_a, top_b, top_c = st.columns(3)
     top_a.metric("Open Claims", int(metrics["status"]["COUNT"].sum()))
@@ -15,28 +23,23 @@ def render(session, role: str, username: str):
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("#### Claims by Status")
-        st.bar_chart(metrics["status"].set_index("STATUS"))
+        if metrics["status"].empty:
+            st.caption("No status data.")
+        else:
+            st.bar_chart(metrics["status"].set_index("STATUS"))
         st.markdown("#### Claims by Priority")
-        st.bar_chart(metrics["priority"].set_index("PRIORITY"))
+        if metrics["priority"].empty:
+            st.caption("No priority data.")
+        else:
+            st.bar_chart(metrics["priority"].set_index("PRIORITY"))
     with c2:
         st.markdown("#### Claims by Specialty")
-        st.bar_chart(metrics["specialty"].set_index("SPECIALTY"))
+        if metrics["specialty"].empty:
+            st.caption("No specialty data.")
+        else:
+            st.bar_chart(metrics["specialty"].set_index("SPECIALTY"))
         st.markdown("#### Faculty Performance")
-        st.dataframe(metrics["faculty"], use_container_width=True)
-
-    st.markdown("#### Exports")
-    e1, e2 = st.columns(2)
-    with e1:
-        st.download_button(
-            "Download Status Report",
-            data=metrics["status"].to_csv(index=False),
-            file_name="claims_status_report.csv",
-            mime="text/csv",
-        )
-    with e2:
-        st.download_button(
-            "Download Faculty Performance",
-            data=metrics["faculty"].to_csv(index=False),
-            file_name="faculty_performance.csv",
-            mime="text/csv",
-        )
+        if metrics["faculty"].empty:
+            st.caption("No faculty performance data.")
+        else:
+            st.dataframe(metrics["faculty"], use_container_width=True)
