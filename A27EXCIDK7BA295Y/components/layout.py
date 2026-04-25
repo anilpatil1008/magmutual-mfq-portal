@@ -2,11 +2,9 @@ from __future__ import annotations
 
 from html import escape
 from pathlib import Path
-import json
 import re
 
 import streamlit as st
-from streamlit.components.v1 import html as components_html
 
 from components.notifications import render_notification_center
 from services.rbac_service import APP_ROLES, allowed_pages, set_active_role
@@ -107,31 +105,6 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str | None, str]:
     return short_name, full_name, username, email_value, initials
 
 
-def _attach_profile_hover_tooltip(tooltip_text: str) -> None:
-    escaped_tooltip = json.dumps(tooltip_text)
-    components_html(
-        f"""
-        <script>
-        const tooltipText = {escaped_tooltip};
-        function setProfileTooltip() {{
-          const wrapper = window.parent.document.querySelector('.st-key-header_profile_popover');
-          const btn = wrapper?.querySelector('[data-testid="stPopoverButton"]');
-          if (wrapper) {{
-            wrapper.setAttribute('data-profile-tooltip', tooltipText);
-          }}
-          if (btn) {{
-            btn.setAttribute('title', tooltipText);
-            btn.setAttribute('aria-label', tooltipText);
-          }}
-        }}
-        setProfileTooltip();
-        new MutationObserver(setProfileTooltip).observe(window.parent.document.body, {{childList: true, subtree: true}});
-        </script>
-        """,
-        height=0,
-        width=0,
-    )
-
 
 def render_header(ctx, notifications_df) -> None:
     unread = int((~notifications_df["IS_READ"]).sum()) if "IS_READ" in notifications_df.columns else 0
@@ -155,16 +128,6 @@ def render_header(ctx, notifications_df) -> None:
             render_notification_center(notifications_df)
 
     with profile_col:
-        tooltip_lines = [
-            f"Name: {full_name}",
-            f"Username: {username}",
-        ]
-        if email:
-            tooltip_lines.append(f"Email: {email}")
-        if getattr(ctx, "app_role", None):
-            tooltip_lines.append(f"Role: {str(ctx.app_role)}")
-        tooltip_text = "\n".join(tooltip_lines)
-
         with st.popover(
             f"{short_name} ▾",
             use_container_width=True,
@@ -186,7 +149,6 @@ def render_header(ctx, notifications_df) -> None:
                 """,
                 unsafe_allow_html=True,
             )
-        _attach_profile_hover_tooltip(tooltip_text)
 
 
 

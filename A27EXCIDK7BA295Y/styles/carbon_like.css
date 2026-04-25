@@ -1329,13 +1329,15 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
 .st-key-portal_header_actions [data-testid="stHorizontalBlock"] {
   display: flex !important;
   justify-content: flex-end !important;
-  align-items: center !important;
+  align-items: stretch !important;
   gap: 10px !important;
   flex-wrap: nowrap !important;
 }
 
 .st-key-portal_header_actions [data-testid="column"] {
   flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: stretch !important;
 }
 
 .st-key-portal_header_actions [data-testid="column"]:nth-child(1) {
@@ -1353,6 +1355,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
 .st-key-portal_header_actions .stSelectbox > div[data-baseweb="select"] > div,
 .st-key-header_notifications_popover > div > button,
 .st-key-header_profile_popover > div > button {
+  width: 100% !important;
   min-height: 40px !important;
   height: 40px !important;
   border-radius: 8px !important;
@@ -1366,8 +1369,13 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
   min-width: 250px;
 }
 
+.st-key-header_notifications_popover > div > button {
+  justify-content: center !important;
+}
+
 .st-key-header_profile_popover > div > button {
-  justify-content: flex-start !important;
+  justify-content: space-between !important;
+  gap: 8px !important;
   min-width: 240px;
   max-width: 300px;
 }
@@ -1378,41 +1386,6 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
   text-overflow: ellipsis !important;
 }
 
-.st-key-header_profile_popover {
-  position: relative;
-}
-
-.st-key-header_profile_popover:hover::before,
-.st-key-header_profile_popover:hover::after {
-  pointer-events: none;
-  position: absolute;
-  z-index: 1200;
-}
-
-.st-key-header_profile_popover:hover::before {
-  content: "";
-  top: calc(100% + 6px);
-  right: 22px;
-  border-width: 7px;
-  border-style: solid;
-  border-color: transparent transparent #d0d7df transparent;
-}
-
-.st-key-header_profile_popover:hover::after {
-  content: attr(data-profile-tooltip);
-  top: calc(100% + 12px);
-  right: 0;
-  width: min(360px, 80vw);
-  white-space: pre-line;
-  padding: 10px 12px;
-  border: 1px solid #d0d7df;
-  border-radius: 8px;
-  background: #ffffff;
-  color: #161616;
-  font-size: 0.76rem;
-  line-height: 1.4;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
-}
 
 @media (max-width: 900px) {
   .st-key-app_topbar [data-testid="stHorizontalBlock"] {
