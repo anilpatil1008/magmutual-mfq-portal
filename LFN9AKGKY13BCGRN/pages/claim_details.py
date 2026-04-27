@@ -39,11 +39,11 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     assign_label = "Reassign to Faculty" if assigned_to else "Assign to Faculty"
 
     with st.container(key="review_header_card"):
-        left_col, action_col = st.columns([4.6, 1.4], vertical_alignment="top")
+        left_col, action_col = st.columns([5.4, 1.6], vertical_alignment="center")
         with left_col:
+            st.markdown("<div class='review-headline-wrap'>", unsafe_allow_html=True)
             st.markdown(
                 (
-                    "<div class='review-headline-wrap'>"
                     f"<div class='review-headline'>{patient} <span class='review-vs'>vs</span> {defendant}</div>"
                     "<div class='review-badges'>"
                     f"<span class='review-pill review-status'>{status}</span>"
@@ -55,12 +55,13 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
                     f"<div><div class='review-meta-label'>Date Requested</div><div>{escape(str(claim.get('DATE_REQUESTED', '—')))}</div></div>"
                     f"<div><div class='review-meta-label'>Assigned To</div><div>{escape(str(claim.get('ASSIGNED_TO', 'Unassigned')))}</div></div>"
                     "</div>"
-                    "</div>"
                 ),
                 unsafe_allow_html=True,
             )
+            st.markdown("</div>", unsafe_allow_html=True)
 
         with action_col:
+            st.markdown("<div class='review-header-actions'>", unsafe_allow_html=True)
             if st.button(assign_label, type="primary", use_container_width=True):
                 update_claim_status(session, claim_id, "Assigned", assigned_to=ctx.username)
                 st.success("Claim assigned to faculty queue.")
@@ -70,6 +71,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
                 update_claim_status(session, claim_id, "Approved")
                 st.success("Claim approved.")
                 st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _go_back_to_dashboard() -> None:
@@ -80,17 +82,17 @@ def _go_back_to_dashboard() -> None:
 
 def _render_breadcrumb(claim_id: str) -> None:
     with st.container(key="review_breadcrumb_row"):
-        back_col, crumb_col = st.columns([3.2, 6.8], vertical_alignment="center")
+        back_col, crumb_col = st.columns([1, 1], vertical_alignment="center")
         with back_col:
             st.button(
-                "← Back to Dashboard",
+                "← Back to Dashboard",
                 key="review_back_to_dashboard",
                 on_click=_go_back_to_dashboard,
                 type="tertiary",
             )
         with crumb_col:
             st.markdown(
-                f"<div class='review-breadcrumb-claim'><strong>{escape(str(claim_id))}</strong></div>",
+                f"<div class='review-breadcrumb-claim'>/ <strong>{escape(str(claim_id))}</strong></div>",
                 unsafe_allow_html=True,
             )
 
