@@ -29,7 +29,7 @@ ENTERPRISE_COLUMNS = [
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
 ]
-RECENT_CLAIMS_COLUMN_WIDTHS = [12, 30, 10, 10, 13, 11, 14]
+RECENT_CLAIMS_COLUMN_WIDTHS = [12, 24, 12, 12, 14, 14, 12]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -238,49 +238,37 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                 running_key = f"{key_prefix}_running_{claim_id}"
 
                 if show_regenerate:
-                    st.markdown("<div class='action-stack'>", unsafe_allow_html=True)
-                    regen_clicked = st.button(
-                        "Regenerate",
+                    action_cols = st.columns([1.15, 0.25, 0.95], vertical_alignment="center")
+                    regen_clicked = action_cols[0].button(
+                        "↻ Regenerate",
                         key=f"{key_prefix}_regenerate_{claim_id}",
                         help="Regenerate MFQ using the latest claim documents and extracted data.",
                         disabled=bool(st.session_state.get(running_key, False)),
                         type="secondary",
-                        use_container_width=False,
+                        use_container_width=True,
                     )
                     if regen_clicked:
                         st.session_state[pending_key] = True
 
-                    review_pressed = st.button(
+                    action_cols[1].markdown("<span class='action-divider'>|</span>", unsafe_allow_html=True)
+
+                    review_pressed = action_cols[2].button(
                         "Review →",
                         key=f"{key_prefix}_review_{claim_id}",
                         type="tertiary",
                         use_container_width=False,
                     )
-                    generate_report_pressed = st.button(
-                        "Generate Report",
-                        key=f"{key_prefix}_generate_report_{claim_id}",
-                        type="primary",
-                        use_container_width=False,
-                    )
-                    st.markdown("</div>", unsafe_allow_html=True)
                 else:
-                    st.markdown("<div class='action-single'>", unsafe_allow_html=True)
                     review_pressed = st.button(
                         "Review →",
                         key=f"{key_prefix}_review_{claim_id}",
                         type="tertiary",
                         use_container_width=False,
                     )
-                    generate_report_pressed = False
-                    st.markdown("</div>", unsafe_allow_html=True)
 
                 if review_pressed:
                     st.session_state.selected_claim_id = claim_id
                     st.session_state.active_page = "Claim Details"
-                    st.rerun()
-                if generate_report_pressed:
-                    st.session_state.selected_claim_id = claim_id
-                    st.session_state.active_page = "Reports"
                     st.rerun()
 
                 if show_regenerate and st.session_state.get(pending_key, False):

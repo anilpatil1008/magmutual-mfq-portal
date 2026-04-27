@@ -71,7 +71,7 @@ section[data-testid="stSidebar"] .stButton button {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
   min-height: 48px;
   height: 48px;
@@ -101,18 +101,14 @@ section[data-testid="stSidebar"] .stButton button .material-symbols-rounded {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  line-height: 1;
-  flex-shrink: 0;
 }
 
 section[data-testid="stSidebar"] .stButton button p {
   margin: 0;
-  flex: 1 1 auto;
+  flex: 1;
   text-align: left;
   white-space: nowrap;
   color: #161616;
-  font-size: .95rem;
-  line-height: 1.25;
 }
 
 section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button {
@@ -120,7 +116,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button {
   background: #edf5ff;
   border-color: #dde1e6;
   color: #0f62fe;
-  padding: 0 16px;
+  padding-left: 13px;
 }
 
 section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
@@ -975,40 +971,6 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   line-height: 1.5;
 }
 
-.mm-focus-strip {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: .75rem;
-  margin: .15rem 0 1rem;
-}
-
-.mm-focus-item {
-  border: 1px solid #dde1e6;
-  border-left: 4px solid #8d8d8d;
-  border-radius: 8px;
-  background: #ffffff;
-  padding: .7rem .8rem;
-}
-
-.mm-focus-item.tone-warning { border-left-color: #f1c21b; }
-.mm-focus-item.tone-info { border-left-color: #0f62fe; }
-.mm-focus-item.tone-neutral { border-left-color: #8d8d8d; }
-
-.mm-focus-value {
-  font-size: 1.35rem;
-  font-weight: 700;
-  color: #161616;
-  line-height: 1.1;
-}
-
-.mm-focus-label {
-  margin-top: .2rem;
-  font-size: .76rem;
-  text-transform: uppercase;
-  letter-spacing: .04em;
-  color: #525252;
-}
-
 /* Final enterprise topbar overrides for consistent fixed header behavior. */
 .mm-fixed-topbar {
   position: sticky;
@@ -1200,17 +1162,6 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   align-items: flex-start;
 }
 
-.st-key-recent_claims_card [data-testid="stSelectbox"] > label {
-  display: none;
-}
-
-.st-key-recent_claims_card [data-testid="stSelectbox"] > div[data-baseweb="select"] > div {
-  border: 1px solid #dde1e6;
-  border-radius: 8px;
-  min-height: 36px;
-  font-size: .8rem;
-}
-
 .st-key-recent_claims_search input {
   border: 1px solid #dde1e6;
   border-radius: 8px;
@@ -1226,10 +1177,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .enterprise-table-wrapper {
   width: 100%;
-  max-width: 100%;
-  table-layout: fixed;
   overflow-x: auto;
-  overflow-y: hidden;
   margin-top: .55rem;
   border: 1px solid #dde1e6;
   border-radius: 8px;
@@ -1247,14 +1195,6 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   padding: 16px 14px;
   border-bottom: 1px solid #e0e0e0;
   white-space: nowrap;
-  width: 100%;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-}
-
-.enterprise-header-cell.action-header {
-  justify-content: flex-start;
 }
 
 .st-key-recent_claims_card .stButton button {
@@ -1277,14 +1217,6 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-size: .82rem;
   color: #161616;
   min-width: 0;
-  overflow: hidden;
-  box-sizing: border-box;
-}
-
-.enterprise-table-wrapper [data-testid="column"]:nth-child(7) .enterprise-cell {
-  min-width: 0;
-  padding-left: 8px;
-  padding-right: 8px;
 }
 
 .center-cell {
@@ -1312,7 +1244,6 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .date-requested {
   font-weight: 500;
   white-space: nowrap;
-  overflow: visible;
 }
 
 .enterprise-row-separator {
@@ -1325,19 +1256,11 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .confidence-badge {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   padding: .2rem .56rem;
   border-radius: 999px;
   font-size: .7rem;
   font-weight: 600;
   white-space: nowrap;
-  max-width: 100%;
-}
-
-.enterprise-table-wrapper [data-testid="column"]:nth-child(3) .enterprise-cell,
-.enterprise-table-wrapper [data-testid="column"]:nth-child(4) .enterprise-cell,
-.enterprise-table-wrapper [data-testid="column"]:nth-child(6) .enterprise-cell {
-  min-width: 112px;
 }
 
 .status-mfq-generated { background: #edf5ff; color: #0f62fe; }
@@ -1360,42 +1283,9 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .action-cell {
   width: 100%;
-  min-height: 44px;
-  text-align: left;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-}
-
-.action-stack,
-.action-single {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-  width: 100%;
-}
-
-.action-stack {
-  gap: 6px;
-}
-
-.action-cell .stButton {
-  margin: 0;
-  width: fit-content;
-}
-
-.action-cell .stButton button {
-  margin: 0;
-}
-
-.action-cell .stButton button[kind="tertiary"] {
-  min-height: 20px;
-  height: 20px;
-  line-height: 1.1;
-  padding: 0;
-  font-size: .75rem;
+  min-width: 110px;
+  text-align: right;
+  white-space: nowrap;
 }
 
 .action-link,
@@ -1403,30 +1293,20 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   color: #0f62fe;
   text-decoration: none;
   font-weight: 600;
-  font-size: .74rem;
+  font-size: .78rem;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  justify-content: flex-start;
-  width: auto;
-  border: none;
-  background: transparent;
-  padding: 0;
 }
 
 .st-key-recent_claims_card button[kind="secondary"] {
   border: 1px solid #0f62fe;
-  border-radius: 4px;
+  border-radius: 6px;
   background: #ffffff;
   color: #0f62fe;
-  font-size: .66rem;
-  font-weight: 600;
-  line-height: 1.1;
-  min-height: 20px;
-  height: 20px;
-  padding: 0 .42rem;
-  width: auto;
+  font-size: .7rem;
+  padding: .02rem .45rem;
 }
 
 .st-key-recent_claims_card button[kind="secondary"]:hover {
@@ -1438,9 +1318,13 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   min-width: 130px;
 }
 
-.action-spacer {
-  display: inline-block;
-  min-height: 1.85rem;
+.action-divider {
+  color: #8d8d8d;
+  font-size: .78rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
 }
 
@@ -1452,24 +1336,16 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .action-header {
-  text-align: left;
-  min-width: 92px;
-  max-width: 92px;
-}
-
-.enterprise-table-wrapper [data-testid="column"]:nth-child(7) [data-testid="stVerticalBlock"] {
-  align-items: flex-start;
+  text-align: right;
+  min-width: 110px;
 }
 
 .enterprise-table-wrapper [data-testid="stHorizontalBlock"] {
   width: 100%;
-  max-width: 100%;
-  min-width: 0;
 }
 
 .enterprise-table-wrapper [data-testid="column"] {
   min-width: 0 !important;
-  overflow: hidden;
 }
 
 @media (max-width: 1150px) {
@@ -1479,11 +1355,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
   [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
   [class*="st-key-"][class*="_recent_claims_table"] [data-testid="stHorizontalBlock"] {
-    min-width: 1100px;
-  }
-
-  .mm-focus-strip {
-    grid-template-columns: 1fr;
+    min-width: 950px;
   }
 }
 
@@ -1589,259 +1461,5 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
     flex: 1 1 180px !important;
     width: auto !important;
     min-width: 160px;
-  }
-}
-
-/* Dashboard + Recent Claims refresh (enterprise alignment and responsive polish). */
-.stApp {
-  background: #f7f9fc;
-}
-
-.block-container {
-  max-width: 1480px;
-  padding-top: .35rem !important;
-  padding-bottom: 1.2rem;
-}
-
-h1, [data-testid="stHeadingWithActionElements"] h1 {
-  margin-top: 0 !important;
-  margin-bottom: .15rem !important;
-}
-
-.mm-dashboard-welcome {
-  margin: 0 0 .85rem;
-  color: #5f6b7a;
-}
-
-.mm-kpi-grid {
-  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-  gap: .85rem;
-  margin: .2rem 0 1rem;
-}
-
-.mm-card {
-  border: 1px solid #e3e9f1;
-  border-left: 4px solid #0f3d78;
-  border-radius: 12px;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.06);
-  padding: 1rem;
-  min-height: 124px;
-  align-items: center;
-}
-
-.mm-card-label {
-  color: #64748b;
-  font-size: .78rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: .035em;
-}
-
-.mm-card-value {
-  font-size: 1.75rem;
-}
-
-.mm-card-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 10px;
-  background: #edf4ff;
-}
-
-.st-key-app_topbar {
-  margin: 0 0 .6rem !important;
-}
-
-.st-key-app_topbar [data-testid="stHorizontalBlock"] {
-  padding: 10px 14px !important;
-  border-radius: 12px !important;
-  gap: 10px !important;
-}
-
-.st-key-portal_header_actions [data-testid="stHorizontalBlock"] {
-  align-items: center !important;
-}
-
-.st-key-portal_header_actions [data-testid="column"] {
-  min-width: 0 !important;
-}
-
-.st-key-portal_header_actions [data-testid="column"]:nth-child(1) {
-  width: clamp(240px, 28vw, 320px);
-}
-
-.st-key-portal_header_actions [data-testid="column"]:nth-child(2) {
-  width: clamp(74px, 7vw, 86px);
-}
-
-.st-key-portal_header_actions [data-testid="column"]:nth-child(3) {
-  width: clamp(250px, 29vw, 330px);
-}
-
-.st-key-recent_claims_card {
-  border-radius: 12px;
-  border: 1px solid #dde6f0;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.05);
-  padding: 1rem 1rem .85rem;
-  margin-top: .35rem;
-}
-
-.recent-claims-heading {
-  padding-right: .75rem;
-}
-
-.recent-claims-title {
-  font-size: 1.02rem;
-  font-weight: 700;
-}
-
-.recent-claims-subtitle {
-  margin-top: .22rem;
-  font-size: .8rem;
-}
-
-.recent-claims-toolbar {
-  width: 100%;
-}
-
-.st-key-recent_claims_search input {
-  min-height: 38px;
-  border-radius: 8px;
-  font-size: .81rem;
-}
-
-.st-key-recent_claims_card button[kind="secondary"],
-.st-key-recent_claims_card button[kind="primary"] {
-  min-height: 34px;
-  height: 34px;
-  border-radius: 8px;
-  font-size: .75rem;
-  font-weight: 600;
-  padding: 0 .6rem;
-}
-
-.st-key-dash_generate_report button[kind="primary"],
-.st-key-recent_claims_card button[kind="primary"] {
-  background: #0f3d78;
-  border-color: #0f3d78;
-}
-
-.st-key-dash_generate_report button[kind="primary"]:hover,
-.st-key-recent_claims_card button[kind="primary"]:hover {
-  background: #0b2f5d;
-  border-color: #0b2f5d;
-}
-
-.enterprise-table-wrapper {
-  margin-top: .6rem;
-  border: 1px solid #dde6f0;
-  border-radius: 10px;
-  overflow: hidden;
-}
-
-[class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
-[class*="st-key-"][class*="_recent_claims_table"] [data-testid="stHorizontalBlock"] {
-  min-width: 0 !important;
-}
-
-.enterprise-header-cell {
-  background: #f2f5f9;
-  color: #445468;
-  font-size: .67rem;
-  padding: 12px 12px;
-}
-
-.enterprise-cell {
-  padding: 10px 12px;
-  font-size: .8rem;
-}
-
-.patient-cell {
-  min-width: 0;
-}
-
-.patient-name {
-  line-height: 1.3;
-}
-
-.defendant-name {
-  margin-top: .16rem;
-}
-
-.center-cell,
-.date-requested {
-  text-align: center;
-}
-
-.enterprise-header-cell.action-header {
-  justify-content: flex-end;
-}
-
-.action-cell {
-  justify-content: flex-end;
-}
-
-.action-stack,
-.action-single {
-  align-items: flex-end;
-  gap: 5px;
-}
-
-.action-cell .stButton {
-  width: auto;
-}
-
-.st-key-recent_claims_card button[kind="tertiary"] {
-  font-size: .73rem;
-}
-
-.status-badge,
-.priority-badge,
-.confidence-badge {
-  padding: .16rem .5rem;
-  font-size: .67rem;
-}
-
-@media (max-width: 1050px) {
-  .st-key-recent_claims_card [data-testid="stHorizontalBlock"] {
-    gap: .6rem;
-  }
-
-  .recent-claims-toolbar [data-testid="stHorizontalBlock"] {
-    flex-wrap: wrap;
-  }
-
-  .enterprise-table-wrapper {
-    overflow-x: auto;
-  }
-
-  [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
-  [class*="st-key-"][class*="_recent_claims_table"] [data-testid="stHorizontalBlock"] {
-    min-width: 980px !important;
-  }
-}
-
-@media (max-width: 760px) {
-  .block-container {
-    padding-left: .75rem !important;
-    padding-right: .75rem !important;
-  }
-
-  .st-key-portal_header_actions [data-testid="stHorizontalBlock"] {
-    flex-wrap: wrap !important;
-    justify-content: stretch !important;
-  }
-
-  .st-key-portal_header_actions [data-testid="column"] {
-    flex: 1 1 100% !important;
-    width: 100% !important;
-  }
-
-  .recent-claims-toolbar [data-testid="column"] {
-    width: 100% !important;
-    flex: 1 1 100%;
   }
 }
