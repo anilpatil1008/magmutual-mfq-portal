@@ -1177,7 +1177,10 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .enterprise-table-wrapper {
   width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
   overflow-x: auto;
+  overflow-y: hidden;
   margin-top: .55rem;
   border: 1px solid #dde1e6;
   border-radius: 8px;
@@ -1217,6 +1220,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-size: .82rem;
   color: #161616;
   min-width: 0;
+  overflow: hidden;
 }
 
 .center-cell {
@@ -1256,11 +1260,19 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .confidence-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   padding: .2rem .56rem;
   border-radius: 999px;
   font-size: .7rem;
   font-weight: 600;
   white-space: nowrap;
+  max-width: 100%;
+}
+
+.enterprise-table-wrapper [data-testid="column"]:nth-child(3) .enterprise-cell,
+.enterprise-table-wrapper [data-testid="column"]:nth-child(4) .enterprise-cell,
+.enterprise-table-wrapper [data-testid="column"]:nth-child(6) .enterprise-cell {
+  min-width: 112px;
 }
 
 .status-mfq-generated { background: #edf5ff; color: #0f62fe; }
@@ -1283,8 +1295,10 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .action-cell {
   width: 100%;
-  min-width: 232px;
+  min-width: 118px;
+  max-width: 118px;
   text-align: left;
+  overflow: hidden;
 }
 
 .action-stack,
@@ -1295,7 +1309,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .action-stack {
-  gap: 8px;
+  gap: 4px;
 }
 
 .action-link,
@@ -1303,7 +1317,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   color: #0f62fe;
   text-decoration: none;
   font-weight: 600;
-  font-size: .8rem;
+  font-size: .74rem;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
@@ -1317,11 +1331,14 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-recent_claims_card button[kind="secondary"] {
   border: 1px solid #0f62fe;
-  border-radius: 6px;
+  border-radius: 4px;
   background: #ffffff;
   color: #0f62fe;
-  font-size: .72rem;
-  padding: .16rem .65rem;
+  font-size: .68rem;
+  font-weight: 600;
+  line-height: 1.1;
+  min-height: 22px;
+  padding: .08rem .45rem;
   width: auto;
 }
 
@@ -1349,15 +1366,19 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .action-header {
   text-align: left;
-  min-width: 232px;
+  min-width: 118px;
+  max-width: 118px;
 }
 
 .enterprise-table-wrapper [data-testid="stHorizontalBlock"] {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .enterprise-table-wrapper [data-testid="column"] {
   min-width: 0 !important;
+  overflow: hidden;
 }
 
 @media (max-width: 1150px) {
