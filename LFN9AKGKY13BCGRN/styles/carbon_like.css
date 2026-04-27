@@ -1747,6 +1747,10 @@ h1, [data-testid="stHeadingWithActionElements"] h1 {
   min-width: 0 !important;
 }
 
+.enterprise-table-wrapper [data-testid="column"]:nth-child(7) {
+  max-width: 92px;
+}
+
 .enterprise-header-cell {
   background: #f2f5f9;
   color: #445468;
@@ -1777,16 +1781,16 @@ h1, [data-testid="stHeadingWithActionElements"] h1 {
 }
 
 .enterprise-header-cell.action-header {
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .action-cell {
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 
 .action-stack,
 .action-single {
-  align-items: flex-end;
+  align-items: flex-start;
   gap: 5px;
 }
 
