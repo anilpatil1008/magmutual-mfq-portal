@@ -975,6 +975,40 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   line-height: 1.5;
 }
 
+.mm-focus-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .75rem;
+  margin: .15rem 0 1rem;
+}
+
+.mm-focus-item {
+  border: 1px solid #dde1e6;
+  border-left: 4px solid #8d8d8d;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: .7rem .8rem;
+}
+
+.mm-focus-item.tone-warning { border-left-color: #f1c21b; }
+.mm-focus-item.tone-info { border-left-color: #0f62fe; }
+.mm-focus-item.tone-neutral { border-left-color: #8d8d8d; }
+
+.mm-focus-value {
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #161616;
+  line-height: 1.1;
+}
+
+.mm-focus-label {
+  margin-top: .2rem;
+  font-size: .76rem;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #525252;
+}
+
 /* Final enterprise topbar overrides for consistent fixed header behavior. */
 .mm-fixed-topbar {
   position: sticky;
@@ -1164,6 +1198,17 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   display: flex;
   justify-content: flex-end;
   align-items: flex-start;
+}
+
+.st-key-recent_claims_card [data-testid="stSelectbox"] > label {
+  display: none;
+}
+
+.st-key-recent_claims_card [data-testid="stSelectbox"] > div[data-baseweb="select"] > div {
+  border: 1px solid #dde1e6;
+  border-radius: 8px;
+  min-height: 36px;
+  font-size: .8rem;
 }
 
 .st-key-recent_claims_search input {
@@ -1435,6 +1480,10 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
   [class*="st-key-"][class*="_recent_claims_table"] [data-testid="stHorizontalBlock"] {
     min-width: 1100px;
+  }
+
+  .mm-focus-strip {
+    grid-template-columns: 1fr;
   }
 }
 
