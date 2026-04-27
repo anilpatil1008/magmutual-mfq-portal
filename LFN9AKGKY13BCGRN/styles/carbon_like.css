@@ -71,7 +71,7 @@ section[data-testid="stSidebar"] .stButton button {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 10px;
+  gap: 12px;
   width: 100%;
   min-height: 48px;
   height: 48px;
@@ -101,14 +101,18 @@ section[data-testid="stSidebar"] .stButton button .material-symbols-rounded {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
 }
 
 section[data-testid="stSidebar"] .stButton button p {
   margin: 0;
-  flex: 1;
+  flex: 1 1 auto;
   text-align: left;
   white-space: nowrap;
   color: #161616;
+  font-size: .95rem;
+  line-height: 1.25;
 }
 
 section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button {
@@ -116,7 +120,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button {
   background: #edf5ff;
   border-color: #dde1e6;
   color: #0f62fe;
-  padding-left: 13px;
+  padding: 0 16px;
 }
 
 section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
@@ -1200,6 +1204,15 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   white-space: nowrap;
 }
 
+.enterprise-header-cell.action-header {
+  width: 100%;
+  min-width: 132px;
+  max-width: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+}
+
 .st-key-recent_claims_card .stButton button {
   min-height: 28px;
   white-space: nowrap;
@@ -1221,6 +1234,11 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   color: #161616;
   min-width: 0;
   overflow: hidden;
+}
+
+.enterprise-table-wrapper [data-testid="column"]:nth-child(7) .enterprise-cell {
+  min-width: 132px;
+  max-width: 132px;
 }
 
 .center-cell {
@@ -1295,10 +1313,14 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .action-cell {
   width: 100%;
-  min-width: 118px;
-  max-width: 118px;
+  min-width: 132px;
+  max-width: 132px;
+  min-height: 56px;
   text-align: left;
   overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .action-stack,
@@ -1306,10 +1328,23 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  justify-content: center;
+  width: 100%;
 }
 
 .action-stack {
   gap: 4px;
+}
+
+.action-cell .stButton {
+  margin: 0;
+}
+
+.action-cell .stButton button[kind="tertiary"] {
+  min-height: auto;
+  height: auto;
+  line-height: 1.2;
+  padding: 0;
 }
 
 .action-link,
