@@ -209,11 +209,12 @@ def _normalize_answer_value(raw):
 def _safe_widget_key(prefix: str, claim_id: str, section_id: str, question: pd.Series, index: int) -> str:
     question_id = question.get("QUESTION_ID") or question.get("question_id")
     question_key = question.get("QUESTION_KEY") or question.get("question_key")
-    display_order = question.get("QUESTION_ORDER") or question.get("DISPLAY_ORDER") or index
     section_key = question.get("SECTION_KEY") or question.get("section_key")
     section_part = section_id or str(section_key or "section")
-    unique_part = question_id or question_key or f"{section_part}_{display_order}_{index}"
-    return f"{prefix}_{claim_id}_{section_part}_{unique_part}_{index}"
+    return (
+        f"{prefix}_{claim_id}_{section_part}_{question_id or 'question'}_"
+        f"{question_key or 'question_key'}_{index}"
+    )
 
 
 def _is_visible(row: pd.Series, answer_by_question: dict[str, str]) -> bool:
@@ -223,7 +224,7 @@ def _is_visible(row: pd.Series, answer_by_question: dict[str, str]) -> bool:
 
     parent_answer = str(answer_by_question.get(parent_id, "") or "").strip().upper()
     if not parent_answer:
-        return False
+        return True
 
     rule_raw = row.get("VISIBILITY_RULE")
     if rule_raw is None or (isinstance(rule_raw, float) and pd.isna(rule_raw)):
@@ -257,9 +258,31 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
     for (_, section_name), section_df in grouped:
         with st.expander(str(section_name), expanded=False):
             ordered_section_df = section_df.sort_values("QUESTION_ORDER")
-            for idx, (_, row) in enumerate(ordered_section_df.iterrows()):
-                if not _is_visible(row, answer_by_question):
-                    continue
+            rows = list(ordered_section_df.iterrows())
+            children_by_parent: dict[str, list[pd.Series]] = {}
+            root_questions: list[pd.Series] = []
+
+            for _, row in rows:
+                parent_id = str(row.get("PARENT_QUESTION_ID", "") or "").strip()
+                if parent_id:
+                    children_by_parent.setdefault(parent_id, []).append(row)
+                else:
+                    root_questions.append(row)
+
+            # Any orphaned children should still render so the UI matches the MFQ document.
+            known_parent_ids = {str(q.get("QUESTION_ID", "") or "").strip() for q in root_questions}
+            for parent_id, children in children_by_parent.items():
+                if parent_id not in known_parent_ids:
+                    root_questions.extend(children)
+
+            render_order: list[tuple[pd.Series, bool]] = []
+            for parent in root_questions:
+                render_order.append((parent, False))
+                parent_id = str(parent.get("QUESTION_ID", "") or "").strip()
+                for child in children_by_parent.get(parent_id, []):
+                    render_order.append((child, True))
+
+            for idx, (row, is_child) in enumerate(render_order):
                 question_id = str(row.get("QUESTION_ID", ""))
                 answer_id = str(row.get("ANSWER_ID", "") or "")
                 claim_id = str(row.get("CLAIM_ID", "") or "")
@@ -269,16 +292,22 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                 allowed_values = row.get("ALLOWED_VALUES_LIST", []) or []
                 answer_type = str(row.get("ANSWER_TYPE", "")).upper()
 
-                st.markdown(
-                    f"**{escape(str(row.get('QUESTION_ORDER', '')))}. {escape(str(row.get('QUESTION_TEXT', '')))}**"
-                )
+                visibility_match = _is_visible(row, answer_by_question)
+                question_order = escape(str(row.get("QUESTION_ORDER", "")))
+                question_text = str(row.get("QUESTION_TEXT", "") or "").strip() or "Question text not available"
+                question_label = f"**{question_order}. {escape(question_text)}**"
+                if is_child:
+                    question_label = f"<div style='padding-left: 1.25rem'>{question_label}</div>"
+                    st.markdown(question_label, unsafe_allow_html=True)
+                else:
+                    st.markdown(question_label)
                 st.markdown(
                     f"<span class='confidence-chip tone-{_tone_for_conf(row.get('CONFIDENCE_SCORE'))}'>Confidence {_fmt_conf(row.get('CONFIDENCE_SCORE'))}</span>",
                     unsafe_allow_html=True,
                 )
 
                 text_value = _normalize_answer_value(answer_text)
-                is_disabled = not (can_edit and edit_mode)
+                is_disabled = (not (can_edit and edit_mode)) or (not visibility_match)
                 if answer_type in {"YES_NO", "YES_NO_UNCLEAR", "YES_NO_UNCLEAR_NA"}:
                     type_options = {
                         "YES_NO": ["YES", "NO"],

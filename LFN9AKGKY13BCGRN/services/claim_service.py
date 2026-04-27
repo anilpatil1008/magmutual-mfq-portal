@@ -105,6 +105,8 @@ def get_claim_sections(session, claim_id: str) -> pd.DataFrame:
         a.ANSWER_JSON,
         a.CLAIM_ID,
         a.DEFENDANT_ID,
+        a.CONFIDENCE_SCORE AS ANSWER_CONFIDENCE_SCORE,
+        qc.CONFIDENCE_SCORE AS QUESTION_CONFIDENCE_SCORE,
         COALESCE(qc.CONFIDENCE_SCORE, a.CONFIDENCE_SCORE) AS CONFIDENCE_SCORE,
         a.STATUS AS ANSWER_STATUS
       FROM {SECTIONS_TABLE} s
@@ -308,9 +310,29 @@ def _parse_json_like(raw: Any) -> Any:
         return text
 
 
+def _extract_value_from_answer_json(raw: Any) -> Any:
+    parsed = _parse_json_like(raw)
+    if parsed is None:
+        return None
+    if isinstance(parsed, dict):
+        for key in ("value", "answer", "selected", "text"):
+            value = parsed.get(key)
+            if value not in (None, ""):
+                return value
+        return None
+    return parsed
+
+
 def _pick_display_answer(row: pd.Series) -> str:
-    for key in ["REVIEWED_ANSWER", "ANSWER_VALUE", "ANSWER_TEXT", "ANSWER_JSON", "GENERATED_ANSWER"]:
-        raw_value = row.get(key)
+    answer_json_value = _extract_value_from_answer_json(row.get("ANSWER_JSON"))
+    prioritized_values = [
+        row.get("REVIEWED_ANSWER"),
+        row.get("ANSWER_VALUE"),
+        row.get("ANSWER_TEXT"),
+        answer_json_value,
+        row.get("GENERATED_ANSWER"),
+    ]
+    for raw_value in prioritized_values:
         if raw_value is None or (isinstance(raw_value, float) and pd.isna(raw_value)):
             continue
         parsed = _parse_json_like(raw_value)
