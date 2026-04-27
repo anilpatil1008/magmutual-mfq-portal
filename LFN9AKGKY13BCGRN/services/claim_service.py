@@ -88,8 +88,6 @@ def get_claim_sections(session, claim_id: str) -> pd.DataFrame:
     claim_id_q = quote_sql(claim_id)
     sql = f"""
       SELECT
-        c.CLAIM_ID,
-        c.DEFENDANT_ID,
         s.SECTION_ID,
         s.SECTION_KEY,
         s.SECTION_NAME,
@@ -97,35 +95,33 @@ def get_claim_sections(session, claim_id: str) -> pd.DataFrame:
         q.QUESTION_ID,
         q.QUESTION_KEY,
         q.PARENT_QUESTION_ID,
-        q.QUESTION_TEXT,
         q.DISPLAY_ORDER AS QUESTION_ORDER,
+        q.QUESTION_TEXT,
         q.ANSWER_TYPE,
         q.ALLOWED_VALUES,
         q.VISIBILITY_RULE,
         a.ANSWER_ID,
         a.ANSWER_TEXT,
         a.ANSWER_JSON,
+        a.CLAIM_ID,
+        a.DEFENDANT_ID,
         COALESCE(qc.CONFIDENCE_SCORE, a.CONFIDENCE_SCORE) AS CONFIDENCE_SCORE,
         a.STATUS AS ANSWER_STATUS
-      FROM MFQ_CLAIMS_VW c
-      JOIN {SECTIONS_TABLE} s
-        ON s.FORM_KEY = 'MFQ_V1'
-       AND s.IS_ACTIVE = TRUE
+      FROM {SECTIONS_TABLE} s
       JOIN {QUESTIONS_TABLE} q
         ON q.SECTION_ID = s.SECTION_ID
        AND q.FORM_KEY = s.FORM_KEY
-       AND q.IS_ACTIVE = TRUE
-       AND q.IS_CURRENT = TRUE
       LEFT JOIN {ANSWERS_TABLE} a
         ON a.QUESTION_ID = q.QUESTION_ID
-       AND a.CLAIM_ID = c.CLAIM_ID
-       AND a.DEFENDANT_ID = c.DEFENDANT_ID
+       AND a.CLAIM_ID = '{claim_id_q}'
        AND a.IS_CURRENT = TRUE
       LEFT JOIN {QUESTION_CONFIDENCE_TABLE} qc
         ON qc.QUESTION_ID = q.QUESTION_ID
-       AND qc.CLAIM_ID = c.CLAIM_ID
-       AND COALESCE(qc.DEFENDANT_ID, c.DEFENDANT_ID) = c.DEFENDANT_ID
-      WHERE c.CLAIM_ID = '{claim_id_q}'
+       AND qc.CLAIM_ID = '{claim_id_q}'
+      WHERE s.FORM_KEY = 'MFQ_V1'
+        AND s.IS_ACTIVE = TRUE
+        AND q.IS_ACTIVE = TRUE
+        AND q.IS_CURRENT = TRUE
       ORDER BY s.DISPLAY_ORDER, q.DISPLAY_ORDER
     """
     return safe_collect_df(session, sql)
