@@ -1202,14 +1202,13 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   padding: 16px 14px;
   border-bottom: 1px solid #e0e0e0;
   white-space: nowrap;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
 }
 
 .enterprise-header-cell.action-header {
-  width: 100%;
-  min-width: 132px;
-  max-width: 132px;
-  display: flex;
-  align-items: center;
   justify-content: flex-start;
 }
 
@@ -1234,11 +1233,11 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   color: #161616;
   min-width: 0;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .enterprise-table-wrapper [data-testid="column"]:nth-child(7) .enterprise-cell {
-  min-width: 132px;
-  max-width: 132px;
+  min-width: 0;
 }
 
 .center-cell {
@@ -1266,6 +1265,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .date-requested {
   font-weight: 500;
   white-space: nowrap;
+  overflow: visible;
 }
 
 .enterprise-row-separator {
@@ -1313,8 +1313,6 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .action-cell {
   width: 100%;
-  min-width: 132px;
-  max-width: 132px;
   min-height: 56px;
   text-align: left;
   overflow: hidden;
