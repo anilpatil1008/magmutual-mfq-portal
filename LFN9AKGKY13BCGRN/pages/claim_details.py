@@ -285,27 +285,26 @@ def render(session, ctx) -> None:
     tabs = st.tabs(["MFQ Form", "Records Summary", "MedCron", "Legal Memo", "Enquiries", "AI Assist", "Documents"])
 
     with tabs[0]:
-        st.markdown(
-            (
-                "<section class='mfq-page'>"
-                "<div class='mfq-header'>"
-                "<div><h2>Medical Faculty Questionnaire</h2>"
-                "<p>Complete evaluation based on accepted medical practice standards.</p></div>"
-                "</div>"
-                "</section>"
-            ),
-            unsafe_allow_html=True,
-        )
-        _, h_right = st.columns([7.5, 1.5], vertical_alignment="center")
-        with h_right:
-            st.button("✎ Edit", key="mfq_edit_btn", type="secondary", use_container_width=True)
+        with st.container(key="mfq_header_card"):
+            title_col, edit_col = st.columns([7.4, 1.4], vertical_alignment="center")
+            with title_col:
+                st.markdown(
+                    (
+                        "<section class='mfq-page'>"
+                        "<div class='mfq-header'>"
+                        "<div class='mfq-header-left'><h2>Medical Faculty Questionnaire</h2>"
+                        "<p>Complete evaluation based on accepted medical practice standards.</p></div>"
+                        "</div>"
+                        "</section>"
+                    ),
+                    unsafe_allow_html=True,
+                )
+            with edit_col:
+                st.button("✎ Edit", key="mfq_edit_btn", type="secondary", use_container_width=True)
 
-        left, right = st.columns([2.2, 1.0], vertical_alignment="top")
-        with left:
-            _render_confidence_panel(workspace)
-            _render_questions(session, workspace.get("sections", pd.DataFrame()))
-        with right:
-            _render_synopsis_panel(workspace.get("synopsis", {}))
+        _render_confidence_panel(workspace)
+        _render_synopsis_panel(workspace.get("synopsis", {}))
+        _render_questions(session, workspace.get("sections", pd.DataFrame()))
 
     with tabs[1]:
         _render_text_tab(workspace.get("summaries", {}).get("RECORDS_SUMMARY", ""), "No records summary available.")
