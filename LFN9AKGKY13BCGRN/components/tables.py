@@ -29,7 +29,7 @@ ENTERPRISE_COLUMNS = [
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
 ]
-RECENT_CLAIMS_COLUMN_WIDTHS = [13, 24, 14, 10, 14, 13, 8]
+RECENT_CLAIMS_COLUMN_WIDTHS = [12, 30, 10, 10, 13, 11, 14]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -256,6 +256,12 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                         type="tertiary",
                         use_container_width=False,
                     )
+                    generate_report_pressed = st.button(
+                        "Generate Report",
+                        key=f"{key_prefix}_generate_report_{claim_id}",
+                        type="primary",
+                        use_container_width=False,
+                    )
                     st.markdown("</div>", unsafe_allow_html=True)
                 else:
                     st.markdown("<div class='action-single'>", unsafe_allow_html=True)
@@ -265,11 +271,16 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                         type="tertiary",
                         use_container_width=False,
                     )
+                    generate_report_pressed = False
                     st.markdown("</div>", unsafe_allow_html=True)
 
                 if review_pressed:
                     st.session_state.selected_claim_id = claim_id
                     st.session_state.active_page = "Claim Details"
+                    st.rerun()
+                if generate_report_pressed:
+                    st.session_state.selected_claim_id = claim_id
+                    st.session_state.active_page = "Reports"
                     st.rerun()
 
                 if show_regenerate and st.session_state.get(pending_key, False):

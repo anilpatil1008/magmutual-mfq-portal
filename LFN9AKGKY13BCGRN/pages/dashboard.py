@@ -144,17 +144,9 @@ def render(session, ctx) -> None:
                 unsafe_allow_html=True,
             )
         with header_right:
-            filter_col, search_col = st.columns([2, 3], vertical_alignment="center")
-            with filter_col:
-                st.selectbox(
-                    "Status",
-                    options=filter_options,
-                    index=filter_options.index(current_filter),
-                    key=f"{card_key}_status_filter",
-                    label_visibility="collapsed",
-                )
+            st.markdown("<div class='recent-claims-toolbar'>", unsafe_allow_html=True)
+            search_col, filter_col, report_col = st.columns([3.2, 1.25, 1.8], gap="small")
             with search_col:
-                st.markdown("<div class='recent-claims-search'>", unsafe_allow_html=True)
                 with st.container(key="recent_claims_search"):
                     search = st.text_input(
                         "Search",
@@ -163,12 +155,22 @@ def render(session, ctx) -> None:
                         label_visibility="collapsed",
                         key=f"{card_key}_search",
                     )
-                st.markdown("</div>", unsafe_allow_html=True)
-
-        search = st.session_state.get(f"{card_key}_search", search)
-        filtered_queue = get_claims_queue(session, ctx.app_role, ctx.username, search_text=search)
-        active_filter = st.session_state.get(f"{card_key}_status_filter", "All Statuses")
-        if active_filter != "All Statuses" and "STATUS" in filtered_queue.columns:
-            filtered_queue = filtered_queue[filtered_queue["STATUS"].astype(str).str.strip() == active_filter]
+            with filter_col:
+                st.button(
+                    "Filters",
+                    key="dash_claim_filters",
+                    type="secondary",
+                    use_container_width=True,
+                )
+            with report_col:
+                if st.button(
+                    "Generate Report",
+                    key="dash_generate_report",
+                    type="primary",
+                    use_container_width=True,
+                ):
+                    st.session_state.active_page = "Reports"
+                    st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
 
         render_recent_claims_table(filtered_queue.head(20), key_prefix="dash")
