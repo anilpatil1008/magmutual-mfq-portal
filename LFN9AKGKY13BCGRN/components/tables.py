@@ -29,7 +29,7 @@ ENTERPRISE_COLUMNS = [
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
 ]
-RECENT_CLAIMS_COLUMN_WIDTHS = [10, 22, 10, 10, 14, 11, 23]
+RECENT_CLAIMS_COLUMN_WIDTHS = [11, 24, 15, 11, 14, 13, 12]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -240,7 +240,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                 if show_regenerate:
                     st.markdown("<div class='action-stack'>", unsafe_allow_html=True)
                     regen_clicked = st.button(
-                        "↻ Regenerate",
+                        "Regenerate",
                         key=f"{key_prefix}_regenerate_{claim_id}",
                         help="Regenerate MFQ using the latest claim documents and extracted data.",
                         disabled=bool(st.session_state.get(running_key, False)),
