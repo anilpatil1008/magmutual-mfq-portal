@@ -4,20 +4,20 @@ Streamlit + Snowflake (Snowpark) portal for MFQ claim review workflows.
 
 ## Repository layout
 
-- `LFN9AKGKY13BCGRN/streamlit_app.py` – Streamlit entrypoint.
-- `LFN9AKGKY13BCGRN/sql/` – Snowflake SQL setup scripts (run in order).
+- `A27EXCIDK7BA295Y/streamlit_app.py` – Streamlit entrypoint.
+- `A27EXCIDK7BA295Y/sql/` – Snowflake SQL setup scripts (run in order).
 
 ## Snowflake deployment (Snowsight worksheet)
 
 Run these commands in order:
 
 ```sql
-!source LFN9AKGKY13BCGRN/sql/00_session_context.sql;
-!source LFN9AKGKY13BCGRN/sql/01_create_core_objects.sql;
-!source LFN9AKGKY13BCGRN/sql/02_create_views.sql;
-!source LFN9AKGKY13BCGRN/sql/03_seed_system_config.sql;
-!source LFN9AKGKY13BCGRN/sql/04_create_ui_objects.sql;
-!source LFN9AKGKY13BCGRN/sql/05_seed_questionnaire.sql;
+!source A27EXCIDK7BA295Y/sql/00_session_context.sql;
+!source A27EXCIDK7BA295Y/sql/01_create_core_objects.sql;
+!source A27EXCIDK7BA295Y/sql/02_create_views.sql;
+!source A27EXCIDK7BA295Y/sql/03_seed_system_config.sql;
+!source A27EXCIDK7BA295Y/sql/04_create_ui_objects.sql;
+!source A27EXCIDK7BA295Y/sql/05_seed_questionnaire.sql;
 ```
 
 If `!source` is not enabled in your worksheet, open each script file and execute it manually in the same order.
@@ -27,7 +27,7 @@ If `!source` is not enabled in your worksheet, open each script file and execute
 From repository root:
 
 ```bash
-cd LFN9AKGKY13BCGRN
+cd A27EXCIDK7BA295Y
 pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
@@ -73,7 +73,7 @@ Run SQL in order after core scripts:
 ## Local Development
 
 ```bash
-pip install -r LFN9AKGKY13BCGRN/requirements.txt
+pip install -r A27EXCIDK7BA295Y/requirements.txt
 streamlit run streamlit_app.py
 ```
 
@@ -82,8 +82,8 @@ For local execution outside Snowflake, mock `get_active_session()` or run inside
 ## Snowflake packaging behavior and fix
 
 - Deploy this app as source code (not as an installable Python project package).
-- Runtime dependency resolution for Streamlit in Snowflake should come from `LFN9AKGKY13BCGRN/environment.yml`.
-- The root `pyproject.toml` build configuration was removed so Snowflake does not attempt to build and install `LFN9AKGKY13BCGRN @ file:///opt/streamlit-runtime`.
+- Runtime dependency resolution for Streamlit in Snowflake should come from `A27EXCIDK7BA295Y/environment.yml`.
+- The root `pyproject.toml` build configuration was removed so Snowflake does not attempt to build and install `A27EXCIDK7BA295Y @ file:///opt/streamlit-runtime`.
 
 ## Package install troubleshooting (PyPI DNS / EAI)
 
