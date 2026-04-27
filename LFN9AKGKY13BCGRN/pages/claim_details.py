@@ -206,6 +206,16 @@ def _normalize_answer_value(raw):
     return text
 
 
+def _safe_widget_key(prefix: str, claim_id: str, section_id: str, question: pd.Series, index: int) -> str:
+    question_id = question.get("QUESTION_ID") or question.get("question_id")
+    question_key = question.get("QUESTION_KEY") or question.get("question_key")
+    display_order = question.get("QUESTION_ORDER") or question.get("DISPLAY_ORDER") or index
+    section_key = question.get("SECTION_KEY") or question.get("section_key")
+    section_part = section_id or str(section_key or "section")
+    unique_part = question_id or question_key or f"{section_part}_{display_order}_{index}"
+    return f"{prefix}_{claim_id}_{section_part}_{unique_part}_{index}"
+
+
 def _is_visible(row: pd.Series, answer_by_question: dict[str, str]) -> bool:
     parent_id = str(row.get("PARENT_QUESTION_ID", "") or "").strip()
     if not parent_id:
@@ -246,13 +256,15 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
     grouped = working_df.groupby(["SECTION_ORDER", "SECTION_NAME"], dropna=False)
     for (_, section_name), section_df in grouped:
         with st.expander(str(section_name), expanded=False):
-            for _, row in section_df.sort_values("QUESTION_ORDER").iterrows():
+            ordered_section_df = section_df.sort_values("QUESTION_ORDER")
+            for idx, (_, row) in enumerate(ordered_section_df.iterrows()):
                 if not _is_visible(row, answer_by_question):
                     continue
                 question_id = str(row.get("QUESTION_ID", ""))
                 answer_id = str(row.get("ANSWER_ID", "") or "")
                 claim_id = str(row.get("CLAIM_ID", "") or "")
                 defendant_id = str(row.get("DEFENDANT_ID", "") or "")
+                section_id = str(row.get("SECTION_ID", "") or row.get("SECTION_KEY", "") or "")
                 answer_text = row.get("DISPLAY_ANSWER", "")
                 allowed_values = row.get("ALLOWED_VALUES_LIST", []) or []
                 answer_type = str(row.get("ANSWER_TYPE", "")).upper()
@@ -285,7 +297,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         safe_values,
                         index=selected_idx,
                         horizontal=True,
-                        key=f"ans_choice_{answer_id}",
+                        key=_safe_widget_key("ans_radio", claim_id, section_id, row, idx),
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
@@ -302,7 +314,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         safe_values,
                         index=selected_idx,
                         horizontal=True,
-                        key=f"ans_choice_{answer_id}",
+                        key=_safe_widget_key("ans_radio", claim_id, section_id, row, idx),
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
@@ -313,7 +325,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         "Answer",
                         options=[str(v) for v in allowed_values],
                         default=[str(v) for v in existing_values],
-                        key=f"ans_multiselect_{answer_id}",
+                        key=_safe_widget_key("ans_multi", claim_id, section_id, row, idx),
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
@@ -330,7 +342,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         options=options,
                         index=selected_idx,
                         horizontal=True,
-                        key=f"ans_rating_{answer_id}",
+                        key=_safe_widget_key("ans_rating", claim_id, section_id, row, idx),
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
@@ -347,7 +359,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         options=options,
                         index=selected_idx,
                         horizontal=True,
-                        key=f"ans_rating_{answer_id}",
+                        key=_safe_widget_key("ans_rating", claim_id, section_id, row, idx),
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
@@ -355,15 +367,18 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                     new_value = st.text_area(
                         "Answer",
                         value=str(text_value),
-                        key=f"ans_text_{answer_id}",
+                        key=_safe_widget_key("ans_text", claim_id, section_id, row, idx),
                         placeholder="No answer currently extracted",
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
 
                 answer_by_question[question_id] = ", ".join(new_value) if isinstance(new_value, list) else str(new_value)
-                save_key = answer_id or question_id
-                if can_edit and edit_mode and st.button("Save Answer", key=f"save_{save_key}", type="tertiary"):
+                if can_edit and edit_mode and st.button(
+                    "Save Answer",
+                    key=_safe_widget_key("save", claim_id, section_id, row, idx),
+                    type="tertiary",
+                ):
                     save_section_answer(
                         session,
                         answer_id,
