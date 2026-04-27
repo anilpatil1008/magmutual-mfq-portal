@@ -39,7 +39,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     assign_label = "Reassign to Faculty" if assigned_to else "Assign to Faculty"
 
     with st.container(key="review_header_card"):
-        left_col, action_col = st.columns([5.4, 1.6], vertical_alignment="center")
+        left_col, action_col = st.columns([6.2, 1.3], vertical_alignment="top")
         with left_col:
             st.markdown("<div class='review-headline-wrap'>", unsafe_allow_html=True)
             st.markdown(
@@ -49,7 +49,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
                     f"<span class='review-pill review-status'>{status}</span>"
                     f"<span class='review-pill review-priority'>{priority}</span>"
                     "</div>"
-                    "<div class='review-meta-grid'>"
+                    "<div class='review-meta-grid claim-meta-grid'>"
                     f"<div><div class='review-meta-label'>File Number</div><div>{escape(str(claim.get('FILE_NUMBER', '—')))}</div></div>"
                     f"<div><div class='review-meta-label'>Defendant Specialty</div><div>{escape(str(claim.get('SPECIALTY', '—')))}</div></div>"
                     f"<div><div class='review-meta-label'>Date Requested</div><div>{escape(str(claim.get('DATE_REQUESTED', '—')))}</div></div>"
@@ -61,7 +61,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
             st.markdown("</div>", unsafe_allow_html=True)
 
         with action_col:
-            st.markdown("<div class='review-header-actions'>", unsafe_allow_html=True)
+            st.markdown("<div class='review-header-actions claim-header-actions'>", unsafe_allow_html=True)
             if st.button(assign_label, type="primary", use_container_width=True):
                 update_claim_status(session, claim_id, "Assigned", assigned_to=ctx.username)
                 st.success("Claim assigned to faculty queue.")
@@ -82,19 +82,14 @@ def _go_back_to_dashboard() -> None:
 
 def _render_breadcrumb(claim_id: str) -> None:
     with st.container(key="review_breadcrumb_row"):
-        back_col, crumb_col = st.columns([1, 1], vertical_alignment="center")
-        with back_col:
-            st.button(
-                "← Back to Dashboard",
-                key="review_back_to_dashboard",
-                on_click=_go_back_to_dashboard,
-                type="tertiary",
-            )
-        with crumb_col:
-            st.markdown(
-                f"<div class='review-breadcrumb-claim'>/ <strong>{escape(str(claim_id))}</strong></div>",
-                unsafe_allow_html=True,
-            )
+        st.markdown("<div class='review-breadcrumb'>", unsafe_allow_html=True)
+        st.button(
+            f"← Back to Dashboard / {escape(str(claim_id))}",
+            key="review_back_to_dashboard",
+            on_click=_go_back_to_dashboard,
+            type="tertiary",
+        )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _render_confidence_panel(workspace: dict) -> None:
