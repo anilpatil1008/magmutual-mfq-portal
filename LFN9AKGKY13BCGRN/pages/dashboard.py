@@ -65,7 +65,7 @@ def render(session, ctx) -> None:
     search = st.session_state.get(f"{card_key}_search", "")
 
     with st.container(key="recent_claims_card"):
-        header_left, header_right = st.columns([4, 2], vertical_alignment="top")
+        header_left, header_right = st.columns([4, 3], vertical_alignment="top")
         with header_left:
             st.markdown(
                 (
@@ -77,15 +77,33 @@ def render(session, ctx) -> None:
                 unsafe_allow_html=True,
             )
         with header_right:
-            st.markdown("<div class='recent-claims-search'>", unsafe_allow_html=True)
-            with st.container(key="recent_claims_search"):
-                search = st.text_input(
-                    "Search",
-                    value=search,
-                    placeholder="Search by patient, file #...",
-                    label_visibility="collapsed",
-                    key=f"{card_key}_search",
+            st.markdown("<div class='recent-claims-toolbar'>", unsafe_allow_html=True)
+            search_col, filter_col, report_col = st.columns([3.2, 1.25, 1.8], gap="small")
+            with search_col:
+                with st.container(key="recent_claims_search"):
+                    search = st.text_input(
+                        "Search",
+                        value=search,
+                        placeholder="Search by patient, file #...",
+                        label_visibility="collapsed",
+                        key=f"{card_key}_search",
+                    )
+            with filter_col:
+                st.button(
+                    "Filters",
+                    key="dash_claim_filters",
+                    type="secondary",
+                    use_container_width=True,
                 )
+            with report_col:
+                if st.button(
+                    "Generate Report",
+                    key="dash_generate_report",
+                    type="primary",
+                    use_container_width=True,
+                ):
+                    st.session_state.active_page = "Reports"
+                    st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
         queue = get_claims_queue(session, ctx.app_role, ctx.username, search_text=search)
