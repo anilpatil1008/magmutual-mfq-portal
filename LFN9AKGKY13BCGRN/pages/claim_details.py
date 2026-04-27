@@ -79,20 +79,20 @@ def _go_back_to_dashboard() -> None:
 
 
 def _render_breadcrumb(claim_id: str) -> None:
-    back_col, crumb_col = st.columns([1.5, 8.5], vertical_alignment="center")
-    with back_col:
-        st.button(
-            "← Back to Dashboard",
-            key="review_back_to_dashboard",
-            on_click=_go_back_to_dashboard,
-            type="tertiary",
-            use_container_width=True,
-        )
-    with crumb_col:
-        st.markdown(
-            f"<div class='review-breadcrumb-claim'><strong>{escape(str(claim_id))}</strong></div>",
-            unsafe_allow_html=True,
-        )
+    with st.container(key="review_breadcrumb_row"):
+        back_col, crumb_col = st.columns([3.2, 6.8], vertical_alignment="center")
+        with back_col:
+            st.button(
+                "← Back to Dashboard",
+                key="review_back_to_dashboard",
+                on_click=_go_back_to_dashboard,
+                type="tertiary",
+            )
+        with crumb_col:
+            st.markdown(
+                f"<div class='review-breadcrumb-claim'><strong>{escape(str(claim_id))}</strong></div>",
+                unsafe_allow_html=True,
+            )
 
 
 def _render_confidence_panel(workspace: dict) -> None:

@@ -1473,9 +1473,44 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .review-breadcrumb-claim {
   color: #697586;
   font-size: .9rem;
-  margin-bottom: .6rem;
-  margin-top: .25rem;
+  margin: 0;
+  white-space: nowrap;
 }
+
+.st-key-review_breadcrumb_row [data-testid="stHorizontalBlock"] {
+  align-items: center;
+  gap: .65rem;
+}
+
+.st-key-review_breadcrumb_row [data-testid="column"] {
+  min-width: 0;
+}
+
+.st-key-review_breadcrumb_row [data-testid="column"]:first-child {
+  min-width: 240px;
+  flex: 0 0 240px;
+}
+
+.st-key-review_breadcrumb_row [data-testid="stButton"] button {
+  white-space: nowrap;
+  min-width: 220px;
+}
+@media (max-width: 900px) {
+  .st-key-review_breadcrumb_row [data-testid="stHorizontalBlock"] {
+    flex-wrap: wrap;
+    gap: .25rem;
+  }
+
+  .st-key-review_breadcrumb_row [data-testid="column"]:first-child {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .st-key-review_breadcrumb_row [data-testid="stButton"] button {
+    min-width: 0;
+  }
+}
+
 .review-header-card {
   background: #fff;
   border: 1px solid #dde1e6;
