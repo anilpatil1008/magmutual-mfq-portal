@@ -30,44 +30,69 @@ def _tone_for_conf(value) -> str:
     return "low"
 
 
-def _render_header(claim: dict) -> None:
+def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     status = escape(str(claim.get("STATUS", "Unknown")))
     priority = escape(str(claim.get("PRIORITY", "Unknown")))
     patient = escape(str(claim.get("PATIENT_NAME", "Unknown Patient")))
     defendant = escape(str(claim.get("DEFENDANT_NAME", "Unknown Defendant")))
+    assigned_to = str(claim.get("ASSIGNED_TO", "") or "").strip()
+    assign_label = "Reassign to Faculty" if assigned_to else "Assign to Faculty"
 
-    st.markdown(
-        (
-            "<section class='review-header-card'>"
-            f"<div class='review-headline'>{patient} <span class='review-vs'>vs</span> {defendant}</div>"
-            "<div class='review-badges'>"
-            f"<span class='review-pill review-status'>{status}</span>"
-            f"<span class='review-pill review-priority'>{priority}</span>"
-            "</div>"
-            "<div class='review-meta-grid'>"
-            f"<div><div class='review-meta-label'>File Number</div><div>{escape(str(claim.get('FILE_NUMBER', '—')))}</div></div>"
-            f"<div><div class='review-meta-label'>Defendant Specialty</div><div>{escape(str(claim.get('SPECIALTY', '—')))}</div></div>"
-            f"<div><div class='review-meta-label'>Date Requested</div><div>{escape(str(claim.get('DATE_REQUESTED', '—')))}</div></div>"
-            f"<div><div class='review-meta-label'>Assigned To</div><div>{escape(str(claim.get('ASSIGNED_TO', 'Unassigned')))}</div></div>"
-            "</div>"
-            "</section>"
-        ),
-        unsafe_allow_html=True,
-    )
+    with st.container(key="review_header_card"):
+        left_col, action_col = st.columns([4.6, 1.4], vertical_alignment="top")
+        with left_col:
+            st.markdown(
+                (
+                    "<div class='review-headline-wrap'>"
+                    f"<div class='review-headline'>{patient} <span class='review-vs'>vs</span> {defendant}</div>"
+                    "<div class='review-badges'>"
+                    f"<span class='review-pill review-status'>{status}</span>"
+                    f"<span class='review-pill review-priority'>{priority}</span>"
+                    "</div>"
+                    "<div class='review-meta-grid'>"
+                    f"<div><div class='review-meta-label'>File Number</div><div>{escape(str(claim.get('FILE_NUMBER', '—')))}</div></div>"
+                    f"<div><div class='review-meta-label'>Defendant Specialty</div><div>{escape(str(claim.get('SPECIALTY', '—')))}</div></div>"
+                    f"<div><div class='review-meta-label'>Date Requested</div><div>{escape(str(claim.get('DATE_REQUESTED', '—')))}</div></div>"
+                    f"<div><div class='review-meta-label'>Assigned To</div><div>{escape(str(claim.get('ASSIGNED_TO', 'Unassigned')))}</div></div>"
+                    "</div>"
+                    "</div>"
+                ),
+                unsafe_allow_html=True,
+            )
+
+        with action_col:
+            if st.button(assign_label, type="primary", use_container_width=True):
+                update_claim_status(session, claim_id, "Assigned", assigned_to=ctx.username)
+                st.success("Claim assigned to faculty queue.")
+                st.rerun()
+
+            if st.button("Approve", type="secondary", use_container_width=True):
+                update_claim_status(session, claim_id, "Approved")
+                st.success("Claim approved.")
+                st.rerun()
 
 
-def _render_actions(session, ctx, claim_id: str) -> None:
-    with st.container(key="review_action_bar"):
-        c1, c2, _ = st.columns([1.3, 1.0, 4.0])
-        if c1.button("Assign to Faculty", type="primary", use_container_width=True):
-            update_claim_status(session, claim_id, "Assigned", assigned_to=ctx.username)
-            st.success("Claim assigned to faculty queue.")
-            st.rerun()
+def _go_back_to_dashboard() -> None:
+    st.session_state["selected_claim_id"] = None
+    st.session_state["active_page"] = "Dashboard"
+    st.rerun()
 
-        if c2.button("Approve", type="primary", use_container_width=True):
-            update_claim_status(session, claim_id, "Approved")
-            st.success("Claim approved.")
-            st.rerun()
+
+def _render_breadcrumb(claim_id: str) -> None:
+    back_col, crumb_col = st.columns([1.5, 8.5], vertical_alignment="center")
+    with back_col:
+        st.button(
+            "← Back to Dashboard",
+            key="review_back_to_dashboard",
+            on_click=_go_back_to_dashboard,
+            type="tertiary",
+            use_container_width=True,
+        )
+    with crumb_col:
+        st.markdown(
+            f"<div class='review-breadcrumb-claim'><strong>{escape(str(claim_id))}</strong></div>",
+            unsafe_allow_html=True,
+        )
 
 
 def _render_confidence_panel(workspace: dict) -> None:
@@ -243,7 +268,7 @@ def render(session, ctx) -> None:
         st.info("Open a claim from Dashboard or Claims page.")
         return
 
-    st.markdown(f"<div class='review-breadcrumb'>← Back to Dashboard / <strong>{escape(str(claim_id))}</strong></div>", unsafe_allow_html=True)
+    _render_breadcrumb(str(claim_id))
 
     workspace = get_claim_review_workspace(session, str(claim_id))
     claim = workspace.get("claim")
@@ -252,8 +277,7 @@ def render(session, ctx) -> None:
         _render_missing_objects(workspace.get("missing_objects", []))
         return
 
-    _render_header(claim)
-    _render_actions(session, ctx, str(claim_id))
+    _render_header(session, ctx, str(claim_id), claim)
     _render_missing_objects(workspace.get("missing_objects", []))
     st.session_state["review_snowflake_objects"] = workspace.get("used_objects", [])
     st.session_state["review_missing_objects"] = workspace.get("missing_objects", [])
