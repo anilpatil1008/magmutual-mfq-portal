@@ -273,7 +273,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         "YES_NO_UNCLEAR": ["YES", "NO", "UNCLEAR"],
                         "YES_NO_UNCLEAR_NA": ["YES", "NO", "UNCLEAR", "N/A"],
                     }
-                    safe_values = type_options[answer_type]
+                    safe_values = [str(v).upper() for v in allowed_values] or type_options[answer_type]
                     current_value = str(text_value).upper()
                     if current_value not in safe_values:
                         safe_values = ["", *safe_values]
@@ -318,7 +318,24 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         disabled=is_disabled,
                     )
                 elif answer_type in {"RATING_1_9"}:
-                    options = [str(i) for i in range(1, 10)]
+                    options = [str(v) for v in allowed_values] or [str(i) for i in range(1, 10)]
+                    current_value = str(text_value)
+                    if current_value not in options:
+                        options = ["", *options]
+                        selected_idx = 0
+                    else:
+                        selected_idx = options.index(current_value)
+                    new_value = st.radio(
+                        "Answer",
+                        options=options,
+                        index=selected_idx,
+                        horizontal=True,
+                        key=f"ans_rating_{answer_id}",
+                        label_visibility="collapsed",
+                        disabled=is_disabled,
+                    )
+                elif answer_type in {"RATING_1_5"}:
+                    options = [str(v) for v in allowed_values] or [str(i) for i in range(1, 6)]
                     current_value = str(text_value)
                     if current_value not in options:
                         options = ["", *options]
