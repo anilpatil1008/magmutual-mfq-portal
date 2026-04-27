@@ -1238,6 +1238,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .enterprise-table-wrapper [data-testid="column"]:nth-child(7) .enterprise-cell {
   min-width: 0;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .center-cell {
@@ -1406,8 +1408,12 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .action-header {
   text-align: left;
-  min-width: 118px;
-  max-width: 118px;
+  min-width: 92px;
+  max-width: 92px;
+}
+
+.enterprise-table-wrapper [data-testid="column"]:nth-child(7) [data-testid="stVerticalBlock"] {
+  align-items: flex-start;
 }
 
 .enterprise-table-wrapper [data-testid="stHorizontalBlock"] {
