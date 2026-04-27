@@ -71,38 +71,78 @@ def _render_actions(session, ctx, claim_id: str) -> None:
 
 
 def _render_confidence_panel(workspace: dict) -> None:
-    overall = workspace.get("overall_confidence")
+    summary = workspace.get("confidence_summary", {})
+    overall = summary.get("overall_confidence")
+    recommendation = str(summary.get("recommendation", "Faculty Review Recommended"))
+    explanation = str(summary.get("explanation", ""))
     section_conf = workspace.get("section_confidence", pd.DataFrame())
 
-    st.markdown("### AI Confidence Analysis")
-    left, right = st.columns([5, 2], vertical_alignment="center")
-    with left:
-        st.markdown(
-            "<div class='review-subtle'>AI extraction confidence is calculated from section-level answers.</div>",
-            unsafe_allow_html=True,
-        )
-    with right:
-        st.markdown(
-            f"<div class='overall-confidence'>Overall <span>{_fmt_conf(overall)}</span></div>",
-            unsafe_allow_html=True,
-        )
+    if overall is None and section_conf.empty:
+        st.info("AI confidence data is not available for this claim.")
+        return
+
+    badge_tone = "high" if recommendation == "No Faculty Review Needed" else "medium"
+    st.markdown(
+        (
+            "<section class='confidence-card'>"
+            "<div class='confidence-header'>"
+            "<div class='confidence-header-left'>"
+            "<span class='confidence-title'>⚕ AI Confidence Analysis</span>"
+            "<span class='confidence-collapse' aria-hidden='true'>⌃</span>"
+            "</div>"
+            "<div class='confidence-header-right'>"
+            f"<span class='confidence-badge tone-{badge_tone}'>{escape(recommendation)}</span>"
+            f"<span class='confidence-overall'>Overall <strong>{_fmt_conf(overall)}</strong></span>"
+            "</div>"
+            "</div>"
+            "<div class='confidence-message-box'>"
+            "<div class='confidence-message-title'>🛡 "
+            f"{escape(recommendation)}</div>"
+            f"<div class='confidence-message-sub'>{escape(explanation)}</div>"
+            "</div>"
+            "</section>"
+        ),
+        unsafe_allow_html=True,
+    )
 
     if section_conf.empty:
         st.info("Section confidence scores are unavailable for this claim.")
         return
 
-    for _, row in section_conf.iterrows():
-        score = row.get("CONFIDENCE_SCORE")
-        st.markdown(
-            (
-                "<div class='section-confidence-row'>"
-                f"<div class='section-confidence-title'>{escape(str(row.get('SECTION_NAME', 'Unknown Section')))}</div>"
-                f"<div class='section-confidence-score tone-{_tone_for_conf(score)}'>{_fmt_conf(score)}</div>"
-                "</div>"
-            ),
-            unsafe_allow_html=True,
-        )
-        st.progress(max(0.0, min((float(score) if score is not None else 0.0), 1.0)) if score is not None and float(score) <= 1 else max(0.0, min((float(score or 0.0) / 100.0), 1.0)))
+    st.markdown("<div class='confidence-grid-title'>SECTION-WISE CONFIDENCE</div>", unsafe_allow_html=True)
+    left, right = st.columns(2, gap="small")
+    moderate_or_low_sections: list[str] = []
+    ordered_rows = list(section_conf.iterrows())
+    midpoint = (len(ordered_rows) + 1) // 2
+    split_rows = [ordered_rows[:midpoint], ordered_rows[midpoint:]]
+
+    for col, rows in zip([left, right], split_rows):
+        with col:
+            for _, row in rows:
+                section_name = str(row.get("SECTION_NAME", "Unknown Section"))
+                score = row.get("CONFIDENCE_SCORE_PCT", row.get("CONFIDENCE_SCORE"))
+                tone = _tone_for_conf(score)
+                score_pct = float(score) if score is not None and not pd.isna(score) else 0.0
+                width_pct = max(0.0, min(score_pct, 100.0))
+                if tone in {"medium", "low"}:
+                    moderate_or_low_sections.append(section_name)
+                st.markdown(
+                    (
+                        "<div class='confidence-row'>"
+                        "<div class='confidence-row-top'>"
+                        f"<span>{escape(section_name)}</span>"
+                        f"<span class='tone-{tone}'>{_fmt_conf(score)}</span>"
+                        "</div>"
+                        f"<div class='confidence-progress'><span class='tone-{tone}' style='width:{width_pct:.0f}%'></span></div>"
+                        "</div>"
+                    ),
+                    unsafe_allow_html=True,
+                )
+
+    note = "All sections are high confidence."
+    if moderate_or_low_sections:
+        note = f"Moderate confidence: {', '.join(moderate_or_low_sections)}"
+    st.markdown(f"<div class='confidence-note'>● {escape(note)}</div>", unsafe_allow_html=True)
 
 
 def _render_synopsis_panel(synopsis: dict) -> None:
@@ -221,10 +261,24 @@ def render(session, ctx) -> None:
     tabs = st.tabs(["MFQ Form", "Records Summary", "MedCron", "Legal Memo", "Enquiries", "AI Assist", "Documents"])
 
     with tabs[0]:
+        st.markdown(
+            (
+                "<section class='mfq-page'>"
+                "<div class='mfq-header'>"
+                "<div><h2>Medical Faculty Questionnaire</h2>"
+                "<p>Complete evaluation based on accepted medical practice standards.</p></div>"
+                "</div>"
+                "</section>"
+            ),
+            unsafe_allow_html=True,
+        )
+        _, h_right = st.columns([7.5, 1.5], vertical_alignment="center")
+        with h_right:
+            st.button("✎ Edit", key="mfq_edit_btn", type="secondary", use_container_width=True)
+
         left, right = st.columns([2.2, 1.0], vertical_alignment="top")
         with left:
             _render_confidence_panel(workspace)
-            st.markdown("### Medical Faculty Questionnaire")
             _render_questions(session, workspace.get("sections", pd.DataFrame()))
         with right:
             _render_synopsis_panel(workspace.get("synopsis", {}))

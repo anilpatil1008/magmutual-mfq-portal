@@ -11,6 +11,7 @@ from services.snowflake_service import quote_sql, safe_collect_df
 CLAIMS_VIEW = "MFQ_RECENT_CLAIMS_VW"
 DETAIL_VIEW = "MFQ_CLAIM_DETAIL_VW"
 FORM_VIEW = "MFQ_FORM_WORKSPACE_VW"
+LLM_EVAL_TABLE = "LLM_EVALUATION"
 
 
 def _apply_rbac(df: pd.DataFrame, app_role: str, username: str) -> pd.DataFrame:
@@ -153,22 +154,15 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
 
     detail = detail_df.iloc[0].to_dict() if not detail_df.empty else None
     synopsis = defendant_df.iloc[0].to_dict() if not defendant_df.empty else {}
-
-    section_confidence = pd.DataFrame()
-    if not sections_df.empty:
-        section_confidence = (
-            sections_df.groupby(["SECTION_NAME", "SECTION_ORDER"], dropna=False)["CONFIDENCE_SCORE"]
-            .mean()
-            .reset_index()
-            .sort_values(["SECTION_ORDER", "SECTION_NAME"])
-        )
-
-    overall_conf = None
-    if detail and detail.get("AI_CONFIDENCE") is not None:
-        overall_conf = float(detail["AI_CONFIDENCE"]) * 100 if float(detail["AI_CONFIDENCE"]) <= 1 else float(detail["AI_CONFIDENCE"])
-    elif not sections_df.empty and sections_df["CONFIDENCE_SCORE"].notna().any():
-        raw_mean = sections_df["CONFIDENCE_SCORE"].dropna().mean()
-        overall_conf = float(raw_mean) * 100 if raw_mean <= 1 else float(raw_mean)
+    confidence_summary = get_claim_confidence_summary(
+        session=session,
+        claim_id=claim_id,
+        claim_detail=detail,
+        synopsis=synopsis,
+        sections_df=sections_df,
+        missing_objects=missing_objects,
+    )
+    section_confidence = get_claim_section_confidence(sections_df)
 
     summary_map: dict[str, str] = {}
     if not summary_df.empty:
@@ -205,6 +199,7 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
         "CLAIM_DOCUMENT",
         "MFQ_ASSIGNMENT_QUEUE_VW",
         "CLAIM_ENQUIRY",
+        LLM_EVAL_TABLE,
     }
 
     return {
@@ -212,13 +207,107 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
         "sections": sections_df,
         "synopsis": synopsis,
         "section_confidence": section_confidence,
-        "overall_confidence": overall_conf,
+        "overall_confidence": confidence_summary.get("overall_confidence"),
+        "confidence_summary": confidence_summary,
         "summaries": summary_map,
         "documents": docs_df,
         "assignment": assignment_df,
         "enquiries": enquiries_df,
         "missing_objects": sorted(set(missing_objects)),
         "used_objects": sorted(used_objects),
+    }
+
+
+def _normalize_confidence_score(value: Any) -> float | None:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return None
+    score = float(value)
+    return score * 100.0 if 0.0 <= score <= 1.0 else score
+
+
+def _confidence_status_from_score(value: Any) -> str:
+    score = _normalize_confidence_score(value)
+    if score is None:
+        return "Unknown"
+    if score >= 90:
+        return "High"
+    if score >= 80:
+        return "Moderate"
+    return "Low"
+
+
+def get_claim_section_confidence(sections_df: pd.DataFrame) -> pd.DataFrame:
+    if sections_df.empty or "CONFIDENCE_SCORE" not in sections_df.columns:
+        return pd.DataFrame()
+
+    grouped = (
+        sections_df.groupby(["SECTION_NAME", "SECTION_ORDER"], dropna=False)["CONFIDENCE_SCORE"]
+        .mean()
+        .reset_index()
+        .sort_values(["SECTION_ORDER", "SECTION_NAME"])
+    )
+    grouped["CONFIDENCE_SCORE_PCT"] = grouped["CONFIDENCE_SCORE"].apply(_normalize_confidence_score)
+    grouped["CONFIDENCE_STATUS"] = grouped["CONFIDENCE_SCORE_PCT"].apply(_confidence_status_from_score)
+    return grouped
+
+
+def get_claim_confidence_summary(
+    session,
+    claim_id: str,
+    claim_detail: dict[str, Any] | None,
+    synopsis: dict[str, Any],
+    sections_df: pd.DataFrame,
+    missing_objects: list[str],
+) -> dict[str, Any]:
+    overall_confidence = None
+    if claim_detail and claim_detail.get("AI_CONFIDENCE") is not None:
+        overall_confidence = _normalize_confidence_score(claim_detail.get("AI_CONFIDENCE"))
+    elif not sections_df.empty and sections_df["CONFIDENCE_SCORE"].notna().any():
+        overall_confidence = _normalize_confidence_score(sections_df["CONFIDENCE_SCORE"].dropna().mean())
+
+    recommendation = None
+    explanation = None
+    defendant_id = synopsis.get("DEFENDANT_ID")
+    if defendant_id and _object_exists(session, LLM_EVAL_TABLE):
+        defendant_id_q = quote_sql(str(defendant_id))
+        llm_eval_df = safe_collect_df(
+            session,
+            f"""
+            SELECT NEEDS_HUMAN_REVIEW, FAITHFULNESS_SCORE
+            FROM {LLM_EVAL_TABLE}
+            WHERE ENTITY_ID = '{defendant_id_q}'
+            ORDER BY CREATED_AT DESC
+            LIMIT 1
+            """,
+        )
+        if not llm_eval_df.empty:
+            needs_human_review = llm_eval_df.iloc[0].get("NEEDS_HUMAN_REVIEW")
+            if needs_human_review is True:
+                recommendation = "Faculty Review Recommended"
+            elif needs_human_review is False:
+                recommendation = "No Faculty Review Needed"
+    elif defendant_id:
+        missing_objects.append(LLM_EVAL_TABLE)
+
+    if recommendation is None:
+        status = _confidence_status_from_score(overall_confidence)
+        recommendation = "No Faculty Review Needed" if status == "High" else "Faculty Review Recommended"
+
+    if overall_confidence is None:
+        explanation = "AI confidence data is not available for this claim."
+    elif overall_confidence >= 90:
+        explanation = "AI extraction confidence is high across sections and appears reliable for direct processing."
+    elif overall_confidence >= 80:
+        explanation = "AI extraction confidence is moderate and a targeted faculty review is recommended."
+    else:
+        explanation = "AI extraction confidence is low and detailed faculty review is required."
+
+    return {
+        "claim_id": claim_id,
+        "overall_confidence": overall_confidence,
+        "confidence_status": _confidence_status_from_score(overall_confidence),
+        "recommendation": recommendation,
+        "explanation": explanation,
     }
 
 
