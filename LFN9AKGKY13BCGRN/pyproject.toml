@@ -1,0 +1,14 @@
+[project]
+name = "mfq-v1"
+version = "0.1.0"
+description = "MagMutual MFQ Streamlit app"
+requires-python = ">=3.11"
+dependencies = [
+  "streamlit>=1.35,<2",
+  "snowflake-snowpark-python",
+  "pandas",
+]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
