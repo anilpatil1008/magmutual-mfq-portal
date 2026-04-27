@@ -29,7 +29,7 @@ ENTERPRISE_COLUMNS = [
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
 ]
-RECENT_CLAIMS_COLUMN_WIDTHS = [11, 23, 11, 11, 14, 12, 18]
+RECENT_CLAIMS_COLUMN_WIDTHS = [10, 22, 10, 10, 14, 11, 23]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -236,34 +236,36 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                 show_regenerate = status == "MFQ Generated"
                 pending_key = f"{key_prefix}_pending_confirm_{claim_id}"
                 running_key = f"{key_prefix}_running_{claim_id}"
-                action_cols = st.columns([1.05, 0.95], vertical_alignment="center", gap="small")
 
                 if show_regenerate:
-                    regen_clicked = action_cols[0].button(
+                    st.markdown("<div class='action-stack'>", unsafe_allow_html=True)
+                    regen_clicked = st.button(
                         "↻ Regenerate",
                         key=f"{key_prefix}_regenerate_{claim_id}",
                         help="Regenerate MFQ using the latest claim documents and extracted data.",
                         disabled=bool(st.session_state.get(running_key, False)),
                         type="secondary",
-                        use_container_width=True,
+                        use_container_width=False,
                     )
                     if regen_clicked:
                         st.session_state[pending_key] = True
 
-                    review_pressed = action_cols[1].button(
+                    review_pressed = st.button(
                         "Review →",
                         key=f"{key_prefix}_review_{claim_id}",
                         type="tertiary",
-                        use_container_width=True,
+                        use_container_width=False,
                     )
+                    st.markdown("</div>", unsafe_allow_html=True)
                 else:
-                    action_cols[0].markdown("<span class='action-spacer'></span>", unsafe_allow_html=True)
-                    review_pressed = action_cols[1].button(
+                    st.markdown("<div class='action-single'>", unsafe_allow_html=True)
+                    review_pressed = st.button(
                         "Review →",
                         key=f"{key_prefix}_review_{claim_id}",
                         type="tertiary",
-                        use_container_width=True,
+                        use_container_width=False,
                     )
+                    st.markdown("</div>", unsafe_allow_html=True)
 
                 if review_pressed:
                     st.session_state.selected_claim_id = claim_id

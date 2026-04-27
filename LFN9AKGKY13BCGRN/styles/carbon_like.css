@@ -1283,9 +1283,19 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .action-cell {
   width: 100%;
-  min-width: 200px;
+  min-width: 232px;
   text-align: left;
-  white-space: nowrap;
+}
+
+.action-stack,
+.action-single {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.action-stack {
+  gap: 8px;
 }
 
 .action-link,
@@ -1298,11 +1308,11 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  justify-content: flex-end;
-  width: 100%;
+  justify-content: flex-start;
+  width: auto;
   border: none;
   background: transparent;
-  padding-right: 0;
+  padding: 0;
 }
 
 .st-key-recent_claims_card button[kind="secondary"] {
@@ -1311,8 +1321,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   background: #ffffff;
   color: #0f62fe;
   font-size: .72rem;
-  padding: .12rem .55rem;
-  width: 100%;
+  padding: .16rem .65rem;
+  width: auto;
 }
 
 .st-key-recent_claims_card button[kind="secondary"]:hover {
@@ -1338,8 +1348,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .action-header {
-  text-align: right;
-  min-width: 200px;
+  text-align: left;
+  min-width: 232px;
 }
 
 .enterprise-table-wrapper [data-testid="stHorizontalBlock"] {
@@ -1357,7 +1367,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
   [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
   [class*="st-key-"][class*="_recent_claims_table"] [data-testid="stHorizontalBlock"] {
-    min-width: 1040px;
+    min-width: 1100px;
   }
 }
 
