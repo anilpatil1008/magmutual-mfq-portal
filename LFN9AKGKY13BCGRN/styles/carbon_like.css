@@ -1283,8 +1283,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .action-cell {
   width: 100%;
-  min-width: 110px;
-  text-align: right;
+  min-width: 200px;
+  text-align: left;
   white-space: nowrap;
 }
 
@@ -1293,11 +1293,16 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   color: #0f62fe;
   text-decoration: none;
   font-weight: 600;
-  font-size: .78rem;
+  font-size: .8rem;
   white-space: nowrap;
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  justify-content: flex-end;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding-right: 0;
 }
 
 .st-key-recent_claims_card button[kind="secondary"] {
@@ -1305,8 +1310,9 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   border-radius: 6px;
   background: #ffffff;
   color: #0f62fe;
-  font-size: .7rem;
-  padding: .02rem .45rem;
+  font-size: .72rem;
+  padding: .12rem .55rem;
+  width: 100%;
 }
 
 .st-key-recent_claims_card button[kind="secondary"]:hover {
@@ -1318,13 +1324,9 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   min-width: 130px;
 }
 
-.action-divider {
-  color: #8d8d8d;
-  font-size: .78rem;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+.action-spacer {
+  display: inline-block;
+  min-height: 1.85rem;
   width: 100%;
 }
 
@@ -1337,7 +1339,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .action-header {
   text-align: right;
-  min-width: 110px;
+  min-width: 200px;
 }
 
 .enterprise-table-wrapper [data-testid="stHorizontalBlock"] {
@@ -1355,7 +1357,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
   [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
   [class*="st-key-"][class*="_recent_claims_table"] [data-testid="stHorizontalBlock"] {
-    min-width: 950px;
+    min-width: 1040px;
   }
 }
 

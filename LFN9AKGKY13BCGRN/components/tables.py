@@ -29,7 +29,7 @@ ENTERPRISE_COLUMNS = [
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
 ]
-RECENT_CLAIMS_COLUMN_WIDTHS = [12, 24, 12, 12, 14, 14, 12]
+RECENT_CLAIMS_COLUMN_WIDTHS = [11, 23, 11, 11, 14, 12, 18]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -236,9 +236,9 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                 show_regenerate = status == "MFQ Generated"
                 pending_key = f"{key_prefix}_pending_confirm_{claim_id}"
                 running_key = f"{key_prefix}_running_{claim_id}"
+                action_cols = st.columns([1.05, 0.95], vertical_alignment="center", gap="small")
 
                 if show_regenerate:
-                    action_cols = st.columns([1.15, 0.25, 0.95], vertical_alignment="center")
                     regen_clicked = action_cols[0].button(
                         "↻ Regenerate",
                         key=f"{key_prefix}_regenerate_{claim_id}",
@@ -250,20 +250,19 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                     if regen_clicked:
                         st.session_state[pending_key] = True
 
-                    action_cols[1].markdown("<span class='action-divider'>|</span>", unsafe_allow_html=True)
-
-                    review_pressed = action_cols[2].button(
+                    review_pressed = action_cols[1].button(
                         "Review →",
                         key=f"{key_prefix}_review_{claim_id}",
                         type="tertiary",
-                        use_container_width=False,
+                        use_container_width=True,
                     )
                 else:
-                    review_pressed = st.button(
+                    action_cols[0].markdown("<span class='action-spacer'></span>", unsafe_allow_html=True)
+                    review_pressed = action_cols[1].button(
                         "Review →",
                         key=f"{key_prefix}_review_{claim_id}",
                         type="tertiary",
-                        use_container_width=False,
+                        use_container_width=True,
                     )
 
                 if review_pressed:
