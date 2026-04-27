@@ -83,7 +83,7 @@ For local execution outside Snowflake, mock `get_active_session()` or run inside
 
 - Deploy this app as source code (not as an installable Python project package).
 - Runtime dependency resolution for Streamlit in Snowflake should come from `A27EXCIDK7BA295Y/environment.yml`.
-- The root `pyproject.toml` build configuration was removed so Snowflake does not attempt to build and install `A27EXCIDK7BA295Y @ file:///opt/streamlit-runtime`.
+- A root `pyproject.toml` is included to satisfy Streamlit-in-Snowflake dependency resolution for this app source directory.
 
 ## Package install troubleshooting (PyPI DNS / EAI)
 
