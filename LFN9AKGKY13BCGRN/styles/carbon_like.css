@@ -1313,7 +1313,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .action-cell {
   width: 100%;
-  min-height: 56px;
+  min-height: 44px;
   text-align: left;
   overflow: hidden;
   display: flex;
@@ -1331,18 +1331,24 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .action-stack {
-  gap: 4px;
+  gap: 6px;
 }
 
 .action-cell .stButton {
   margin: 0;
+  width: fit-content;
+}
+
+.action-cell .stButton button {
+  margin: 0;
 }
 
 .action-cell .stButton button[kind="tertiary"] {
-  min-height: auto;
-  height: auto;
-  line-height: 1.2;
+  min-height: 20px;
+  height: 20px;
+  line-height: 1.1;
   padding: 0;
+  font-size: .75rem;
 }
 
 .action-link,
@@ -1367,11 +1373,12 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   border-radius: 4px;
   background: #ffffff;
   color: #0f62fe;
-  font-size: .68rem;
+  font-size: .66rem;
   font-weight: 600;
   line-height: 1.1;
-  min-height: 22px;
-  padding: .08rem .45rem;
+  min-height: 20px;
+  height: 20px;
+  padding: 0 .42rem;
   width: auto;
 }
 
