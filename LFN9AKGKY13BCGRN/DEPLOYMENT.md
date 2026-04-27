@@ -26,8 +26,8 @@ If all required dependencies are available via Snowflake-supported channels and 
 
 ## Streamlit source folder mapping
 
-Deploy the app from source folder `A27EXCIDK7BA295Y` and keep:
+Deploy the app from source folder root (`LFN9AKGKY13BCGRN`) and keep:
 
-- `MAIN_FILE = '/A27EXCIDK7BA295Y/streamlit_app.py'`
+- `MAIN_FILE = '/streamlit_app.py'`
 
 A ready-to-run SQL example is provided in `deployment.sql`.

@@ -1,123 +1,40 @@
-# MagMutual MFQ Portal
+# MagMutual MFQ Enterprise Portal
 
-Streamlit + Snowflake (Snowpark) portal for MFQ claim review workflows.
+Production-style Streamlit in Snowflake prototype for Medical Faculty Questionnaire (MFQ) operations.
 
 ## Repository layout
 
-- `A27EXCIDK7BA295Y/streamlit_app.py` – Streamlit entrypoint.
-- `A27EXCIDK7BA295Y/sql/` – Snowflake SQL setup scripts (run in order).
+- `streamlit_app.py`: app entry point + page routing.
+- `pyproject.toml`: Snowflake Streamlit dependency manifest.
+- `components/`: reusable UI modules.
+- `pages/`: role-based page modules.
+- `services/`: Snowflake session, RBAC, claims, dashboard, and notification services.
+- `styles/`: UI styling.
+- `sql/`: Snowflake setup/seed scripts.
+- `docs/`: project documentation.
 
 ## Snowflake deployment (Snowsight worksheet)
 
 Run these commands in order:
 
 ```sql
-!source A27EXCIDK7BA295Y/sql/00_session_context.sql;
-!source A27EXCIDK7BA295Y/sql/01_create_core_objects.sql;
-!source A27EXCIDK7BA295Y/sql/02_create_views.sql;
-!source A27EXCIDK7BA295Y/sql/03_seed_system_config.sql;
-!source A27EXCIDK7BA295Y/sql/04_create_ui_objects.sql;
-!source A27EXCIDK7BA295Y/sql/05_seed_questionnaire.sql;
+!source sql/00_session_context.sql;
+!source sql/01_create_core_objects.sql;
+!source sql/02_create_views.sql;
+!source sql/03_seed_system_config.sql;
+!source sql/04_create_ui_objects.sql;
+!source sql/05_seed_questionnaire.sql;
 ```
 
-If `!source` is not enabled in your worksheet, open each script file and execute it manually in the same order.
+Then seed demo data as needed:
 
-## Streamlit deployment command
+```sql
+!source sql/06_seed_demo_data.sql;
+```
 
-From repository root:
+## Local development
 
 ```bash
-cd A27EXCIDK7BA295Y
 pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
-
-For Snowflake Native App / Streamlit in Snowflake, upload this project as your app source and ensure the SQL scripts above have been executed in the target database/schema.
-# MagMutual MFQ Enterprise Portal
-
-Production-style Streamlit in Snowflake prototype for Medical Faculty Questionnaire (MFQ) operations.
-
-## Architecture
-
-- `streamlit_app.py`: app entry point + page routing.
-- `components/`: reusable UI modules (layout, cards, tables, badges, notifications).
-- `pages/`: role-based page modules (dashboard, claims, claim details, reports, admin).
-- `services/`: Snowflake session, RBAC, claims, dashboard, notification services.
-- `styles/carbon_like.css`: IBM Carbon-inspired enterprise styling.
-- `sql/04_create_ui_objects.sql`: UI tables/views.
-- `sql/06_seed_demo_data.sql`: demo seed data.
-
-## Snowflake Runtime Notes
-
-This app is designed for **Streamlit in Snowflake** and uses:
-
-```python
-from snowflake.snowpark.context import get_active_session
-```
-
-The code expects these UI objects to exist:
-
-- `MFQ_CLAIMS_VW`
-- `MFQ_SECTIONS_VW`
-- `MFQ_NOTIFICATIONS_VW`
-- `MFQ_APP_USERS`
-- `MFQ_ROLE_PAGE_ACCESS`
-- `MFQ_ASSIGNMENT_RULES`
-- `MFQ_NOTIFICATIONS`
-
-Run SQL in order after core scripts:
-
-1. `sql/04_create_ui_objects.sql`
-2. `sql/06_seed_demo_data.sql`
-
-## Local Development
-
-```bash
-pip install -r A27EXCIDK7BA295Y/requirements.txt
-streamlit run streamlit_app.py
-```
-
-For local execution outside Snowflake, mock `get_active_session()` or run inside a Snowflake-native Streamlit app.
-
-## Snowflake packaging behavior and fix
-
-- Deploy this app as source code (not as an installable Python project package).
-- Runtime dependency resolution for Streamlit in Snowflake should come from `A27EXCIDK7BA295Y/environment.yml`.
-- A root `pyproject.toml` is included to satisfy Streamlit-in-Snowflake dependency resolution for this app source directory.
-
-## Package install troubleshooting (PyPI DNS / EAI)
-
-If installation fails with an error similar to:
-
-```text
-Failed to fetch: https://pypi.org/simple/pandas/
-... dns error ... Name does not resolve
-```
-
-the runtime environment cannot resolve or reach `pypi.org`.
-
-### What this usually means
-
-- In managed/sandbox environments, **External Access Integration (EAI)** (or equivalent outbound network access) is not enabled.
-- DNS is blocked or unavailable for public package hosts.
-
-### How to fix
-
-1. Have `ACCOUNTADMIN` create/enable an External Access Integration (EAI) for package downloads.
-2. Attach that EAI to the Streamlit object deployment.
-3. Allow DNS + HTTPS egress to package domains such as:
-   - `pypi.org`
-   - `files.pythonhosted.org`
-4. Retry installation.
-
-If all required packages are available through Snowflake-supported channels in `environment.yml`, no PyPI EAI is required.
-
-### Quick validation commands
-
-```bash
-python -c "import socket; print(socket.gethostbyname('pypi.org'))"
-python -m pip install --upgrade pip
-python -m pip install pandas
-```
-
-If DNS lookup fails in step 1, this is an environment/network policy issue (not a `pip` or `pandas` issue).
