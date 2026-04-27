@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import json
 from html import escape
 
 import pandas as pd
 import streamlit as st
 
 from services.claim_service import get_claim_review_workspace, save_section_answer, update_claim_status
+from services.rbac_service import can_edit_claim
 
 
 def _fmt_conf(value) -> str:
@@ -185,18 +187,73 @@ def _render_synopsis_panel(synopsis: dict) -> None:
         st.markdown(f"**Allegations**\n\n{escape(allegations)}")
 
 
-def _render_questions(session, sections_df: pd.DataFrame) -> None:
+def _normalize_answer_value(raw):
+    if raw is None or (isinstance(raw, float) and pd.isna(raw)):
+        return ""
+    if isinstance(raw, list):
+        return [str(v) for v in raw]
+    if isinstance(raw, dict):
+        return raw
+    text = str(raw).strip()
+    if not text:
+        return ""
+    try:
+        parsed = json.loads(text)
+        if isinstance(parsed, (list, dict, str)):
+            return parsed
+    except Exception:
+        pass
+    return text
+
+
+def _is_visible(row: pd.Series, answer_by_question: dict[str, str]) -> bool:
+    parent_id = str(row.get("PARENT_QUESTION_ID", "") or "").strip()
+    if not parent_id:
+        return True
+
+    parent_answer = str(answer_by_question.get(parent_id, "") or "").strip().upper()
+    if not parent_answer:
+        return False
+
+    rule_raw = row.get("VISIBILITY_RULE")
+    if rule_raw is None or (isinstance(rule_raw, float) and pd.isna(rule_raw)):
+        return True
+
+    if isinstance(rule_raw, dict):
+        rule = rule_raw
+    else:
+        try:
+            rule = json.loads(str(rule_raw))
+        except Exception:
+            return True
+
+    allowed = [str(v).upper() for v in rule.get("parent_answer_in", [])] if isinstance(rule, dict) else []
+    if not allowed:
+        return True
+    return parent_answer in allowed
+
+
+def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_mode: bool) -> None:
     if sections_df.empty:
         st.info("MFQ form is unavailable for this claim.")
         return
 
-    grouped = sections_df.groupby(["SECTION_ORDER", "SECTION_NAME"], dropna=False)
+    working_df = sections_df.sort_values(["SECTION_ORDER", "QUESTION_ORDER"]).copy()
+    answer_by_question: dict[str, str] = {}
+    for _, seed_row in working_df.iterrows():
+        answer_by_question[str(seed_row.get("QUESTION_ID", "") or "")] = str(seed_row.get("DISPLAY_ANSWER", "") or "")
+
+    grouped = working_df.groupby(["SECTION_ORDER", "SECTION_NAME"], dropna=False)
     for (_, section_name), section_df in grouped:
         with st.expander(str(section_name), expanded=False):
             for _, row in section_df.sort_values("QUESTION_ORDER").iterrows():
+                if not _is_visible(row, answer_by_question):
+                    continue
                 question_id = str(row.get("QUESTION_ID", ""))
-                answer_id = str(row.get("ANSWER_ID", "") or question_id)
-                answer_text = str(row.get("ANSWER_TEXT", "") or "")
+                answer_id = str(row.get("ANSWER_ID", "") or "")
+                claim_id = str(row.get("CLAIM_ID", "") or "")
+                defendant_id = str(row.get("DEFENDANT_ID", "") or "")
+                answer_text = row.get("DISPLAY_ANSWER", "")
                 allowed_values = row.get("ALLOWED_VALUES_LIST", []) or []
                 answer_type = str(row.get("ANSWER_TYPE", "")).upper()
 
@@ -208,11 +265,21 @@ def _render_questions(session, sections_df: pd.DataFrame) -> None:
                     unsafe_allow_html=True,
                 )
 
-                if answer_type in {"RADIO", "SELECT", "BOOLEAN"} and allowed_values:
-                    safe_values = [str(v) for v in allowed_values]
-                    selected_idx = 0
-                    if answer_text and answer_text in safe_values:
-                        selected_idx = safe_values.index(answer_text)
+                text_value = _normalize_answer_value(answer_text)
+                is_disabled = not (can_edit and edit_mode)
+                if answer_type in {"YES_NO", "YES_NO_UNCLEAR", "YES_NO_UNCLEAR_NA"}:
+                    type_options = {
+                        "YES_NO": ["YES", "NO"],
+                        "YES_NO_UNCLEAR": ["YES", "NO", "UNCLEAR"],
+                        "YES_NO_UNCLEAR_NA": ["YES", "NO", "UNCLEAR", "N/A"],
+                    }
+                    safe_values = type_options[answer_type]
+                    current_value = str(text_value).upper()
+                    if current_value not in safe_values:
+                        safe_values = ["", *safe_values]
+                        selected_idx = 0
+                    else:
+                        selected_idx = safe_values.index(current_value)
                     new_value = st.radio(
                         "Answer",
                         safe_values,
@@ -220,18 +287,74 @@ def _render_questions(session, sections_df: pd.DataFrame) -> None:
                         horizontal=True,
                         key=f"ans_choice_{answer_id}",
                         label_visibility="collapsed",
+                        disabled=is_disabled,
+                    )
+                elif answer_type in {"CHOICE"} and allowed_values:
+                    safe_values = [str(v) for v in allowed_values]
+                    current_value = str(text_value)
+                    if current_value not in safe_values:
+                        safe_values = ["", *safe_values]
+                        selected_idx = 0
+                    else:
+                        selected_idx = safe_values.index(current_value)
+                    new_value = st.radio(
+                        "Answer",
+                        safe_values,
+                        index=selected_idx,
+                        horizontal=True,
+                        key=f"ans_choice_{answer_id}",
+                        label_visibility="collapsed",
+                        disabled=is_disabled,
+                    )
+                elif answer_type in {"MULTISELECT"} and allowed_values:
+                    existing = text_value if isinstance(text_value, list) else _normalize_answer_value(row.get("ANSWER_JSON"))
+                    existing_values = existing if isinstance(existing, list) else []
+                    new_value = st.multiselect(
+                        "Answer",
+                        options=[str(v) for v in allowed_values],
+                        default=[str(v) for v in existing_values],
+                        key=f"ans_multiselect_{answer_id}",
+                        label_visibility="collapsed",
+                        disabled=is_disabled,
+                    )
+                elif answer_type in {"RATING_1_9"}:
+                    options = [str(i) for i in range(1, 10)]
+                    current_value = str(text_value)
+                    if current_value not in options:
+                        options = ["", *options]
+                        selected_idx = 0
+                    else:
+                        selected_idx = options.index(current_value)
+                    new_value = st.radio(
+                        "Answer",
+                        options=options,
+                        index=selected_idx,
+                        horizontal=True,
+                        key=f"ans_rating_{answer_id}",
+                        label_visibility="collapsed",
+                        disabled=is_disabled,
                     )
                 else:
                     new_value = st.text_area(
                         "Answer",
-                        value=answer_text,
+                        value=str(text_value),
                         key=f"ans_text_{answer_id}",
                         placeholder="No answer currently extracted",
                         label_visibility="collapsed",
+                        disabled=is_disabled,
                     )
 
-                if st.button("Save Answer", key=f"save_{answer_id}", type="tertiary"):
-                    save_section_answer(session, answer_id, new_value)
+                answer_by_question[question_id] = ", ".join(new_value) if isinstance(new_value, list) else str(new_value)
+                save_key = answer_id or question_id
+                if can_edit and edit_mode and st.button("Save Answer", key=f"save_{save_key}", type="tertiary"):
+                    save_section_answer(
+                        session,
+                        answer_id,
+                        ", ".join(new_value) if isinstance(new_value, list) else str(new_value),
+                        claim_id=claim_id,
+                        defendant_id=defendant_id,
+                        question_id=question_id,
+                    )
                     st.success("Answer updated.")
                     st.rerun()
                 st.divider()
@@ -280,8 +403,17 @@ def render(session, ctx) -> None:
     st.session_state["review_missing_objects"] = workspace.get("missing_objects", [])
 
     tabs = st.tabs(["MFQ Form", "Records Summary", "MedCron", "Legal Memo", "Enquiries", "AI Assist", "Documents"])
+    edit_key = f"mfq_edit_mode_{claim_id}"
+    if edit_key not in st.session_state:
+        st.session_state[edit_key] = False
 
     with tabs[0]:
+        can_edit = can_edit_claim(
+            ctx.app_role,
+            str(claim.get("STATUS", "")),
+            claim.get("ASSIGNED_TO"),
+            ctx.username,
+        )
         with st.container(key="mfq_header_card"):
             title_col, edit_col = st.columns([7.4, 1.4], vertical_alignment="center")
             with title_col:
@@ -297,11 +429,27 @@ def render(session, ctx) -> None:
                     unsafe_allow_html=True,
                 )
             with edit_col:
-                st.button("✎ Edit", key="mfq_edit_btn", type="secondary", use_container_width=True)
+                edit_label = "Done" if st.session_state[edit_key] else "✎ Edit"
+                if st.button(
+                    edit_label,
+                    key="mfq_edit_btn",
+                    type="secondary",
+                    use_container_width=True,
+                    disabled=not can_edit,
+                ):
+                    st.session_state[edit_key] = not st.session_state[edit_key]
+                    st.rerun()
+                if not can_edit:
+                    st.caption("Read-only")
 
         _render_confidence_panel(workspace)
         _render_synopsis_panel(workspace.get("synopsis", {}))
-        _render_questions(session, workspace.get("sections", pd.DataFrame()))
+        _render_questions(
+            session,
+            workspace.get("sections", pd.DataFrame()),
+            can_edit=can_edit,
+            edit_mode=bool(st.session_state[edit_key]),
+        )
 
     with tabs[1]:
         _render_text_tab(workspace.get("summaries", {}).get("RECORDS_SUMMARY", ""), "No records summary available.")
