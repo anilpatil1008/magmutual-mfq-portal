@@ -122,20 +122,27 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
     )
     defendant_df = _safe_read(
         session,
-        "CLAIM_DEFENDANT",
-        f"SELECT * FROM CLAIM_DEFENDANT WHERE CLAIM_ID = '{claim_id_q}'",
+        "MFQ_CLAIM_DEFENDANTS",
+        f"SELECT * FROM MFQ_CLAIM_DEFENDANTS WHERE CLAIM_ID = '{claim_id_q}'",
         missing_objects,
     )
     summary_df = _safe_read(
         session,
-        "CLAIM_SUMMARY",
-        f"SELECT SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM CLAIM_SUMMARY WHERE CLAIM_ID = '{claim_id_q}' ORDER BY GENERATED_TS DESC",
+        "MFQ_RECORD_SUMMARY",
+        f"""
+        SELECT 'RECORD_SUMMARY' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM MFQ_RECORD_SUMMARY WHERE CLAIM_ID = '{claim_id_q}'
+        UNION ALL
+        SELECT 'MEDCRON' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM MFQ_MEDCRON_SUMMARY WHERE CLAIM_ID = '{claim_id_q}'
+        UNION ALL
+        SELECT 'LEGAL_MEMO' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM MFQ_LEGAL_MEMO WHERE CLAIM_ID = '{claim_id_q}'
+        ORDER BY GENERATED_TS DESC
+        """,
         missing_objects,
     )
     docs_df = _safe_read(
         session,
-        "CLAIM_DOCUMENT",
-        f"SELECT * FROM CLAIM_DOCUMENT WHERE CLAIM_ID = '{claim_id_q}' ORDER BY CREATED_TS DESC",
+        "MFQ_DOCUMENTS",
+        f"SELECT * FROM MFQ_DOCUMENTS WHERE CLAIM_ID = '{claim_id_q}' ORDER BY CREATED_TS DESC",
         missing_objects,
     )
     assignment_df = _safe_read(
@@ -147,8 +154,8 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
 
     enquiries_df = _safe_read(
         session,
-        "CLAIM_ENQUIRY",
-        f"SELECT * FROM CLAIM_ENQUIRY WHERE CLAIM_ID = '{claim_id_q}' ORDER BY CREATED_TS DESC",
+        "MFQ_STATUS_HISTORY",
+        f"SELECT * FROM MFQ_STATUS_HISTORY WHERE CLAIM_ID = '{claim_id_q}' ORDER BY EVENT_TS DESC",
         missing_objects,
     )
 
@@ -194,11 +201,13 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
     used_objects = {
         DETAIL_VIEW,
         FORM_VIEW,
-        "CLAIM_DEFENDANT",
-        "CLAIM_SUMMARY",
-        "CLAIM_DOCUMENT",
+        "MFQ_CLAIM_DEFENDANTS",
+        "MFQ_RECORD_SUMMARY",
+        "MFQ_MEDCRON_SUMMARY",
+        "MFQ_LEGAL_MEMO",
+        "MFQ_DOCUMENTS",
         "MFQ_ASSIGNMENT_QUEUE_VW",
-        "CLAIM_ENQUIRY",
+        "MFQ_STATUS_HISTORY",
         LLM_EVAL_TABLE,
     }
 
@@ -315,16 +324,16 @@ def update_claim_status(session, claim_id: str, new_status: str, assigned_to: st
     claim_id_q = quote_sql(claim_id)
     status_q = quote_sql(new_status)
     session.sql(
-        f"UPDATE CLAIM SET CLAIM_STATUS = '{status_q}', LAST_UPDATED_TS = CURRENT_TIMESTAMP() WHERE CLAIM_ID = '{claim_id_q}'"
+        f"UPDATE MFQ_CLAIMS SET STATUS = '{status_q}', LAST_UPDATED_TS = CURRENT_TIMESTAMP() WHERE CLAIM_ID = '{claim_id_q}'"
     ).collect()
     if assigned_to:
         assigned_q = quote_sql(assigned_to)
         session.sql(
             f"""
-            UPDATE CLAIM_ASSIGNMENT ca
+            UPDATE MFQ_ASSIGNMENTS ca
                SET LAST_UPDATED_TS = CURRENT_TIMESTAMP()
              WHERE CLAIM_ID = '{claim_id_q}'
-               AND ASSIGNED_TO_USER_ID IN (SELECT USER_ID FROM APP_USER WHERE USERNAME = '{assigned_q}')
+               AND ASSIGNED_TO_USER_ID IN (SELECT USER_ID FROM MFQ_USERS WHERE USERNAME = '{assigned_q}')
             """
         ).collect()
 
@@ -335,5 +344,5 @@ def save_section_answer(session, answer_id: str, answer_text: str) -> None:
     if not answer_id_q:
         return
     session.sql(
-        f"UPDATE MFQ_ANSWER SET ANSWER_TEXT = '{answer_q}', LAST_UPDATED_TS = CURRENT_TIMESTAMP() WHERE ANSWER_ID = '{answer_id_q}'"
+        f"UPDATE MFQ_ANSWERS SET ANSWER_TEXT = '{answer_q}', LAST_UPDATED_TS = CURRENT_TIMESTAMP() WHERE ANSWER_ID = '{answer_id_q}'"
     ).collect()
