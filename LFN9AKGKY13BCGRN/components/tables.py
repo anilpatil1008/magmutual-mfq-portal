@@ -152,7 +152,7 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
     for _, row in show_df.iterrows():
         claim_id = row.get("CLAIM_ID", "")
         btn_key = f"{key_prefix}_open_{claim_id}"
-        if st.button(f"Open {claim_id}", key=btn_key):
+        if st.button(f"Review {claim_id}", key=btn_key):
             st.session_state.selected_claim_id = claim_id
             st.session_state.active_page = "Claim Details"
             st.rerun()

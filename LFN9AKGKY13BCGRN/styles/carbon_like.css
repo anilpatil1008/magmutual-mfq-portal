@@ -1463,3 +1463,48 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
     min-width: 160px;
   }
 }
+
+/* Claim review screen */
+.review-breadcrumb {
+  color: #697586;
+  font-size: .9rem;
+  margin-bottom: .6rem;
+}
+.review-header-card {
+  background: #fff;
+  border: 1px solid #dde1e6;
+  border-radius: 14px;
+  box-shadow: 0 2px 10px rgba(16, 24, 40, 0.06);
+  padding: 1.2rem 1.3rem;
+  margin-bottom: .75rem;
+}
+.review-headline { font-size: 2rem; font-weight: 700; color: #102a43; }
+.review-vs { font-size: 1.3rem; color: #556; margin: 0 .3rem; }
+.review-badges { display: flex; gap: .5rem; margin: .4rem 0 .8rem; }
+.review-pill { font-size: .78rem; padding: .2rem .6rem; border-radius: 999px; border: 1px solid #d0d7e2; }
+.review-status { background: #edf5ff; color: #1243a7; }
+.review-priority { background: #fff1db; color: #8a4b00; }
+.review-meta-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: .8rem; }
+.review-meta-label { text-transform: uppercase; letter-spacing: .05em; font-size: .7rem; color: #667085; margin-bottom: .15rem; }
+
+.st-key-review_action_bar button[kind="primary"] { background: #0f3d8f; color: #fff; border-radius: 8px; }
+.st-key-review_action_bar [data-testid="column"]:nth-child(2) button[kind="primary"] { background: #16a34a; border-color: #16a34a; }
+
+.overall-confidence { text-align: right; color: #344054; font-size: .86rem; }
+.overall-confidence span { font-size: 1.8rem; font-weight: 700; color: #039855; margin-left: .45rem; }
+.review-subtle { color: #667085; font-size: .88rem; margin: .2rem 0 .6rem; }
+.section-confidence-row { display: flex; justify-content: space-between; margin-top: .45rem; font-size: .88rem; }
+.section-confidence-title { color: #344054; }
+.section-confidence-score { font-weight: 700; }
+.tone-high { color: #039855; }
+.tone-medium { color: #b54708; }
+.tone-low { color: #b42318; }
+.tone-na { color: #667085; }
+.confidence-chip {
+  display: inline-block;
+  font-size: .74rem;
+  border-radius: 999px;
+  padding: .1rem .5rem;
+  border: 1px solid #d0d5dd;
+  margin-bottom: .4rem;
+}
