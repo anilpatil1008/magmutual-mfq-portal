@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from html import escape
+from typing import Any
 
+import pandas as pd
 import streamlit as st
 
 from components.badges import render_legend
@@ -9,6 +11,63 @@ from components.cards import render_kpi_cards
 from components.tables import render_recent_claims_table
 from services.claim_service import get_claims_queue
 from services.dashboard_service import get_dashboard_metrics
+
+
+def _safe_series(df: pd.DataFrame, column: str) -> pd.Series:
+    if column not in df.columns:
+        return pd.Series([], dtype="object")
+    return df[column]
+
+
+def _build_focus_items(queue: pd.DataFrame) -> list[dict[str, Any]]:
+    if queue.empty:
+        return [
+            {"label": "High Priority", "value": 0, "tone": "warning"},
+            {"label": "Unassigned", "value": 0, "tone": "neutral"},
+            {"label": "Pending Review", "value": 0, "tone": "info"},
+        ]
+
+    priority = _safe_series(queue, "PRIORITY").astype(str).str.strip().str.lower()
+    status = _safe_series(queue, "STATUS").astype(str).str.strip().str.lower()
+    assigned = _safe_series(queue, "ASSIGNED_TO").astype(str).str.strip().str.lower()
+
+    high_priority = int(priority.isin(["critical", "high"]).sum())
+    unassigned = int(assigned.isin(["", "none", "nan", "unassigned", "tbd"]).sum())
+    pending_review = int(status.isin(["assigned", "mfq generated", "pending"]).sum())
+
+    return [
+        {"label": "High Priority", "value": high_priority, "tone": "warning"},
+        {"label": "Unassigned", "value": unassigned, "tone": "neutral"},
+        {"label": "Pending Review", "value": pending_review, "tone": "info"},
+    ]
+
+
+def _render_focus_strip(items: list[dict[str, Any]]) -> None:
+    cards = []
+    for item in items:
+        label = escape(str(item.get("label", "Metric")))
+        value = escape(str(item.get("value", 0)))
+        tone = escape(str(item.get("tone", "neutral")))
+        cards.append(
+            "".join(
+                [
+                    f"<article class='mm-focus-item tone-{tone}'>",
+                    f"<div class='mm-focus-value'>{value}</div>",
+                    f"<div class='mm-focus-label'>{label}</div>",
+                    "</article>",
+                ]
+            )
+        )
+
+    st.markdown(
+        f"<section class='mm-focus-strip'>{''.join(cards)}</section>",
+        unsafe_allow_html=True,
+    )
+
+
+def _status_filter_options(queue: pd.DataFrame) -> list[str]:
+    statuses = sorted({str(value).strip() for value in _safe_series(queue, "STATUS") if str(value).strip()})
+    return ["All Statuses", *statuses]
 
 
 def _resolve_user_display_name(ctx) -> str:
@@ -64,6 +123,14 @@ def render(session, ctx) -> None:
     card_key = "dash_recent_claims"
     search = st.session_state.get(f"{card_key}_search", "")
 
+    base_queue = get_claims_queue(session, ctx.app_role, ctx.username, search_text=search)
+    _render_focus_strip(_build_focus_items(base_queue))
+
+    filter_options = _status_filter_options(base_queue)
+    current_filter = st.session_state.get(f"{card_key}_status_filter", "All Statuses")
+    if current_filter not in filter_options:
+        current_filter = "All Statuses"
+
     with st.container(key="recent_claims_card"):
         header_left, header_right = st.columns([4, 3], vertical_alignment="top")
         with header_left:
@@ -106,5 +173,4 @@ def render(session, ctx) -> None:
                     st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
-        queue = get_claims_queue(session, ctx.app_role, ctx.username, search_text=search)
-        render_recent_claims_table(queue.head(20), key_prefix="dash")
+        render_recent_claims_table(filtered_queue.head(20), key_prefix="dash")
