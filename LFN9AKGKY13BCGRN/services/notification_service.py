@@ -39,19 +39,5 @@ def get_user_notifications(session, username: str, limit: int = 10) -> pd.DataFr
 def mark_notification_read(session, notification_id: str) -> None:
     notification_id_q = quote_sql(notification_id)
     session.sql(
-        f"""
-        MERGE INTO NOTIFICATION_READ_STATUS rs
-        USING (
-            SELECT '{notification_id_q}' AS NOTIFICATION_ID, USER_ID
-            FROM NOTIFICATION_EVENT
-            WHERE NOTIFICATION_ID = '{notification_id_q}'
-        ) src
-        ON rs.NOTIFICATION_ID = src.NOTIFICATION_ID
-         AND rs.USER_ID = src.USER_ID
-        WHEN MATCHED THEN
-          UPDATE SET READ_AT = CURRENT_TIMESTAMP()
-        WHEN NOT MATCHED THEN
-          INSERT (READ_STATUS_ID, NOTIFICATION_ID, USER_ID, READ_AT)
-          VALUES (UUID_STRING(), src.NOTIFICATION_ID, src.USER_ID, CURRENT_TIMESTAMP())
-        """
+        f"UPDATE MFQ_NOTIFICATIONS SET IS_READ = TRUE WHERE NOTIFICATION_ID = '{notification_id_q}'"
     ).collect()
