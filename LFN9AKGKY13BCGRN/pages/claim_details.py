@@ -361,6 +361,7 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
     selected_set = {sid for sid in selected_set if sid in all_section_ids}
     st.session_state[selected_section_ids_key] = list(selected_set)
     all_selected = bool(all_section_ids) and len(selected_set) == len(all_section_ids)
+    st.session_state[select_all_key] = all_selected
 
     st.markdown("<div class='assign-modal-section-head'>", unsafe_allow_html=True)
     title_col, count_col = st.columns([4, 1.2], vertical_alignment="center")
@@ -370,7 +371,7 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
         st.markdown(f"<div class='assign-selected-count'>{len(selected_set)} selected</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    select_all_clicked = st.checkbox("Select All", key=select_all_key, value=all_selected)
+    select_all_clicked = st.checkbox("Select All", key=select_all_key)
     if select_all_clicked and len(selected_set) != len(all_section_ids):
         selected_set = set(all_section_ids)
     if not select_all_clicked and len(selected_set) == len(all_section_ids) and all_section_ids:
@@ -392,7 +393,6 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
                 selected_set.discard(item["id"])
 
     st.session_state[selected_section_ids_key] = sorted(selected_set)
-    st.session_state[select_all_key] = bool(all_section_ids) and len(selected_set) == len(all_section_ids)
 
     st.markdown("**Faculty Member**")
     faculty_map = {item["USER_ID"]: item["DISPLAY_NAME"] for item in faculty_options}
