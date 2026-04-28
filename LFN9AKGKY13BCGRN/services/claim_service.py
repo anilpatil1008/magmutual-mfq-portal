@@ -580,3 +580,142 @@ def save_section_answer(
         SELECT {', '.join(insert_values)}
         """
     ).collect()
+
+
+def save_mfq_answer(
+    session,
+    claim_id: str,
+    defendant_id: str | None,
+    question_id: str,
+    answer_value: Any,
+    user_id: str,
+) -> None:
+    if not (claim_id and question_id):
+        return
+
+    cols = _table_columns(session, ANSWERS_TABLE)
+    claim_q = quote_sql(claim_id)
+    question_q = quote_sql(question_id)
+    defendant_q = quote_sql(defendant_id) if defendant_id else ""
+    user_q = quote_sql(user_id)
+
+    if isinstance(answer_value, list):
+        answer_text = ", ".join([str(v) for v in answer_value])
+    elif isinstance(answer_value, dict):
+        answer_text = json.dumps(answer_value)
+    elif answer_value is None:
+        answer_text = ""
+    else:
+        answer_text = str(answer_value)
+    answer_text_q = quote_sql(answer_text)
+    answer_json_q = quote_sql(json.dumps({"value": answer_value}))
+
+    has_defendant = "DEFENDANT_ID" in cols
+    has_answer_json = "ANSWER_JSON" in cols
+    has_status = "STATUS" in cols
+    has_created_ts = "CREATED_TS" in cols
+    has_last_updated = "LAST_UPDATED_TS" in cols
+    has_created_at = "CREATED_AT" in cols
+    has_updated_at = "UPDATED_AT" in cols
+    has_updated_by = "UPDATED_BY" in cols
+    has_user_reviewed = "USER_REVIEWED" in cols
+
+    src_columns = [f"'{claim_q}' AS CLAIM_ID", f"'{question_q}' AS QUESTION_ID", f"'{answer_text_q}' AS ANSWER_TEXT"]
+    if has_defendant and defendant_id:
+        src_columns.append(f"'{defendant_q}' AS DEFENDANT_ID")
+
+    merge_on = "tgt.CLAIM_ID = src.CLAIM_ID AND tgt.QUESTION_ID = src.QUESTION_ID AND tgt.IS_CURRENT = TRUE"
+    if has_defendant and defendant_id:
+        merge_on += " AND tgt.DEFENDANT_ID = src.DEFENDANT_ID"
+
+    update_set = ["tgt.ANSWER_TEXT = src.ANSWER_TEXT"]
+    if has_answer_json:
+        update_set.append(f"tgt.ANSWER_JSON = PARSE_JSON('{answer_json_q}')")
+    if has_status:
+        update_set.append("tgt.STATUS = 'USER_REVIEWED'")
+    if has_user_reviewed:
+        update_set.append("tgt.USER_REVIEWED = TRUE")
+    if has_last_updated:
+        update_set.append("tgt.LAST_UPDATED_TS = CURRENT_TIMESTAMP()")
+    if has_updated_at:
+        update_set.append("tgt.UPDATED_AT = CURRENT_TIMESTAMP()")
+    if has_updated_by:
+        update_set.append(f"tgt.UPDATED_BY = '{user_q}'")
+
+    insert_columns = ["ANSWER_ID", "CLAIM_ID", "QUESTION_ID", "ANSWER_TEXT", "IS_CURRENT"]
+    insert_values = [
+        "CONCAT('ANS-', REPLACE(UUID_STRING(), '-', ''))",
+        "src.CLAIM_ID",
+        "src.QUESTION_ID",
+        "src.ANSWER_TEXT",
+        "TRUE",
+    ]
+    if has_defendant and defendant_id:
+        insert_columns.insert(2, "DEFENDANT_ID")
+        insert_values.insert(2, "src.DEFENDANT_ID")
+    if has_answer_json:
+        insert_columns.append("ANSWER_JSON")
+        insert_values.append(f"PARSE_JSON('{answer_json_q}')")
+    if has_status:
+        insert_columns.append("STATUS")
+        insert_values.append("'USER_REVIEWED'")
+    if has_user_reviewed:
+        insert_columns.append("USER_REVIEWED")
+        insert_values.append("TRUE")
+    if has_created_ts:
+        insert_columns.append("CREATED_TS")
+        insert_values.append("CURRENT_TIMESTAMP()")
+    if has_last_updated:
+        insert_columns.append("LAST_UPDATED_TS")
+        insert_values.append("CURRENT_TIMESTAMP()")
+    if has_created_at:
+        insert_columns.append("CREATED_AT")
+        insert_values.append("CURRENT_TIMESTAMP()")
+    if has_updated_at:
+        insert_columns.append("UPDATED_AT")
+        insert_values.append("CURRENT_TIMESTAMP()")
+    if has_updated_by:
+        insert_columns.append("UPDATED_BY")
+        insert_values.append(f"'{user_q}'")
+
+    session.sql(
+        f"""
+        MERGE INTO {ANSWERS_TABLE} AS tgt
+        USING (
+          SELECT {', '.join(src_columns)}
+        ) AS src
+        ON {merge_on}
+        WHEN MATCHED THEN
+          UPDATE SET {', '.join(update_set)}
+        WHEN NOT MATCHED THEN
+          INSERT ({', '.join(insert_columns)})
+          VALUES ({', '.join(insert_values)})
+        """
+    ).collect()
+
+
+def get_editable_section_ids_for_user(session, claim_id: str, app_role: str, username: str) -> set[str] | None:
+    if app_role in {"Claims Analyst", "Advice Team", "Admin", "Executive"}:
+        return None
+    if app_role != "Medical Faculty":
+        return set()
+
+    claim_q = quote_sql(claim_id)
+    user_q = quote_sql(username)
+    if not (_object_exists(session, "MFQ_ASSIGNMENT_SECTIONS") and _object_exists(session, "MFQ_USERS")):
+        return set()
+
+    df = safe_collect_df(
+        session,
+        f"""
+        SELECT DISTINCT ase.SECTION_ID
+        FROM MFQ_ASSIGNMENT_SECTIONS ase
+        JOIN MFQ_USERS u
+          ON u.USER_ID = ase.ASSIGNED_TO_USER_ID
+        WHERE ase.CLAIM_ID = '{claim_q}'
+          AND UPPER(u.USERNAME) = UPPER('{user_q}')
+        """,
+    )
+    if df.empty:
+        return set()
+    return {str(v) for v in df["SECTION_ID"].dropna().tolist()}
