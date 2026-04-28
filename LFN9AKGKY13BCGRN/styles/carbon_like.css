@@ -1653,6 +1653,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   border: 1px solid #cddaf0;
   border-radius: 12px;
   margin: 0 0 .8rem;
+  width: 100%;
+  max-width: none;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
@@ -1689,6 +1691,9 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .mfq-section-body {
   padding: .15rem .7rem .45rem;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
 }
 
 .mfq-question-card {
@@ -1697,6 +1702,9 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   border-radius: 12px;
   margin: .45rem 0;
   padding: .2rem .55rem;
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
@@ -1722,10 +1730,25 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-weight: 500;
 }
 
+.mfq-question-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: .75rem;
+  width: 100%;
+}
+
+.mfq-question-text {
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+}
+
 .mfq-confidence-badge {
   display: inline-flex;
   justify-content: center;
   min-width: 52px;
+  flex-shrink: 0;
   font-size: .75rem;
   font-weight: 600;
   border-radius: 999px;
@@ -1736,6 +1759,13 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .mfq-answer-wrap {
   margin-top: .35rem;
+  width: 100%;
+}
+
+.mfq-answer-wrap .stTextArea,
+.mfq-answer-wrap .stTextArea > div,
+.mfq-answer-wrap textarea {
+  width: 100%;
 }
 
 .mfq-section-card .stRadio > div,
