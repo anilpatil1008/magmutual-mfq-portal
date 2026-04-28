@@ -383,17 +383,13 @@ def _render_questions(
                 question_text = str(row.get("QUESTION_TEXT", "") or "").strip() or "Question text not available"
                 child_class = " mfq-question-child" if is_child else ""
                 st.markdown(f"<div class='mfq-question-row{child_class}'>", unsafe_allow_html=True)
-                q_col, conf_col = st.columns([8, 1.25], vertical_alignment="center")
-                with q_col:
-                    st.markdown(
-                        f"<div class='mfq-question-title'>{question_order}. {escape(question_text)}</div>",
-                        unsafe_allow_html=True,
-                    )
-                with conf_col:
-                    st.markdown(
-                        f"<span class='mfq-confidence-badge tone-{_tone_for_conf(confidence_score)}'>{_fmt_conf(confidence_score)}</span>",
-                        unsafe_allow_html=True,
-                    )
+                st.markdown(
+                    "<div class='mfq-question-header'>"
+                    f"<div class='mfq-question-title mfq-question-text'>{question_order}. {escape(question_text)}</div>"
+                    f"<span class='mfq-confidence-badge tone-{_tone_for_conf(confidence_score)}'>{_fmt_conf(confidence_score)}</span>"
+                    "</div>",
+                    unsafe_allow_html=True,
+                )
                 if row.get("CONFIDENCE_REASON"):
                     st.caption(str(row.get("CONFIDENCE_REASON")))
 
