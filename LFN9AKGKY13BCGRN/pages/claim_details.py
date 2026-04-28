@@ -7,8 +7,10 @@ import pandas as pd
 import streamlit as st
 
 from services.claim_service import (
+    get_assignable_faculty,
     get_claim_review_workspace,
     get_editable_section_ids_for_user,
+    save_claim_assignment,
     save_mfq_answer,
     update_claim_status,
 )
@@ -70,9 +72,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
         with action_col:
             st.markdown("<div class='review-header-actions claim-header-actions'>", unsafe_allow_html=True)
             if st.button(assign_label, type="primary", use_container_width=True):
-                update_claim_status(session, claim_id, "Assigned", assigned_to=ctx.username)
-                st.success("Claim assigned to faculty queue.")
-                st.rerun()
+                st.session_state[f"open_assign_modal_{claim_id}"] = True
 
             if ctx.app_role in {"Claims Analyst", "Advice Team", "Admin", "Executive"}:
                 if st.button("Approve", type="secondary", use_container_width=True):
@@ -315,6 +315,132 @@ def _normalize_section_three_title(section_id: str, section_name: str) -> str:
     if " - " in fallback:
         fallback = fallback.split(" - ", 1)[1].strip()
     return fallback or "Section III Subsection"
+
+
+def _build_assignable_sections(sections_df: pd.DataFrame) -> list[dict[str, str]]:
+    if sections_df.empty:
+        return []
+    section_rows = (
+        sections_df[["SECTION_ORDER", "SECTION_ID", "SECTION_NAME"]]
+        .dropna(subset=["SECTION_ID"])
+        .drop_duplicates(subset=["SECTION_ID"])
+        .sort_values(["SECTION_ORDER", "SECTION_ID"])
+    )
+    options: list[dict[str, str]] = []
+    for _, row in section_rows.iterrows():
+        section_id = str(row.get("SECTION_ID", "") or "").strip()
+        if not section_id:
+            continue
+        raw_name = str(row.get("SECTION_NAME", "") or "").strip()
+        if _is_section_three_subsection(section_id, raw_name):
+            label = f"Section III: {_normalize_section_three_title(section_id, raw_name)}"
+        else:
+            label = raw_name or section_id
+        options.append({"id": section_id, "label": label})
+    return options
+
+
+@st.dialog("Assign Medical Faculty", width="large")
+def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.DataFrame) -> None:
+    st.markdown("Select the MFQ sections to review and assign a faculty member.")
+    section_options = _build_assignable_sections(sections_df)
+    faculty_options = get_assignable_faculty(session)
+
+    selected_section_ids_key = f"assign_selected_sections_{claim_id}"
+    selected_faculty_key = f"assign_selected_faculty_{claim_id}"
+    select_all_key = f"assign_select_all_{claim_id}"
+    if selected_section_ids_key not in st.session_state:
+        st.session_state[selected_section_ids_key] = []
+    if selected_faculty_key not in st.session_state:
+        st.session_state[selected_faculty_key] = ""
+    if select_all_key not in st.session_state:
+        st.session_state[select_all_key] = False
+
+    all_section_ids = [item["id"] for item in section_options]
+    selected_set = set(st.session_state.get(selected_section_ids_key, []))
+    selected_set = {sid for sid in selected_set if sid in all_section_ids}
+    st.session_state[selected_section_ids_key] = list(selected_set)
+    all_selected = bool(all_section_ids) and len(selected_set) == len(all_section_ids)
+
+    st.markdown("<div class='assign-modal-section-head'>", unsafe_allow_html=True)
+    title_col, count_col = st.columns([4, 1.2], vertical_alignment="center")
+    with title_col:
+        st.markdown("**Sections for Review**")
+    with count_col:
+        st.markdown(f"<div class='assign-selected-count'>{len(selected_set)} selected</div>", unsafe_allow_html=True)
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    select_all_clicked = st.checkbox("Select All", key=select_all_key, value=all_selected)
+    if select_all_clicked and len(selected_set) != len(all_section_ids):
+        selected_set = set(all_section_ids)
+    if not select_all_clicked and len(selected_set) == len(all_section_ids) and all_section_ids:
+        selected_set = set()
+
+    with st.container(border=True, height=260):
+        for item in section_options:
+            checked = item["id"] in selected_set
+            widget_key = f"assign_sec_{claim_id}_{item['id']}"
+            if widget_key not in st.session_state or st.session_state[widget_key] != checked:
+                st.session_state[widget_key] = checked
+            is_checked = st.checkbox(
+                item["label"],
+                key=widget_key,
+            )
+            if is_checked:
+                selected_set.add(item["id"])
+            else:
+                selected_set.discard(item["id"])
+
+    st.session_state[selected_section_ids_key] = sorted(selected_set)
+    st.session_state[select_all_key] = bool(all_section_ids) and len(selected_set) == len(all_section_ids)
+
+    st.markdown("**Faculty Member**")
+    faculty_map = {item["USER_ID"]: item["DISPLAY_NAME"] for item in faculty_options}
+    faculty_ids = list(faculty_map.keys())
+    placeholder = "Select faculty member..."
+    select_options = ["", *faculty_ids]
+    current_faculty = st.session_state.get(selected_faculty_key, "")
+    if current_faculty not in set(select_options):
+        current_faculty = ""
+    chosen_faculty = st.selectbox(
+        "Faculty Member",
+        options=select_options,
+        index=select_options.index(current_faculty),
+        format_func=lambda v: placeholder if not v else faculty_map.get(v, v),
+        key=f"faculty_dropdown_{claim_id}",
+        label_visibility="collapsed",
+    )
+    st.session_state[selected_faculty_key] = chosen_faculty
+
+    selection_count = len(st.session_state[selected_section_ids_key])
+    can_assign = selection_count > 0 and bool(chosen_faculty)
+
+    footer_cols = st.columns([3.2, 1.1, 1.8], vertical_alignment="center")
+    with footer_cols[1]:
+        if st.button("Cancel", key=f"cancel_assign_{claim_id}", use_container_width=True):
+            st.session_state[f"open_assign_modal_{claim_id}"] = False
+            st.rerun()
+    with footer_cols[2]:
+        assign_clicked = st.button(
+            f"Assign Claim ({selection_count} sections)",
+            type="primary",
+            disabled=not can_assign,
+            key=f"confirm_assign_{claim_id}",
+            use_container_width=True,
+        )
+    if assign_clicked:
+        success, message = save_claim_assignment(
+            session=session,
+            claim_id=claim_id,
+            faculty_user_id=chosen_faculty,
+            section_ids=st.session_state[selected_section_ids_key],
+            assigned_by_username=ctx.username,
+        )
+        if success:
+            st.session_state[f"open_assign_modal_{claim_id}"] = False
+            st.success(message)
+            st.rerun()
+        st.error(message)
 
 
 def _render_questions(
@@ -598,6 +724,13 @@ def render(session, ctx) -> None:
         return
 
     _render_header(session, ctx, str(claim_id), claim)
+    if st.session_state.get(f"open_assign_modal_{claim_id}", False):
+        _render_assign_faculty_modal(
+            session=session,
+            ctx=ctx,
+            claim_id=str(claim_id),
+            sections_df=workspace.get("sections", pd.DataFrame()),
+        )
     _render_missing_objects(workspace.get("missing_objects", []))
     st.session_state["review_snowflake_objects"] = workspace.get("used_objects", [])
     st.session_state["review_missing_objects"] = workspace.get("missing_objects", [])
