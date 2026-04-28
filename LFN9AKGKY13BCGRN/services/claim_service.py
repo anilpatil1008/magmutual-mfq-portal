@@ -104,11 +104,6 @@ def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
 
 def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = None) -> pd.DataFrame:
     claim_id_q = quote_sql(claim_id)
-    defendant_filter = ""
-    if defendant_id:
-        defendant_q = quote_sql(defendant_id)
-        defendant_filter = f" AND COALESCE(a.DEFENDANT_ID, qc.DEFENDANT_ID, '{defendant_q}') = '{defendant_q}'"
-
     answer_cols = _table_columns(session, ANSWERS_TABLE)
     question_conf_cols = _table_columns(session, QUESTION_CONFIDENCE_TABLE)
 
@@ -141,9 +136,9 @@ def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = No
           {answer_value_expr} AS ANSWER_VALUE,
           {generated_answer_expr} AS GENERATED_ANSWER,
           {reviewed_answer_expr} AS REVIEWED_ANSWER,
+          a.CONFIDENCE_SCORE,
           a.STATUS AS ANSWER_STATUS,
           a.IS_CURRENT,
-          COALESCE(qc.CONFIDENCE_SCORE, a.CONFIDENCE_SCORE) AS CONFIDENCE_SCORE,
           {qc_level_expr} AS CONFIDENCE_LEVEL,
           {qc_reason_expr} AS CONFIDENCE_REASON
       FROM {SECTIONS_TABLE} s
@@ -161,7 +156,6 @@ def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = No
         AND s.IS_ACTIVE = TRUE
         AND q.IS_ACTIVE = TRUE
         AND q.IS_CURRENT = TRUE
-        {defendant_filter}
       ORDER BY s.DISPLAY_ORDER, q.DISPLAY_ORDER
     """
     return safe_collect_df(session, sql)
