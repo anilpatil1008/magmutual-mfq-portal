@@ -495,6 +495,180 @@ def update_claim_status(session, claim_id: str, new_status: str, assigned_to: st
         ).collect()
 
 
+def get_assignable_faculty(session) -> list[dict[str, str]]:
+    if not _object_exists(session, "MFQ_USERS"):
+        return []
+
+    has_role_tables = _object_exists(session, "MFQ_USER_ROLES") and _object_exists(session, "MFQ_ROLES")
+    if has_role_tables:
+        df = safe_collect_df(
+            session,
+            """
+            SELECT DISTINCT
+              u.USER_ID,
+              u.USERNAME,
+              COALESCE(NULLIF(u.DISPLAY_NAME, ''), u.USERNAME) AS DISPLAY_NAME
+            FROM MFQ_USERS u
+            JOIN MFQ_USER_ROLES ur
+              ON ur.USER_ID = u.USER_ID
+             AND COALESCE(ur.IS_ACTIVE, TRUE) = TRUE
+            JOIN MFQ_ROLES r
+              ON r.ROLE_ID = ur.ROLE_ID
+             AND COALESCE(r.IS_ACTIVE, TRUE) = TRUE
+            WHERE COALESCE(u.IS_ACTIVE, TRUE) = TRUE
+              AND (
+                UPPER(COALESCE(r.ROLE_NAME, '')) = 'MEDICAL FACULTY'
+                OR UPPER(COALESCE(r.ROLE_CODE, '')) IN ('MEDICAL_FACULTY', 'MEDICAL FACULTY')
+              )
+            ORDER BY DISPLAY_NAME
+            """,
+        )
+    else:
+        df = safe_collect_df(
+            session,
+            """
+            SELECT
+              USER_ID,
+              USERNAME,
+              COALESCE(NULLIF(DISPLAY_NAME, ''), USERNAME) AS DISPLAY_NAME
+            FROM MFQ_USERS
+            WHERE COALESCE(IS_ACTIVE, TRUE) = TRUE
+            ORDER BY DISPLAY_NAME
+            """,
+        )
+
+    if df.empty:
+        return []
+    return [
+        {
+            "USER_ID": str(row.get("USER_ID", "") or ""),
+            "USERNAME": str(row.get("USERNAME", "") or ""),
+            "DISPLAY_NAME": str(row.get("DISPLAY_NAME", "") or ""),
+        }
+        for _, row in df.iterrows()
+        if str(row.get("USER_ID", "") or "").strip()
+    ]
+
+
+def _save_assignment_placeholder(*, claim_id: str, faculty_user_id: str, section_ids: list[str], assigned_by_username: str) -> None:
+    # TODO: Replace this placeholder with the production assignment API/repository call
+    # when backend assignment persistence service is available in this environment.
+    _ = (claim_id, faculty_user_id, section_ids, assigned_by_username)
+
+
+def save_claim_assignment(
+    session,
+    claim_id: str,
+    faculty_user_id: str,
+    section_ids: list[str],
+    assigned_by_username: str,
+) -> tuple[bool, str]:
+    assignment_tables_exist = _object_exists(session, "MFQ_ASSIGNMENTS") and _object_exists(session, "MFQ_ASSIGNMENT_SECTIONS")
+    if not assignment_tables_exist:
+        _save_assignment_placeholder(
+            claim_id=claim_id,
+            faculty_user_id=faculty_user_id,
+            section_ids=section_ids,
+            assigned_by_username=assigned_by_username,
+        )
+        return False, "Assignment persistence tables are unavailable in this environment."
+
+    claim_q = quote_sql(claim_id)
+    faculty_user_id_q = quote_sql(faculty_user_id)
+    assigned_by_q = quote_sql(assigned_by_username)
+    section_ids_q = [quote_sql(str(section_id)) for section_id in section_ids]
+
+    assigned_user_df = safe_collect_df(
+        session,
+        f"""
+        SELECT USERNAME
+        FROM MFQ_USERS
+        WHERE USER_ID = '{faculty_user_id_q}'
+        LIMIT 1
+        """,
+    )
+    assigned_username = (
+        str(assigned_user_df.iloc[0].get("USERNAME", "") or "").strip()
+        if not assigned_user_df.empty
+        else ""
+    )
+    assigned_username_q = quote_sql(assigned_username) if assigned_username else ""
+
+    session.sql(
+        f"""
+        INSERT INTO MFQ_ASSIGNMENTS (
+          ASSIGNMENT_ID,
+          CLAIM_ID,
+          ASSIGNED_TO_USER_ID,
+          ASSIGNED_BY_USER_ID,
+          ASSIGNMENT_STATUS,
+          PRIORITY,
+          ASSIGNED_AT,
+          LAST_UPDATED_TS
+        )
+        SELECT
+          CONCAT('ASG-', REPLACE(UUID_STRING(), '-', '')),
+          '{claim_q}',
+          '{faculty_user_id_q}',
+          COALESCE((SELECT USER_ID FROM MFQ_USERS WHERE UPPER(USERNAME) = UPPER('{assigned_by_q}') LIMIT 1), '{faculty_user_id_q}'),
+          'ASSIGNED',
+          'Medium',
+          CURRENT_TIMESTAMP(),
+          CURRENT_TIMESTAMP()
+        """
+    ).collect()
+
+    assignment_id_df = safe_collect_df(
+        session,
+        f"""
+        SELECT ASSIGNMENT_ID
+        FROM MFQ_ASSIGNMENTS
+        WHERE CLAIM_ID = '{claim_q}'
+          AND ASSIGNED_TO_USER_ID = '{faculty_user_id_q}'
+        ORDER BY ASSIGNED_AT DESC, LAST_UPDATED_TS DESC
+        LIMIT 1
+        """,
+    )
+    if assignment_id_df.empty:
+        return False, "Could not resolve assignment identifier after save."
+
+    assignment_id_q = quote_sql(str(assignment_id_df.iloc[0]["ASSIGNMENT_ID"]))
+    values_sql = ",\n          ".join(
+        [
+            f"(CONCAT('ASSEC-', REPLACE(UUID_STRING(), '-', '')), '{assignment_id_q}', '{claim_q}', '{section_id_q}', '{faculty_user_id_q}', 'ASSIGNED', CURRENT_TIMESTAMP())"
+            for section_id_q in section_ids_q
+        ]
+    )
+    session.sql(
+        f"""
+        INSERT INTO MFQ_ASSIGNMENT_SECTIONS (
+          ASSIGNMENT_SECTION_ID,
+          ASSIGNMENT_ID,
+          CLAIM_ID,
+          SECTION_ID,
+          ASSIGNED_TO_USER_ID,
+          ASSIGNMENT_STATUS,
+          ASSIGNED_AT
+        )
+        SELECT * FROM VALUES
+          {values_sql}
+        """
+    ).collect()
+
+    claim_cols = _table_columns(session, "MFQ_CLAIMS")
+    status_update_sql = f"UPDATE MFQ_CLAIMS SET STATUS = 'Assigned'"
+    if "LAST_UPDATED_TS" in claim_cols:
+        status_update_sql += ", LAST_UPDATED_TS = CURRENT_TIMESTAMP()"
+    if assigned_username_q and "ASSIGNED_TO" in claim_cols:
+        status_update_sql = (
+            f"{status_update_sql}, ASSIGNED_TO = '{assigned_username_q}'"
+        )
+    status_update_sql += f" WHERE CLAIM_ID = '{claim_q}'"
+    session.sql(status_update_sql).collect()
+
+    return True, "Claim assigned successfully."
+
+
 def save_section_answer(
     session,
     answer_id: str,
