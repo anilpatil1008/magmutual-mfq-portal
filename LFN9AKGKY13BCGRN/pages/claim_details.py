@@ -254,8 +254,8 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
     for _, seed_row in working_df.iterrows():
         answer_by_question[str(seed_row.get("QUESTION_ID", "") or "")] = str(seed_row.get("DISPLAY_ANSWER", "") or "")
 
-    grouped = working_df.groupby(["SECTION_ORDER", "SECTION_NAME"], dropna=False)
-    for (_, section_name), section_df in grouped:
+    grouped = working_df.groupby(["SECTION_ORDER", "SECTION_ID", "SECTION_NAME"], dropna=False)
+    for (_, section_id, section_name), section_df in grouped:
         with st.expander(str(section_name), expanded=False):
             ordered_section_df = section_df.sort_values("QUESTION_ORDER")
             rows = list(ordered_section_df.iterrows())
@@ -287,7 +287,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                 answer_id = str(row.get("ANSWER_ID", "") or "")
                 claim_id = str(row.get("CLAIM_ID", "") or "")
                 defendant_id = str(row.get("DEFENDANT_ID", "") or "")
-                section_id = str(row.get("SECTION_ID", "") or row.get("SECTION_KEY", "") or "")
+                section_id = str(row.get("SECTION_ID", "") or section_id or row.get("SECTION_KEY", "") or "")
                 answer_text = row.get("DISPLAY_ANSWER", "")
                 allowed_values = row.get("ALLOWED_VALUES_LIST", []) or []
                 answer_type = str(row.get("ANSWER_TYPE", "")).upper()
@@ -305,6 +305,10 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                     f"<span class='confidence-chip tone-{_tone_for_conf(row.get('CONFIDENCE_SCORE'))}'>Confidence {_fmt_conf(row.get('CONFIDENCE_SCORE'))}</span>",
                     unsafe_allow_html=True,
                 )
+                if row.get('CONFIDENCE_LEVEL'):
+                    st.caption(f"Confidence level: {row.get('CONFIDENCE_LEVEL')}")
+                if row.get('CONFIDENCE_REASON'):
+                    st.caption(str(row.get('CONFIDENCE_REASON')))
 
                 text_value = _normalize_answer_value(answer_text)
                 is_disabled = (not (can_edit and edit_mode)) or (not visibility_match)
@@ -366,11 +370,10 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         selected_idx = 0
                     else:
                         selected_idx = options.index(current_value)
-                    new_value = st.radio(
+                    new_value = st.selectbox(
                         "Answer",
                         options=options,
                         index=selected_idx,
-                        horizontal=True,
                         key=_safe_widget_key("ans_rating", claim_id, section_id, row, idx),
                         label_visibility="collapsed",
                         disabled=is_disabled,
@@ -383,11 +386,10 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         selected_idx = 0
                     else:
                         selected_idx = options.index(current_value)
-                    new_value = st.radio(
+                    new_value = st.selectbox(
                         "Answer",
                         options=options,
                         index=selected_idx,
-                        horizontal=True,
                         key=_safe_widget_key("ans_rating", claim_id, section_id, row, idx),
                         label_visibility="collapsed",
                         disabled=is_disabled,
