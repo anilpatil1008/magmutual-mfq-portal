@@ -364,14 +364,10 @@ def _render_questions(
                 if parent_id not in known_parent_ids:
                     root_questions.extend(children)
 
-            render_order: list[tuple[pd.Series, bool]] = []
-            for parent in root_questions:
-                render_order.append((parent, False))
-                parent_id = str(parent.get("QUESTION_ID", "") or "").strip()
-                for child in children_by_parent.get(parent_id, []):
-                    render_order.append((child, True))
+            question_index = 0
 
-            for idx, (row, is_child) in enumerate(render_order):
+            def render_question_input(row: pd.Series, is_child: bool, idx: int) -> None:
+                nonlocal question_index
                 question_id = str(row.get("QUESTION_ID", ""))
                 answer_id = str(row.get("ANSWER_ID", "") or "")
                 claim_id = str(row.get("CLAIM_ID", "") or "")
@@ -538,6 +534,15 @@ def _render_questions(
                         "editable": is_editable,
                     }
                 )
+                question_index += 1
+
+            for parent in root_questions:
+                st.markdown("<div class='mfq-question-card'>", unsafe_allow_html=True)
+                render_question_input(parent, is_child=False, idx=question_index)
+                parent_id = str(parent.get("QUESTION_ID", "") or "").strip()
+                for child in children_by_parent.get(parent_id, []):
+                    render_question_input(child, is_child=True, idx=question_index)
+                st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
     return rendered_questions

@@ -1691,17 +1691,28 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   padding: .15rem .7rem .45rem;
 }
 
+.mfq-question-card {
+  background: #ffffff;
+  border: 1px solid #dbe3ef;
+  border-radius: 12px;
+  margin: .45rem 0;
+  padding: .2rem .55rem;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
 .mfq-question-row {
   padding: .5rem .2rem .45rem;
   border-bottom: 1px solid #edf2f8;
 }
 
-.mfq-question-row:last-child {
+.mfq-question-card .mfq-question-row:last-child {
   border-bottom: 0;
 }
 
 .mfq-question-child {
-  margin-left: 1rem;
+  margin-left: .85rem;
+  padding-left: .55rem;
+  border-left: 2px solid #edf2f8;
 }
 
 .mfq-question-title {
