@@ -1697,7 +1697,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   background: #eaf5ee;
   border: 1px solid #a7f0ba;
   border-radius: 10px;
-  padding: .9rem;
+  padding: .8rem;
   margin-bottom: .8rem;
 }
 
@@ -1716,7 +1716,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .confidence-title {
-  font-size: 1.35rem;
+  font-size: 1rem;
   color: #0f1728;
   font-weight: 600;
 }
@@ -1750,7 +1750,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .confidence-overall strong {
-  font-size: 1.95rem;
+  font-size: 1.6rem;
   color: #027a48;
   margin-left: .35rem;
 }
@@ -1783,12 +1783,16 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   margin: .65rem 0 .35rem;
 }
 
+.confidence-grid [data-testid="column"] {
+  min-width: 0;
+}
+
 .confidence-row {
-  margin-bottom: .5rem;
-  background: #fff;
-  border: 1px solid #dde1e6;
-  border-radius: 7px;
-  padding: .45rem .5rem;
+  margin-bottom: .45rem;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid #d1e7d8;
+  border-radius: 6px;
+  padding: .38rem .45rem;
 }
 
 .confidence-row-top {
@@ -1821,10 +1825,20 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .confidence-progress > span.tone-na { background: #98a2b3; }
 
 .confidence-note {
-  margin-top: .2rem;
+  margin-top: .35rem;
   border-top: 1px solid #c9ead6;
-  padding-top: .55rem;
+  padding-top: .5rem;
   color: #b54708;
   font-size: .86rem;
   font-weight: 600;
+}
+
+.confidence-empty-state {
+  margin-top: .65rem;
+  border: 1px dashed #98a2b3;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475467;
+  font-size: .88rem;
+  padding: .6rem .7rem;
 }

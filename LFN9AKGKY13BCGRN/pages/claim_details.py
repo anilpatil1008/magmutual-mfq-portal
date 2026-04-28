@@ -107,10 +107,6 @@ def _render_confidence_panel(workspace: dict) -> None:
     explanation = str(summary.get("explanation", ""))
     section_conf = workspace.get("section_confidence", pd.DataFrame())
 
-    if overall is None and section_conf.empty:
-        st.info("AI confidence data is not available for this claim.")
-        return
-
     badge_tone = "high" if recommendation == "No Faculty Review Needed" else "medium"
     st.markdown(
         (
@@ -130,16 +126,26 @@ def _render_confidence_panel(workspace: dict) -> None:
             f"{escape(recommendation)}</div>"
             f"<div class='confidence-message-sub'>{escape(explanation)}</div>"
             "</div>"
-            "</section>"
         ),
         unsafe_allow_html=True,
     )
 
+    if overall is None and section_conf.empty:
+        st.markdown(
+            "<div class='confidence-empty-state'>AI confidence data is not available for this claim.</div></section>",
+            unsafe_allow_html=True,
+        )
+        return
+
     if section_conf.empty:
-        st.info("Section confidence scores are unavailable for this claim.")
+        st.markdown(
+            "<div class='confidence-empty-state'>Section confidence scores are unavailable for this claim.</div></section>",
+            unsafe_allow_html=True,
+        )
         return
 
     st.markdown("<div class='confidence-grid-title'>SECTION-WISE CONFIDENCE</div>", unsafe_allow_html=True)
+    st.markdown("<div class='confidence-grid'>", unsafe_allow_html=True)
     left, right = st.columns(2, gap="small")
     moderate_or_low_sections: list[str] = []
     ordered_rows = list(section_conf.iterrows())
@@ -168,11 +174,12 @@ def _render_confidence_panel(workspace: dict) -> None:
                     ),
                     unsafe_allow_html=True,
                 )
+    st.markdown("</div>", unsafe_allow_html=True)
 
     note = "All sections are high confidence."
     if moderate_or_low_sections:
         note = f"Moderate confidence: {', '.join(moderate_or_low_sections)}"
-    st.markdown(f"<div class='confidence-note'>● {escape(note)}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='confidence-note'>● {escape(note)}</div></section>", unsafe_allow_html=True)
 
 
 def _render_synopsis_panel(synopsis: dict) -> None:
