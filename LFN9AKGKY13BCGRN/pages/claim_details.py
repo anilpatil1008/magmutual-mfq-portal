@@ -323,7 +323,11 @@ def _render_questions(
     grouped = list(working_df.groupby(["SECTION_ORDER", "SECTION_ID", "SECTION_NAME"], dropna=False))
     for section_idx, ((_, section_id, section_name), section_df) in enumerate(grouped):
         section_name_value = str(section_name or "Untitled Section")
-        section_confidence_raw = section_df["SECTION_CONFIDENCE"].dropna()
+        section_confidence_raw = (
+            pd.to_numeric(section_df.get("SECTION_CONFIDENCE"), errors="coerce").dropna()
+            if "SECTION_CONFIDENCE" in section_df.columns
+            else pd.Series(dtype="float64")
+        )
         section_confidence: float | None = None
         if not section_confidence_raw.empty:
             section_confidence = float(section_confidence_raw.iloc[0])
