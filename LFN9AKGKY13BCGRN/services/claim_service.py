@@ -46,6 +46,24 @@ def _object_exists(session, object_name: str) -> bool:
     return not safe_collect_df(session, sql).empty
 
 
+def _table_columns(session, table_name: str) -> set[str]:
+    if not _object_exists(session, table_name):
+        return set()
+    table_q = quote_sql(table_name.upper())
+    cols_df = safe_collect_df(
+        session,
+        f"""
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = CURRENT_SCHEMA()
+          AND TABLE_NAME = '{table_q}'
+        """,
+    )
+    if cols_df.empty:
+        return set()
+    return {str(col).upper() for col in cols_df["COLUMN_NAME"].dropna().tolist()}
+
+
 def _safe_read(session, object_name: str, sql: str, missing_objects: list[str]) -> pd.DataFrame:
     if not _object_exists(session, object_name):
         missing_objects.append(object_name)
@@ -84,46 +102,66 @@ def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
     return df.iloc[0].to_dict()
 
 
-def get_claim_sections(session, claim_id: str) -> pd.DataFrame:
+def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = None) -> pd.DataFrame:
     claim_id_q = quote_sql(claim_id)
+    defendant_filter = ""
+    if defendant_id:
+        defendant_q = quote_sql(defendant_id)
+        defendant_filter = f" AND COALESCE(a.DEFENDANT_ID, qc.DEFENDANT_ID, '{defendant_q}') = '{defendant_q}'"
+
+    answer_cols = _table_columns(session, ANSWERS_TABLE)
+    question_conf_cols = _table_columns(session, QUESTION_CONFIDENCE_TABLE)
+
+    answer_value_expr = "a.ANSWER_VALUE" if "ANSWER_VALUE" in answer_cols else "NULL"
+    generated_answer_expr = "a.GENERATED_ANSWER" if "GENERATED_ANSWER" in answer_cols else "NULL"
+    reviewed_answer_expr = "a.REVIEWED_ANSWER" if "REVIEWED_ANSWER" in answer_cols else "NULL"
+
+    qc_level_expr = "qc.CONFIDENCE_LEVEL" if "CONFIDENCE_LEVEL" in question_conf_cols else "NULL"
+    qc_reason_expr = "qc.CONFIDENCE_REASON" if "CONFIDENCE_REASON" in question_conf_cols else "NULL"
+
     sql = f"""
       SELECT
-        s.SECTION_ID,
-        s.SECTION_KEY,
-        s.SECTION_NAME,
-        s.DISPLAY_ORDER AS SECTION_ORDER,
-        q.QUESTION_ID,
-        q.QUESTION_KEY,
-        q.PARENT_QUESTION_ID,
-        q.DISPLAY_ORDER AS QUESTION_ORDER,
-        q.QUESTION_TEXT,
-        q.ANSWER_TYPE,
-        q.ALLOWED_VALUES,
-        q.VISIBILITY_RULE,
-        a.ANSWER_ID,
-        a.ANSWER_TEXT,
-        a.ANSWER_JSON,
-        a.CLAIM_ID,
-        a.DEFENDANT_ID,
-        a.CONFIDENCE_SCORE AS ANSWER_CONFIDENCE_SCORE,
-        qc.CONFIDENCE_SCORE AS QUESTION_CONFIDENCE_SCORE,
-        COALESCE(qc.CONFIDENCE_SCORE, a.CONFIDENCE_SCORE) AS CONFIDENCE_SCORE,
-        a.STATUS AS ANSWER_STATUS
+          s.SECTION_ID,
+          s.SECTION_KEY,
+          s.SECTION_NAME,
+          s.DISPLAY_ORDER AS SECTION_ORDER,
+          q.QUESTION_ID,
+          q.QUESTION_KEY,
+          q.PARENT_QUESTION_ID,
+          q.DISPLAY_ORDER AS QUESTION_ORDER,
+          q.QUESTION_TEXT,
+          q.ANSWER_TYPE,
+          q.ALLOWED_VALUES,
+          q.VISIBILITY_RULE,
+          a.ANSWER_ID,
+          a.CLAIM_ID,
+          a.DEFENDANT_ID,
+          a.ANSWER_TEXT,
+          a.ANSWER_JSON,
+          {answer_value_expr} AS ANSWER_VALUE,
+          {generated_answer_expr} AS GENERATED_ANSWER,
+          {reviewed_answer_expr} AS REVIEWED_ANSWER,
+          a.STATUS AS ANSWER_STATUS,
+          a.IS_CURRENT,
+          COALESCE(qc.CONFIDENCE_SCORE, a.CONFIDENCE_SCORE) AS CONFIDENCE_SCORE,
+          {qc_level_expr} AS CONFIDENCE_LEVEL,
+          {qc_reason_expr} AS CONFIDENCE_REASON
       FROM {SECTIONS_TABLE} s
       JOIN {QUESTIONS_TABLE} q
-        ON q.SECTION_ID = s.SECTION_ID
-       AND q.FORM_KEY = s.FORM_KEY
+          ON q.SECTION_ID = s.SECTION_ID
+         AND q.FORM_KEY = s.FORM_KEY
       LEFT JOIN {ANSWERS_TABLE} a
-        ON a.QUESTION_ID = q.QUESTION_ID
-       AND a.CLAIM_ID = '{claim_id_q}'
-       AND a.IS_CURRENT = TRUE
+          ON a.QUESTION_ID = q.QUESTION_ID
+         AND a.CLAIM_ID = '{claim_id_q}'
+         AND a.IS_CURRENT = TRUE
       LEFT JOIN {QUESTION_CONFIDENCE_TABLE} qc
-        ON qc.QUESTION_ID = q.QUESTION_ID
-       AND qc.CLAIM_ID = '{claim_id_q}'
+          ON qc.QUESTION_ID = q.QUESTION_ID
+         AND qc.CLAIM_ID = '{claim_id_q}'
       WHERE s.FORM_KEY = 'MFQ_V1'
         AND s.IS_ACTIVE = TRUE
         AND q.IS_ACTIVE = TRUE
         AND q.IS_CURRENT = TRUE
+        {defendant_filter}
       ORDER BY s.DISPLAY_ORDER, q.DISPLAY_ORDER
     """
     return safe_collect_df(session, sql)
@@ -145,10 +183,21 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
         f"SELECT * FROM {DETAIL_VIEW} WHERE CLAIM_ID = '{claim_id_q}'",
         missing_objects,
     )
+    defendant_df = _safe_read(
+        session,
+        "MFQ_CLAIM_DEFENDANTS",
+        f"SELECT * FROM MFQ_CLAIM_DEFENDANTS WHERE CLAIM_ID = '{claim_id_q}'",
+        missing_objects,
+    )
+
+    detail = detail_df.iloc[0].to_dict() if not detail_df.empty else None
+    synopsis = defendant_df.iloc[0].to_dict() if not defendant_df.empty else {}
+    defendant_id = synopsis.get("DEFENDANT_ID") or (detail.get("DEFENDANT_ID") if detail else None)
+
     sections_df = pd.DataFrame()
     form_objects = [SECTIONS_TABLE, QUESTIONS_TABLE, ANSWERS_TABLE, QUESTION_CONFIDENCE_TABLE]
     if all(_object_exists(session, obj) for obj in form_objects):
-        sections_df = get_claim_sections(session, claim_id)
+        sections_df = get_mfq_form_workspace(session, claim_id, defendant_id=str(defendant_id) if defendant_id else None)
     else:
         sections_df = _safe_read(
             session,
@@ -161,12 +210,7 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
             """,
             missing_objects,
         )
-    defendant_df = _safe_read(
-        session,
-        "MFQ_CLAIM_DEFENDANTS",
-        f"SELECT * FROM MFQ_CLAIM_DEFENDANTS WHERE CLAIM_ID = '{claim_id_q}'",
-        missing_objects,
-    )
+
     summary_df = _safe_read(
         session,
         "MFQ_RECORD_SUMMARY",
@@ -200,8 +244,6 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
         missing_objects,
     )
 
-    detail = detail_df.iloc[0].to_dict() if not detail_df.empty else None
-    synopsis = defendant_df.iloc[0].to_dict() if not defendant_df.empty else {}
     confidence_summary = get_claim_confidence_summary(
         session=session,
         claim_id=claim_id,
@@ -220,6 +262,7 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
                 summary_map[summary_type] = str(row.get("SUMMARY_TEXT", "") or "")
 
     if not sections_df.empty and "ALLOWED_VALUES" in sections_df.columns:
+
         def _normalize_allowed(raw: Any) -> list[str]:
             if raw is None:
                 return []
@@ -242,7 +285,7 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
         if "ALLOWED_VALUES_LIST" not in sections_df.columns:
             sections_df = sections_df.copy()
             sections_df["ALLOWED_VALUES_LIST"] = [[] for _ in range(len(sections_df))]
-        sections_df["DISPLAY_ANSWER"] = sections_df.apply(_pick_display_answer, axis=1)
+        sections_df["DISPLAY_ANSWER"] = sections_df.apply(get_answer_value, axis=1)
 
     used_objects = {
         DETAIL_VIEW,
@@ -252,6 +295,8 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
         ANSWERS_TABLE,
         QUESTION_CONFIDENCE_TABLE,
         SECTION_CONFIDENCE_TABLE,
+        "MFQ_CLAIMS_VW",
+        "MFQ_CLAIM_DETAIL_VW",
         "MFQ_CLAIM_DEFENDANTS",
         "MFQ_RECORD_SUMMARY",
         "MFQ_MEDCRON_SUMMARY",
@@ -310,7 +355,7 @@ def _parse_json_like(raw: Any) -> Any:
         return text
 
 
-def _extract_value_from_answer_json(raw: Any) -> Any:
+def extract_answer_json_value(raw: Any) -> Any:
     parsed = _parse_json_like(raw)
     if parsed is None:
         return None
@@ -323,32 +368,23 @@ def _extract_value_from_answer_json(raw: Any) -> Any:
     return parsed
 
 
-def _pick_display_answer(row: pd.Series) -> str:
-    answer_json_value = _extract_value_from_answer_json(row.get("ANSWER_JSON"))
-    prioritized_values = [
-        row.get("REVIEWED_ANSWER"),
-        row.get("ANSWER_VALUE"),
-        row.get("ANSWER_TEXT"),
-        answer_json_value,
-        row.get("GENERATED_ANSWER"),
-    ]
-    for raw_value in prioritized_values:
-        if raw_value is None or (isinstance(raw_value, float) and pd.isna(raw_value)):
-            continue
-        parsed = _parse_json_like(raw_value)
-        if parsed is None:
-            continue
-        if isinstance(parsed, list):
-            joined = ", ".join([str(v).strip() for v in parsed if str(v).strip()])
-            if joined:
-                return joined
-            continue
-        if isinstance(parsed, dict):
-            return json.dumps(parsed)
-        text = str(parsed).strip()
-        if text:
-            return text
-    return ""
+def get_answer_value(row: pd.Series | dict[str, Any]) -> str:
+    value = (
+        row.get("REVIEWED_ANSWER")
+        or row.get("ANSWER_VALUE")
+        or row.get("ANSWER_TEXT")
+        or extract_answer_json_value(row.get("ANSWER_JSON"))
+        or row.get("GENERATED_ANSWER")
+        or ""
+    )
+    parsed = _parse_json_like(value)
+    if parsed is None:
+        return ""
+    if isinstance(parsed, list):
+        return ", ".join([str(v).strip() for v in parsed if str(v).strip()])
+    if isinstance(parsed, dict):
+        return json.dumps(parsed)
+    return str(parsed).strip()
 
 
 def get_claim_section_confidence(session, claim_id: str, sections_df: pd.DataFrame) -> pd.DataFrame:
@@ -473,48 +509,80 @@ def save_section_answer(
     defendant_id: str | None = None,
     question_id: str | None = None,
 ) -> None:
-    answer_q = quote_sql(answer_text)
-    answer_id_q = quote_sql(answer_id)
-    if answer_id_q:
-        session.sql(
-            f"UPDATE MFQ_ANSWERS SET ANSWER_TEXT = '{answer_q}', LAST_UPDATED_TS = CURRENT_TIMESTAMP() WHERE ANSWER_ID = '{answer_id_q}'"
-        ).collect()
+    if not (claim_id and question_id):
         return
 
-    if not (claim_id and defendant_id and question_id):
-        return
-
+    cols = _table_columns(session, ANSWERS_TABLE)
     claim_q = quote_sql(claim_id)
-    defendant_q = quote_sql(defendant_id)
     question_q = quote_sql(question_id)
+    defendant_q = quote_sql(defendant_id) if defendant_id else ""
+    answer_q = quote_sql(answer_text)
+
+    has_last_updated = "LAST_UPDATED_TS" in cols
+    has_updated_at = "UPDATED_AT" in cols
+    has_updated_by = "UPDATED_BY" in cols
+    has_created_ts = "CREATED_TS" in cols
+    has_created_at = "CREATED_AT" in cols
+
+    timestamp_updates = []
+    if has_last_updated:
+        timestamp_updates.append("LAST_UPDATED_TS = CURRENT_TIMESTAMP()")
+    if has_updated_at:
+        timestamp_updates.append("UPDATED_AT = CURRENT_TIMESTAMP()")
+    if has_updated_by:
+        timestamp_updates.append("UPDATED_BY = CURRENT_USER()")
+    if not timestamp_updates:
+        timestamp_updates.append("IS_CURRENT = IS_CURRENT")
+
+    defendant_match = ""
+    defendant_insert_col = ""
+    defendant_insert_val = ""
+    if "DEFENDANT_ID" in cols and defendant_id:
+        defendant_match = f" AND DEFENDANT_ID = '{defendant_q}'"
+        defendant_insert_col = ", DEFENDANT_ID"
+        defendant_insert_val = f", '{defendant_q}'"
+
     session.sql(
         f"""
-        MERGE INTO MFQ_ANSWERS tgt
-        USING (
-          SELECT
-            '{claim_q}' AS CLAIM_ID,
-            '{defendant_q}' AS DEFENDANT_ID,
-            '{question_q}' AS QUESTION_ID,
-            '{answer_q}' AS ANSWER_TEXT
-        ) src
-          ON tgt.CLAIM_ID = src.CLAIM_ID
-         AND tgt.DEFENDANT_ID = src.DEFENDANT_ID
-         AND tgt.QUESTION_ID = src.QUESTION_ID
-         AND tgt.IS_CURRENT = TRUE
-        WHEN MATCHED THEN
-          UPDATE SET ANSWER_TEXT = src.ANSWER_TEXT, LAST_UPDATED_TS = CURRENT_TIMESTAMP()
-        WHEN NOT MATCHED THEN
-          INSERT (ANSWER_ID, CLAIM_ID, DEFENDANT_ID, QUESTION_ID, ANSWER_TEXT, STATUS, IS_CURRENT, CREATED_TS, LAST_UPDATED_TS)
-          VALUES (
-            CONCAT('ANS-', REPLACE(UUID_STRING(), '-', '')),
-            src.CLAIM_ID,
-            src.DEFENDANT_ID,
-            src.QUESTION_ID,
-            src.ANSWER_TEXT,
-            'REVIEWED',
-            TRUE,
-            CURRENT_TIMESTAMP(),
-            CURRENT_TIMESTAMP()
-          )
+        UPDATE {ANSWERS_TABLE}
+        SET IS_CURRENT = FALSE,
+            {', '.join(timestamp_updates)}
+        WHERE CLAIM_ID = '{claim_q}'
+          AND QUESTION_ID = '{question_q}'
+          {defendant_match}
+          AND IS_CURRENT = TRUE
+        """
+    ).collect()
+
+    insert_columns = ["ANSWER_ID", "CLAIM_ID", "QUESTION_ID", "ANSWER_TEXT", "STATUS", "IS_CURRENT"]
+    insert_values = ["CONCAT('ANS-', REPLACE(UUID_STRING(), '-', ''))", f"'{claim_q}'", f"'{question_q}'", f"'{answer_q}'", "'REVIEWED'", "TRUE"]
+
+    if defendant_insert_col:
+        insert_columns.insert(2, "DEFENDANT_ID")
+        insert_values.insert(2, defendant_insert_val.lstrip(", "))
+
+    if "ANSWER_JSON" in cols:
+        insert_columns.append("ANSWER_JSON")
+        insert_values.append(f"OBJECT_CONSTRUCT('value', '{answer_q}')")
+    if has_created_ts:
+        insert_columns.append("CREATED_TS")
+        insert_values.append("CURRENT_TIMESTAMP()")
+    if "LAST_UPDATED_TS" in cols:
+        insert_columns.append("LAST_UPDATED_TS")
+        insert_values.append("CURRENT_TIMESTAMP()")
+    if has_created_at:
+        insert_columns.append("CREATED_AT")
+        insert_values.append("CURRENT_TIMESTAMP()")
+    if has_updated_at:
+        insert_columns.append("UPDATED_AT")
+        insert_values.append("CURRENT_TIMESTAMP()")
+    if has_updated_by:
+        insert_columns.append("UPDATED_BY")
+        insert_values.append("CURRENT_USER()")
+
+    session.sql(
+        f"""
+        INSERT INTO {ANSWERS_TABLE} ({', '.join(insert_columns)})
+        SELECT {', '.join(insert_values)}
         """
     ).collect()
