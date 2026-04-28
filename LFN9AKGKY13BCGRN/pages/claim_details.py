@@ -541,13 +541,20 @@ def _render_questions(
                         )
                         question_index += 1
 
+                def render_parent_question_card(parent_row: pd.Series, child_rows: list[pd.Series]) -> None:
+                    nonlocal question_index
+                    st.markdown("<div class='mfq-question-card'></div>", unsafe_allow_html=True)
+                    with st.container(border=True):
+                        render_question_input(parent_row, is_child=False, idx=question_index)
+                        for child_row in child_rows:
+                            render_question_input(child_row, is_child=True, idx=question_index)
+
+                if not rows:
+                    st.warning("No questions found for this section.")
+                else:
                     for parent in root_questions:
-                        st.markdown("<div class='mfq-question-card'></div>", unsafe_allow_html=True)
-                        with st.container(border=True):
-                            render_question_input(parent, is_child=False, idx=question_index)
-                            parent_id = str(parent.get("QUESTION_ID", "") or "").strip()
-                            for child in children_by_parent.get(parent_id, []):
-                                render_question_input(child, is_child=True, idx=question_index)
+                        parent_id = str(parent.get("QUESTION_ID", "") or "").strip()
+                        render_parent_question_card(parent, children_by_parent.get(parent_id, []))
     st.markdown("</div>", unsafe_allow_html=True)
     return rendered_questions
 
