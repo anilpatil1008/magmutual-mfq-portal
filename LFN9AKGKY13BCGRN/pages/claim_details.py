@@ -206,6 +206,17 @@ def _normalize_answer_value(raw):
     return text
 
 
+def extract_answer_json_value(raw):
+    parsed = _normalize_answer_value(raw)
+    if isinstance(parsed, dict):
+        for key in ("value", "answer", "selected", "text"):
+            value = parsed.get(key)
+            if value not in (None, ""):
+                return value
+        return ""
+    return parsed
+
+
 def _safe_widget_key(prefix: str, claim_id: str, section_id: str, question: pd.Series, index: int) -> str:
     question_id = question.get("QUESTION_ID") or question.get("question_id")
     question_key = question.get("QUESTION_KEY") or question.get("question_key")
@@ -288,7 +299,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                 claim_id = str(row.get("CLAIM_ID", "") or "")
                 defendant_id = str(row.get("DEFENDANT_ID", "") or "")
                 section_id = str(row.get("SECTION_ID", "") or section_id or row.get("SECTION_KEY", "") or "")
-                answer_text = row.get("DISPLAY_ANSWER", "")
+                answer_text = row.get("ANSWER_TEXT")
                 allowed_values = row.get("ALLOWED_VALUES_LIST", []) or []
                 answer_type = str(row.get("ANSWER_TYPE", "")).upper()
 
@@ -310,7 +321,8 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                 if row.get('CONFIDENCE_REASON'):
                     st.caption(str(row.get('CONFIDENCE_REASON')))
 
-                text_value = _normalize_answer_value(answer_text)
+                answer_value = answer_text or extract_answer_json_value(row.get("ANSWER_JSON")) or ""
+                text_value = _normalize_answer_value(answer_value)
                 is_disabled = (not (can_edit and edit_mode)) or (not visibility_match)
                 if answer_type in {"YES_NO", "YES_NO_UNCLEAR", "YES_NO_UNCLEAR_NA"}:
                     type_options = {
@@ -352,7 +364,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         disabled=is_disabled,
                     )
                 elif answer_type in {"MULTISELECT"} and allowed_values:
-                    existing = text_value if isinstance(text_value, list) else _normalize_answer_value(row.get("ANSWER_JSON"))
+                    existing = text_value if isinstance(text_value, list) else extract_answer_json_value(row.get("ANSWER_JSON"))
                     existing_values = existing if isinstance(existing, list) else []
                     new_value = st.multiselect(
                         "Answer",
@@ -391,6 +403,22 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         options=options,
                         index=selected_idx,
                         key=_safe_widget_key("ans_rating", claim_id, section_id, row, idx),
+                        label_visibility="collapsed",
+                        disabled=is_disabled,
+                    )
+                elif answer_type in {"SELECT"} and allowed_values:
+                    options = [str(v) for v in allowed_values]
+                    current_value = str(text_value)
+                    if current_value not in options:
+                        options = ["", *options]
+                        selected_idx = 0
+                    else:
+                        selected_idx = options.index(current_value)
+                    new_value = st.selectbox(
+                        "Answer",
+                        options=options,
+                        index=selected_idx,
+                        key=_safe_widget_key("ans_select", claim_id, section_id, row, idx),
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
