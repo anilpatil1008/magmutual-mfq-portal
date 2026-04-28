@@ -6,7 +6,12 @@ from html import escape
 import pandas as pd
 import streamlit as st
 
-from services.claim_service import get_claim_review_workspace, save_section_answer, update_claim_status
+from services.claim_service import (
+    get_claim_review_workspace,
+    get_editable_section_ids_for_user,
+    save_mfq_answer,
+    update_claim_status,
+)
 from services.rbac_service import can_edit_claim
 
 
@@ -69,10 +74,11 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
                 st.success("Claim assigned to faculty queue.")
                 st.rerun()
 
-            if st.button("Approve", type="secondary", use_container_width=True):
-                update_claim_status(session, claim_id, "Approved")
-                st.success("Claim approved.")
-                st.rerun()
+            if ctx.app_role in {"Claims Analyst", "Advice Team", "Admin", "Executive"}:
+                if st.button("Approve", type="secondary", use_container_width=True):
+                    update_claim_status(session, claim_id, "Approved")
+                    st.success("Claim approved.")
+                    st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -255,12 +261,32 @@ def _is_visible(row: pd.Series, answer_by_question: dict[str, str]) -> bool:
     return parent_answer in allowed
 
 
-def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_mode: bool) -> None:
+def _question_is_editable(
+    can_edit: bool,
+    edit_mode: bool,
+    section_id: str,
+    editable_section_ids: set[str] | None,
+    visibility_match: bool,
+) -> bool:
+    if not can_edit or not edit_mode or not visibility_match:
+        return False
+    if editable_section_ids is None:
+        return True
+    return section_id in editable_section_ids
+
+
+def _render_questions(
+    sections_df: pd.DataFrame,
+    can_edit: bool,
+    edit_mode: bool,
+    editable_section_ids: set[str] | None,
+) -> list[dict]:
     if sections_df.empty:
         st.info("MFQ form is unavailable for this claim.")
-        return
+        return []
 
     working_df = sections_df.sort_values(["SECTION_ORDER", "QUESTION_ORDER"]).copy()
+    rendered_questions: list[dict] = []
     answer_by_question: dict[str, str] = {}
     for _, seed_row in working_df.iterrows():
         answer_by_question[str(seed_row.get("QUESTION_ID", "") or "")] = str(seed_row.get("DISPLAY_ANSWER", "") or "")
@@ -323,7 +349,15 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
 
                 answer_value = answer_text or extract_answer_json_value(row.get("ANSWER_JSON")) or ""
                 text_value = _normalize_answer_value(answer_value)
-                is_disabled = (not (can_edit and edit_mode)) or (not visibility_match)
+                is_editable = _question_is_editable(
+                    can_edit=can_edit,
+                    edit_mode=edit_mode,
+                    section_id=section_id,
+                    editable_section_ids=editable_section_ids,
+                    visibility_match=visibility_match,
+                )
+                is_disabled = not is_editable
+                answer_widget_key = _safe_widget_key("ans", claim_id, section_id, row, idx)
                 if answer_type in {"YES_NO", "YES_NO_UNCLEAR", "YES_NO_UNCLEAR_NA"}:
                     type_options = {
                         "YES_NO": ["YES", "NO"],
@@ -342,7 +376,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         safe_values,
                         index=selected_idx,
                         horizontal=True,
-                        key=_safe_widget_key("ans_radio", claim_id, section_id, row, idx),
+                        key=answer_widget_key,
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
@@ -359,7 +393,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         safe_values,
                         index=selected_idx,
                         horizontal=True,
-                        key=_safe_widget_key("ans_radio", claim_id, section_id, row, idx),
+                        key=answer_widget_key,
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
@@ -370,7 +404,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         "Answer",
                         options=[str(v) for v in allowed_values],
                         default=[str(v) for v in existing_values],
-                        key=_safe_widget_key("ans_multi", claim_id, section_id, row, idx),
+                        key=answer_widget_key,
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
@@ -386,7 +420,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         "Answer",
                         options=options,
                         index=selected_idx,
-                        key=_safe_widget_key("ans_rating", claim_id, section_id, row, idx),
+                        key=answer_widget_key,
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
@@ -402,7 +436,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         "Answer",
                         options=options,
                         index=selected_idx,
-                        key=_safe_widget_key("ans_rating", claim_id, section_id, row, idx),
+                        key=answer_widget_key,
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
@@ -418,7 +452,7 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                         "Answer",
                         options=options,
                         index=selected_idx,
-                        key=_safe_widget_key("ans_select", claim_id, section_id, row, idx),
+                        key=answer_widget_key,
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
@@ -426,29 +460,27 @@ def _render_questions(session, sections_df: pd.DataFrame, can_edit: bool, edit_m
                     new_value = st.text_area(
                         "Answer",
                         value=str(text_value),
-                        key=_safe_widget_key("ans_text", claim_id, section_id, row, idx),
+                        key=answer_widget_key,
                         placeholder="No answer currently extracted",
                         label_visibility="collapsed",
                         disabled=is_disabled,
                     )
 
                 answer_by_question[question_id] = ", ".join(new_value) if isinstance(new_value, list) else str(new_value)
-                if can_edit and edit_mode and st.button(
-                    "Save Answer",
-                    key=_safe_widget_key("save", claim_id, section_id, row, idx),
-                    type="tertiary",
-                ):
-                    save_section_answer(
-                        session,
-                        answer_id,
-                        ", ".join(new_value) if isinstance(new_value, list) else str(new_value),
-                        claim_id=claim_id,
-                        defendant_id=defendant_id,
-                        question_id=question_id,
-                    )
-                    st.success("Answer updated.")
-                    st.rerun()
+                rendered_questions.append(
+                    {
+                        "answer_id": answer_id,
+                        "claim_id": claim_id,
+                        "defendant_id": defendant_id,
+                        "question_id": question_id,
+                        "section_id": section_id,
+                        "answer_type": answer_type,
+                        "widget_key": answer_widget_key,
+                        "editable": is_editable,
+                    }
+                )
                 st.divider()
+    return rendered_questions
 
 
 def _render_text_tab(text: str, empty_msg: str) -> None:
@@ -505,6 +537,8 @@ def render(session, ctx) -> None:
             claim.get("ASSIGNED_TO"),
             ctx.username,
         )
+        editable_section_ids = get_editable_section_ids_for_user(session, str(claim_id), ctx.app_role, ctx.username)
+        save_clicked = False
         with st.container(key="mfq_header_card"):
             title_col, edit_col = st.columns([7.4, 1.4], vertical_alignment="center")
             with title_col:
@@ -520,27 +554,49 @@ def render(session, ctx) -> None:
                     unsafe_allow_html=True,
                 )
             with edit_col:
-                edit_label = "Done" if st.session_state[edit_key] else "✎ Edit"
-                if st.button(
-                    edit_label,
-                    key="mfq_edit_btn",
-                    type="secondary",
-                    use_container_width=True,
-                    disabled=not can_edit,
-                ):
-                    st.session_state[edit_key] = not st.session_state[edit_key]
-                    st.rerun()
-                if not can_edit:
-                    st.caption("Read-only")
+                if not st.session_state[edit_key]:
+                    if st.button(
+                        "✎ Edit",
+                        key="mfq_edit_btn",
+                        type="secondary",
+                        use_container_width=True,
+                        disabled=not can_edit,
+                    ):
+                        st.session_state[edit_key] = True
+                        st.rerun()
+                    if not can_edit:
+                        st.caption("Read-only")
+                else:
+                    save_clicked = st.button("Save Draft", key="mfq_save_btn", type="primary", use_container_width=True)
+                    cancel_clicked = st.button("Cancel", key="mfq_cancel_btn", type="secondary", use_container_width=True)
+                    if cancel_clicked:
+                        st.session_state[edit_key] = False
+                        st.rerun()
 
         _render_confidence_panel(workspace)
         _render_synopsis_panel(workspace.get("synopsis", {}))
-        _render_questions(
-            session,
+        rendered_questions = _render_questions(
             workspace.get("sections", pd.DataFrame()),
             can_edit=can_edit,
             edit_mode=bool(st.session_state[edit_key]),
+            editable_section_ids=editable_section_ids,
         )
+        if st.session_state[edit_key] and save_clicked:
+            for question in rendered_questions:
+                if not question.get("editable"):
+                    continue
+                value = st.session_state.get(question["widget_key"])
+                save_mfq_answer(
+                    session=session,
+                    claim_id=question["claim_id"],
+                    defendant_id=question["defendant_id"],
+                    question_id=question["question_id"],
+                    answer_value=value,
+                    user_id=ctx.username,
+                )
+            st.session_state[edit_key] = False
+            st.success("MFQ answers saved successfully.")
+            st.rerun()
 
     with tabs[1]:
         _render_text_tab(workspace.get("summaries", {}).get("RECORDS_SUMMARY", ""), "No records summary available.")
