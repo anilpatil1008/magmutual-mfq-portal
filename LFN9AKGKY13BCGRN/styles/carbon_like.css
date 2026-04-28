@@ -1657,6 +1657,27 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
 }
 
+.mfq-section-expander-card {
+  margin: 0 0 .8rem;
+}
+
+.mfq-section-expander-card .streamlit-expanderHeader {
+  background: linear-gradient(180deg, #f6f9ff 0%, #fdfefe 100%);
+  border: 1px solid #cddaf0;
+  border-radius: 12px;
+  padding: .18rem .25rem;
+  font-size: .96rem;
+  font-weight: 600;
+  color: #0f2d5c;
+}
+
+.mfq-section-expander-card .streamlit-expanderContent {
+  border: 1px solid #cddaf0;
+  border-top: 0;
+  border-radius: 0 0 12px 12px;
+  background: #fdfefe;
+}
+
 .mfq-section-title {
   padding: .72rem .9rem;
   font-size: .98rem;
@@ -1706,34 +1727,40 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   margin-top: .35rem;
 }
 
-.mfq-section-card .stRadio > div {
+.mfq-section-card .stRadio > div,
+.mfq-section-expander-card .stRadio > div {
   gap: .55rem;
 }
 
-.mfq-section-card .stRadio [role="radiogroup"] {
+.mfq-section-card .stRadio [role="radiogroup"],
+.mfq-section-expander-card .stRadio [role="radiogroup"] {
   gap: .35rem;
 }
 
-.mfq-section-card .stRadio [role="radiogroup"] > label {
+.mfq-section-card .stRadio [role="radiogroup"] > label,
+.mfq-section-expander-card .stRadio [role="radiogroup"] > label {
   border: 1px solid #d0d7e2;
   background: #fff;
   border-radius: 999px;
   padding: .05rem .45rem;
 }
 
-.mfq-section-card .stMultiSelect [data-baseweb="tag"] {
+.mfq-section-card .stMultiSelect [data-baseweb="tag"],
+.mfq-section-expander-card .stMultiSelect [data-baseweb="tag"] {
   border-radius: 999px;
   border: 1px solid #b9cbeb;
   background: #edf5ff;
 }
 
-.mfq-section-card .stTextArea textarea {
+.mfq-section-card .stTextArea textarea,
+.mfq-section-expander-card .stTextArea textarea {
   border: 1px solid #cfd8e3 !important;
   border-radius: 8px !important;
   background: #fbfdff !important;
 }
 
-.mfq-section-card .stSelectbox [data-baseweb="select"] > div {
+.mfq-section-card .stSelectbox [data-baseweb="select"] > div,
+.mfq-section-expander-card .stSelectbox [data-baseweb="select"] > div {
   border: 1px solid #cfd8e3;
   border-radius: 8px;
 }
