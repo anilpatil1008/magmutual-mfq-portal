@@ -293,6 +293,30 @@ def _confidence_for_question(row: pd.Series, section_confidence_by_name: dict[st
     return float(section_conf)
 
 
+def _is_section_three_subsection(section_id: str, section_name: str) -> bool:
+    normalized_id = section_id.strip().upper()
+    normalized_name = section_name.strip().lower()
+    return normalized_id.startswith("SEC_III") or "detailed case evaluation" in normalized_name
+
+
+def _normalize_section_three_title(section_id: str, section_name: str) -> str:
+    normalized_id = section_id.strip().upper()
+    title_by_section_id = {
+        "SEC_III_A": "Patient Intake / Assessment",
+        "SEC_III_B": "Diagnostic Work Up",
+        "SEC_III_C": "Treatment",
+        "SEC_III_D": "Procedures / Surgeries",
+        "SEC_III_E": "Monitoring and Follow-up",
+        "SEC_III_F": "Additional Contributing Factors",
+    }
+    if normalized_id in title_by_section_id:
+        return title_by_section_id[normalized_id]
+    fallback = str(section_name or "").replace("Section III:", "").strip()
+    if " - " in fallback:
+        fallback = fallback.split(" - ", 1)[1].strip()
+    return fallback or "Section III Subsection"
+
+
 def _render_questions(
     sections_df: pd.DataFrame,
     section_confidence_df: pd.DataFrame,
@@ -320,241 +344,218 @@ def _render_questions(
                     conf_row.get("CONFIDENCE_SCORE"),
                 )
 
-    grouped = list(working_df.groupby(["SECTION_ORDER", "SECTION_ID", "SECTION_NAME"], dropna=False))
-    st.markdown("<div class='mfq-sections-root'>", unsafe_allow_html=True)
-    for section_idx, ((_, section_id, section_name), section_df) in enumerate(grouped):
-        section_name_value = str(section_name or "Untitled Section")
+    def section_confidence_for(section_name: str, section_df: pd.DataFrame) -> float | None:
         section_confidence_raw = (
             pd.to_numeric(section_df.get("SECTION_CONFIDENCE"), errors="coerce").dropna()
             if "SECTION_CONFIDENCE" in section_df.columns
             else pd.Series(dtype="float64")
         )
-        section_confidence: float | None = None
         if not section_confidence_raw.empty:
-            section_confidence = float(section_confidence_raw.iloc[0])
+            return float(section_confidence_raw.iloc[0])
+        looked_up = section_confidence_by_name.get(section_name.strip())
+        if looked_up is None or (isinstance(looked_up, float) and pd.isna(looked_up)):
+            return None
+        return float(looked_up)
+
+    grouped = list(working_df.groupby(["SECTION_ORDER", "SECTION_ID", "SECTION_NAME"], dropna=False))
+    section_three_groups: list[tuple[tuple, pd.DataFrame]] = []
+    primary_groups: list[tuple[tuple, pd.DataFrame]] = []
+    for grouped_item in grouped:
+        (_, group_section_id, group_section_name), _section_df = grouped_item
+        if _is_section_three_subsection(str(group_section_id or ""), str(group_section_name or "")):
+            section_three_groups.append(grouped_item)
         else:
-            confidence_from_lookup = section_confidence_by_name.get(section_name_value.strip())
-            if confidence_from_lookup is not None and not (
-                isinstance(confidence_from_lookup, float) and pd.isna(confidence_from_lookup)
-            ):
-                section_confidence = float(confidence_from_lookup)
+            primary_groups.append(grouped_item)
 
-        default_open = section_idx == 0
-        if section_confidence is not None and section_confidence < 85:
-            default_open = True
+    question_index = 0
 
-        section_title = f"{section_name_value} · {_fmt_conf(section_confidence)}"
-        section_container = st.container(border=False)
-        with section_container:
-            with st.expander(section_title, expanded=default_open):
-                ordered_section_df = section_df.sort_values("QUESTION_ORDER")
-                rows = list(ordered_section_df.iterrows())
-                children_by_parent: dict[str, list[pd.Series]] = {}
-                root_questions: list[pd.Series] = []
+    def render_question_input(row: pd.Series, section_id: str, is_child: bool, idx: int) -> None:
+        nonlocal question_index
+        question_id = str(row.get("QUESTION_ID", ""))
+        answer_id = str(row.get("ANSWER_ID", "") or "")
+        claim_id = str(row.get("CLAIM_ID", "") or "")
+        defendant_id = str(row.get("DEFENDANT_ID", "") or "")
+        section_id_value = str(row.get("SECTION_ID", "") or section_id or row.get("SECTION_KEY", "") or "")
+        answer_text = row.get("ANSWER_TEXT")
+        allowed_values = row.get("ALLOWED_VALUES_LIST", []) or []
+        answer_type = str(row.get("ANSWER_TYPE", "")).upper()
+        confidence_score = _confidence_for_question(row, section_confidence_by_name)
 
-                for _, row in rows:
-                    parent_id = str(row.get("PARENT_QUESTION_ID", "") or "").strip()
-                    if parent_id:
-                        children_by_parent.setdefault(parent_id, []).append(row)
+        visibility_match = _is_visible(row, answer_by_question)
+        question_order = escape(str(row.get("QUESTION_ORDER", "")))
+        question_text = str(row.get("QUESTION_TEXT", "") or "").strip() or "Question text not available"
+
+        if is_child:
+            st.markdown("<div class='mfq-child-question'></div>", unsafe_allow_html=True)
+        with st.container(border=False):
+            st.markdown(
+                "<div class='mfq-question-header'>"
+                f"<div class='mfq-question-content mfq-question-text'>{question_order}. {escape(question_text)}</div>"
+                f"<span class='mfq-confidence-badge tone-{_tone_for_conf(confidence_score)}'>{_fmt_conf(confidence_score)}</span>"
+                "</div>",
+                unsafe_allow_html=True,
+            )
+            if row.get("CONFIDENCE_REASON"):
+                st.caption(str(row.get("CONFIDENCE_REASON")))
+
+            answer_value = answer_text or extract_answer_json_value(row.get("ANSWER_JSON")) or ""
+            text_value = _normalize_answer_value(answer_value)
+            is_editable = _question_is_editable(
+                can_edit=can_edit,
+                edit_mode=edit_mode,
+                section_id=section_id_value,
+                editable_section_ids=editable_section_ids,
+                visibility_match=visibility_match,
+            )
+            is_disabled = not is_editable
+            answer_widget_key = _safe_widget_key("ans", claim_id, section_id_value, row, idx)
+
+            st.markdown("<div class='mfq-answer-wrap'></div>", unsafe_allow_html=True)
+            with st.container(border=False):
+                if answer_type in {"YES_NO", "YES_NO_UNCLEAR", "YES_NO_UNCLEAR_NA"}:
+                    type_options = {
+                        "YES_NO": ["YES", "NO"],
+                        "YES_NO_UNCLEAR": ["YES", "NO", "UNCLEAR"],
+                        "YES_NO_UNCLEAR_NA": ["YES", "NO", "UNCLEAR", "N/A"],
+                    }
+                    safe_values = [str(v).upper() for v in allowed_values] or type_options[answer_type]
+                    current_value = str(text_value).upper()
+                    if current_value not in safe_values:
+                        safe_values = ["", *safe_values]
+                        selected_idx = 0
                     else:
-                        root_questions.append(row)
-
-                # Any orphaned children should still render so the UI matches the MFQ document.
-                known_parent_ids = {str(q.get("QUESTION_ID", "") or "").strip() for q in root_questions}
-                for parent_id, children in children_by_parent.items():
-                    if parent_id not in known_parent_ids:
-                        root_questions.extend(children)
-
-                question_index = 0
-
-                def render_question_input(row: pd.Series, is_child: bool, idx: int) -> None:
-                    nonlocal question_index
-                    question_id = str(row.get("QUESTION_ID", ""))
-                    answer_id = str(row.get("ANSWER_ID", "") or "")
-                    claim_id = str(row.get("CLAIM_ID", "") or "")
-                    defendant_id = str(row.get("DEFENDANT_ID", "") or "")
-                    section_id_value = str(row.get("SECTION_ID", "") or section_id or row.get("SECTION_KEY", "") or "")
-                    answer_text = row.get("ANSWER_TEXT")
-                    allowed_values = row.get("ALLOWED_VALUES_LIST", []) or []
-                    answer_type = str(row.get("ANSWER_TYPE", "")).upper()
-                    confidence_score = _confidence_for_question(row, section_confidence_by_name)
-
-                    visibility_match = _is_visible(row, answer_by_question)
-                    question_order = escape(str(row.get("QUESTION_ORDER", "")))
-                    question_text = str(row.get("QUESTION_TEXT", "") or "").strip() or "Question text not available"
-
-                    if is_child:
-                        st.markdown("<div class='mfq-child-question'></div>", unsafe_allow_html=True)
-                    question_block = st.container(border=False)
-                    with question_block:
-                        st.markdown(
-                            "<div class='mfq-question-header'>"
-                            f"<div class='mfq-question-content mfq-question-text'>{question_order}. {escape(question_text)}</div>"
-                            f"<span class='mfq-confidence-badge tone-{_tone_for_conf(confidence_score)}'>{_fmt_conf(confidence_score)}</span>"
-                            "</div>",
-                            unsafe_allow_html=True,
-                        )
-                        if row.get("CONFIDENCE_REASON"):
-                            st.caption(str(row.get("CONFIDENCE_REASON")))
-
-                        answer_value = answer_text or extract_answer_json_value(row.get("ANSWER_JSON")) or ""
-                        text_value = _normalize_answer_value(answer_value)
-                        is_editable = _question_is_editable(
-                            can_edit=can_edit,
-                            edit_mode=edit_mode,
-                            section_id=section_id_value,
-                            editable_section_ids=editable_section_ids,
-                            visibility_match=visibility_match,
-                        )
-                        is_disabled = not is_editable
-                        answer_widget_key = _safe_widget_key("ans", claim_id, section_id_value, row, idx)
-
-                        st.markdown("<div class='mfq-answer-wrap'></div>", unsafe_allow_html=True)
-                        answer_wrap = st.container(border=False)
-                        with answer_wrap:
-                            if answer_type in {"YES_NO", "YES_NO_UNCLEAR", "YES_NO_UNCLEAR_NA"}:
-                                type_options = {
-                                    "YES_NO": ["YES", "NO"],
-                                    "YES_NO_UNCLEAR": ["YES", "NO", "UNCLEAR"],
-                                    "YES_NO_UNCLEAR_NA": ["YES", "NO", "UNCLEAR", "N/A"],
-                                }
-                                safe_values = [str(v).upper() for v in allowed_values] or type_options[answer_type]
-                                current_value = str(text_value).upper()
-                                if current_value not in safe_values:
-                                    safe_values = ["", *safe_values]
-                                    selected_idx = 0
-                                else:
-                                    selected_idx = safe_values.index(current_value)
-                                new_value = st.radio(
-                                    "Answer",
-                                    safe_values,
-                                    index=selected_idx,
-                                    horizontal=True,
-                                    key=answer_widget_key,
-                                    label_visibility="collapsed",
-                                    disabled=is_disabled,
-                                )
-                            elif answer_type in {"CHOICE"} and allowed_values:
-                                safe_values = [str(v) for v in allowed_values]
-                                current_value = str(text_value)
-                                if current_value not in safe_values:
-                                    safe_values = ["", *safe_values]
-                                    selected_idx = 0
-                                else:
-                                    selected_idx = safe_values.index(current_value)
-                                new_value = st.radio(
-                                    "Answer",
-                                    safe_values,
-                                    index=selected_idx,
-                                    horizontal=True,
-                                    key=answer_widget_key,
-                                    label_visibility="collapsed",
-                                    disabled=is_disabled,
-                                )
-                            elif answer_type in {"MULTISELECT"} and allowed_values:
-                                existing = (
-                                    text_value
-                                    if isinstance(text_value, list)
-                                    else extract_answer_json_value(row.get("ANSWER_JSON"))
-                                )
-                                existing_values = existing if isinstance(existing, list) else []
-                                new_value = st.multiselect(
-                                    "Answer",
-                                    options=[str(v) for v in allowed_values],
-                                    default=[str(v) for v in existing_values],
-                                    key=answer_widget_key,
-                                    label_visibility="collapsed",
-                                    disabled=is_disabled,
-                                )
-                            elif answer_type in {"RATING_1_9"}:
-                                options = [str(v) for v in allowed_values] or [str(i) for i in range(1, 10)]
-                                current_value = str(text_value)
-                                if current_value not in options:
-                                    options = ["", *options]
-                                    selected_idx = 0
-                                else:
-                                    selected_idx = options.index(current_value)
-                                new_value = st.selectbox(
-                                    "Answer",
-                                    options=options,
-                                    index=selected_idx,
-                                    key=answer_widget_key,
-                                    label_visibility="collapsed",
-                                    disabled=is_disabled,
-                                )
-                            elif answer_type in {"RATING_1_5"}:
-                                options = [str(v) for v in allowed_values] or [str(i) for i in range(1, 6)]
-                                current_value = str(text_value)
-                                if current_value not in options:
-                                    options = ["", *options]
-                                    selected_idx = 0
-                                else:
-                                    selected_idx = options.index(current_value)
-                                new_value = st.selectbox(
-                                    "Answer",
-                                    options=options,
-                                    index=selected_idx,
-                                    key=answer_widget_key,
-                                    label_visibility="collapsed",
-                                    disabled=is_disabled,
-                                )
-                            elif answer_type in {"SELECT"} and allowed_values:
-                                options = [str(v) for v in allowed_values]
-                                current_value = str(text_value)
-                                if current_value not in options:
-                                    options = ["", *options]
-                                    selected_idx = 0
-                                else:
-                                    selected_idx = options.index(current_value)
-                                new_value = st.selectbox(
-                                    "Answer",
-                                    options=options,
-                                    index=selected_idx,
-                                    key=answer_widget_key,
-                                    label_visibility="collapsed",
-                                    disabled=is_disabled,
-                                )
-                            else:
-                                new_value = st.text_area(
-                                    "Answer",
-                                    value=str(text_value),
-                                    key=answer_widget_key,
-                                    placeholder="No answer currently extracted",
-                                    label_visibility="collapsed",
-                                    disabled=is_disabled,
-                                    )
-
-                        answer_by_question[question_id] = (
-                            ", ".join(new_value) if isinstance(new_value, list) else str(new_value)
-                        )
-                        rendered_questions.append(
-                            {
-                                "answer_id": answer_id,
-                                "claim_id": claim_id,
-                                "defendant_id": defendant_id,
-                                "question_id": question_id,
-                                "section_id": section_id_value,
-                                "answer_type": answer_type,
-                                "widget_key": answer_widget_key,
-                                "editable": is_editable,
-                            }
-                        )
-                        question_index += 1
-
-                def render_parent_question_card(parent_row: pd.Series, child_rows: list[pd.Series]) -> None:
-                    nonlocal question_index
-                    st.markdown("<div class='mfq-question-card'></div>", unsafe_allow_html=True)
-                    with st.container(border=True):
-                        render_question_input(parent_row, is_child=False, idx=question_index)
-                        for child_row in child_rows:
-                            render_question_input(child_row, is_child=True, idx=question_index)
-
-                if not rows:
-                    st.warning("No questions found for this section.")
+                        selected_idx = safe_values.index(current_value)
+                    new_value = st.radio("Answer", safe_values, index=selected_idx, horizontal=True, key=answer_widget_key, label_visibility="collapsed", disabled=is_disabled)
+                elif answer_type in {"CHOICE"} and allowed_values:
+                    safe_values = [str(v) for v in allowed_values]
+                    current_value = str(text_value)
+                    if current_value not in safe_values:
+                        safe_values = ["", *safe_values]
+                        selected_idx = 0
+                    else:
+                        selected_idx = safe_values.index(current_value)
+                    new_value = st.radio("Answer", safe_values, index=selected_idx, horizontal=True, key=answer_widget_key, label_visibility="collapsed", disabled=is_disabled)
+                elif answer_type in {"MULTISELECT"} and allowed_values:
+                    existing = text_value if isinstance(text_value, list) else extract_answer_json_value(row.get("ANSWER_JSON"))
+                    existing_values = existing if isinstance(existing, list) else []
+                    new_value = st.multiselect("Answer", options=[str(v) for v in allowed_values], default=[str(v) for v in existing_values], key=answer_widget_key, label_visibility="collapsed", disabled=is_disabled)
+                elif answer_type in {"RATING_1_9"}:
+                    options = [str(v) for v in allowed_values] or [str(i) for i in range(1, 10)]
+                    current_value = str(text_value)
+                    if current_value not in options:
+                        options = ["", *options]
+                        selected_idx = 0
+                    else:
+                        selected_idx = options.index(current_value)
+                    new_value = st.selectbox("Answer", options=options, index=selected_idx, key=answer_widget_key, label_visibility="collapsed", disabled=is_disabled)
+                elif answer_type in {"RATING_1_5"}:
+                    options = [str(v) for v in allowed_values] or [str(i) for i in range(1, 6)]
+                    current_value = str(text_value)
+                    if current_value not in options:
+                        options = ["", *options]
+                        selected_idx = 0
+                    else:
+                        selected_idx = options.index(current_value)
+                    new_value = st.selectbox("Answer", options=options, index=selected_idx, key=answer_widget_key, label_visibility="collapsed", disabled=is_disabled)
+                elif answer_type in {"SELECT"} and allowed_values:
+                    options = [str(v) for v in allowed_values]
+                    current_value = str(text_value)
+                    if current_value not in options:
+                        options = ["", *options]
+                        selected_idx = 0
+                    else:
+                        selected_idx = options.index(current_value)
+                    new_value = st.selectbox("Answer", options=options, index=selected_idx, key=answer_widget_key, label_visibility="collapsed", disabled=is_disabled)
                 else:
-                    for parent in root_questions:
-                        parent_id = str(parent.get("QUESTION_ID", "") or "").strip()
-                        render_parent_question_card(parent, children_by_parent.get(parent_id, []))
+                    new_value = st.text_area("Answer", value=str(text_value), key=answer_widget_key, placeholder="No answer currently extracted", label_visibility="collapsed", disabled=is_disabled)
+
+        answer_by_question[question_id] = ", ".join(new_value) if isinstance(new_value, list) else str(new_value)
+        rendered_questions.append({
+            "answer_id": answer_id,
+            "claim_id": claim_id,
+            "defendant_id": defendant_id,
+            "question_id": question_id,
+            "section_id": section_id_value,
+            "answer_type": answer_type,
+            "widget_key": answer_widget_key,
+            "editable": is_editable,
+        })
+        question_index += 1
+
+    def render_section_questions(section_id: str, section_df: pd.DataFrame, show_question_cards: bool) -> None:
+        rows = list(section_df.sort_values("QUESTION_ORDER").iterrows())
+        children_by_parent: dict[str, list[pd.Series]] = {}
+        root_questions: list[pd.Series] = []
+        for _, row in rows:
+            parent_id = str(row.get("PARENT_QUESTION_ID", "") or "").strip()
+            if parent_id:
+                children_by_parent.setdefault(parent_id, []).append(row)
+            else:
+                root_questions.append(row)
+
+        known_parent_ids = {str(q.get("QUESTION_ID", "") or "").strip() for q in root_questions}
+        for parent_id, children in children_by_parent.items():
+            if parent_id not in known_parent_ids:
+                root_questions.extend(children)
+
+        if not rows:
+            st.warning("No questions found for this section.")
+            return
+
+        for parent in root_questions:
+            parent_id = str(parent.get("QUESTION_ID", "") or "").strip()
+            child_rows = children_by_parent.get(parent_id, [])
+            if show_question_cards:
+                st.markdown("<div class='mfq-question-card'></div>", unsafe_allow_html=True)
+                with st.container(border=True):
+                    render_question_input(parent, section_id=section_id, is_child=False, idx=question_index)
+                    for child_row in child_rows:
+                        render_question_input(child_row, section_id=section_id, is_child=True, idx=question_index)
+            else:
+                st.markdown("<div class='mfq-section-iii-question-group'>", unsafe_allow_html=True)
+                render_question_input(parent, section_id=section_id, is_child=False, idx=question_index)
+                for child_row in child_rows:
+                    render_question_input(child_row, section_id=section_id, is_child=True, idx=question_index)
+                st.markdown("</div>", unsafe_allow_html=True)
+
+    st.markdown("<div class='mfq-sections-root'>", unsafe_allow_html=True)
+    for section_idx, ((_, section_id, section_name), section_df) in enumerate(primary_groups):
+        section_name_value = str(section_name or "Untitled Section")
+        section_confidence = section_confidence_for(section_name_value, section_df)
+        default_open = section_idx == 0 or (section_confidence is not None and section_confidence < 85)
+        with st.expander(f"{section_name_value} · {_fmt_conf(section_confidence)}", expanded=default_open):
+            render_section_questions(str(section_id or ""), section_df, show_question_cards=True)
+
+    if section_three_groups:
+        section_three_conf = [section_confidence_for(str(n or ""), df) for (_, _, n), df in section_three_groups]
+        valid_conf = [c for c in section_three_conf if c is not None]
+        section_three_header_conf = (sum(valid_conf) / len(valid_conf)) if valid_conf else None
+        default_open_idx = 0
+        for idx, conf in enumerate(section_three_conf):
+            if conf is not None and conf < 85:
+                default_open_idx = idx
+
+        st.markdown("<section class='mfq-section-iii-card'>", unsafe_allow_html=True)
+        st.markdown(
+            "<div class='mfq-section-iii-header'>"
+            "<span class='mfq-section-iii-title'>Section III: Detailed Case Evaluation</span>"
+            f"<span class='mfq-confidence-badge tone-{_tone_for_conf(section_three_header_conf)}'>{_fmt_conf(section_three_header_conf)}</span>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        for subsection_idx, ((_, section_id, section_name), section_df) in enumerate(section_three_groups):
+            subsection_name = _normalize_section_three_title(str(section_id or ""), str(section_name or ""))
+            subsection_conf = section_confidence_for(str(section_name or ""), section_df)
+            title_html = (
+                "<span class='mfq-section-iii-row-title'>" + escape(subsection_name) + "</span>"
+                + f"<span class='mfq-section-iii-row-conf mfq-confidence-badge tone-{_tone_for_conf(subsection_conf)}'>{_fmt_conf(subsection_conf)}</span>"
+            )
+            st.markdown("<div class='mfq-section-iii-row'>", unsafe_allow_html=True)
+            with st.expander(title_html, expanded=subsection_idx == default_open_idx):
+                render_section_questions(str(section_id or ""), section_df, show_question_cards=False)
+            st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</section>", unsafe_allow_html=True)
+
     st.markdown("</div>", unsafe_allow_html=True)
     return rendered_questions
 
