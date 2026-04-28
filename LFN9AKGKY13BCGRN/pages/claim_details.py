@@ -344,7 +344,7 @@ def _render_questions(
             default_open = True
 
         section_title = f"{section_name_value} · {_fmt_conf(section_confidence)}"
-        section_container = st.container(border=True)
+        section_container = st.container(border=False)
         with section_container:
             with st.expander(section_title, expanded=default_open):
                 ordered_section_df = section_df.sort_values("QUESTION_ORDER")
