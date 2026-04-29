@@ -1,0 +1,308 @@
+-- DEV/TEST ONLY: Reset and reseed completed MFQ data for file 112814
+-- Do NOT run in PROD.
+
+/* ============================================================================
+   1) Environment setup
+============================================================================ */
+USE ROLE ACCOUNTADMIN;
+USE WAREHOUSE COMPUTE_WH;
+USE DATABASE MAGMUTUAL_MFQ_APP;
+USE SCHEMA PUBLIC;
+
+/* ============================================================================
+   2) Safety backup before delete
+============================================================================ */
+SET TARGET_FILE_NUMBER = '112814';
+
+CREATE TABLE IF NOT EXISTS BACKUP_MFQ_CLAIMS_112814 AS
+SELECT c.*
+FROM MFQ_CLAIMS c
+WHERE c.FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+CREATE TABLE IF NOT EXISTS BACKUP_MFQ_CLAIM_DEFENDANTS_112814 AS
+SELECT d.*
+FROM MFQ_CLAIM_DEFENDANTS d
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = d.CLAIM_ID
+WHERE c.FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+CREATE TABLE IF NOT EXISTS BACKUP_MFQ_ANSWERS_112814 AS
+SELECT a.*
+FROM MFQ_ANSWERS a
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = a.CLAIM_ID
+WHERE c.FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+CREATE TABLE IF NOT EXISTS BACKUP_MFQ_QUESTION_CONFIDENCE_112814 AS
+SELECT qc.*
+FROM MFQ_QUESTION_CONFIDENCE qc
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = qc.CLAIM_ID
+WHERE c.FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+CREATE TABLE IF NOT EXISTS BACKUP_MFQ_STATUS_HISTORY_112814 AS
+SELECT sh.*
+FROM MFQ_STATUS_HISTORY sh
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = sh.CLAIM_ID
+WHERE c.FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+CREATE TABLE IF NOT EXISTS BACKUP_MFQ_ASSIGNMENTS_112814 AS
+SELECT a.*
+FROM MFQ_ASSIGNMENTS a
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = a.CLAIM_ID
+WHERE c.FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+CREATE TABLE IF NOT EXISTS BACKUP_MFQ_ASSIGNMENT_SECTIONS_112814 AS
+SELECT s.*
+FROM MFQ_ASSIGNMENT_SECTIONS s
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = s.CLAIM_ID
+WHERE c.FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+CREATE TABLE IF NOT EXISTS BACKUP_MFQ_DOCUMENTS_112814 AS
+SELECT d.*
+FROM MFQ_DOCUMENTS d
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = d.CLAIM_ID
+WHERE c.FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+CREATE TABLE IF NOT EXISTS BACKUP_MFQ_RECORD_SUMMARY_112814 AS
+SELECT r.*
+FROM MFQ_RECORD_SUMMARY r
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = r.CLAIM_ID
+WHERE c.FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+CREATE TABLE IF NOT EXISTS BACKUP_MFQ_MEDCRON_SUMMARY_112814 AS
+SELECT m.*
+FROM MFQ_MEDCRON_SUMMARY m
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = m.CLAIM_ID
+WHERE c.FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+CREATE TABLE IF NOT EXISTS BACKUP_MFQ_LEGAL_MEMO_112814 AS
+SELECT l.*
+FROM MFQ_LEGAL_MEMO l
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = l.CLAIM_ID
+WHERE c.FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+/* ============================================================================
+   3) Base tables behind UI views (documented in 04_create_ui_objects.sql)
+   MFQ_CLAIMS_VW            -> MFQ_CLAIMS + MFQ_CLAIM_DEFENDANTS + joins
+   MFQ_FORM_WORKSPACE_VW    -> MFQ_CLAIMS_VW + MFQ_SECTIONS + MFQ_QUESTIONS +
+                               MFQ_ANSWERS + MFQ_QUESTION_CONFIDENCE
+   MFQ_ASSIGNMENT_QUEUE_VW  -> MFQ_ASSIGNMENTS + MFQ_CLAIMS + MFQ_CLAIM_DEFENDANTS
+============================================================================ */
+
+/* ============================================================================
+   4) Reset data safely (target file only, dependency-aware)
+============================================================================ */
+DELETE FROM MFQ_QUESTION_CONFIDENCE
+WHERE CLAIM_ID IN (SELECT CLAIM_ID FROM MFQ_CLAIMS WHERE FILE_NUMBER = $TARGET_FILE_NUMBER);
+
+DELETE FROM MFQ_ANSWERS
+WHERE CLAIM_ID IN (SELECT CLAIM_ID FROM MFQ_CLAIMS WHERE FILE_NUMBER = $TARGET_FILE_NUMBER);
+
+DELETE FROM MFQ_STATUS_HISTORY
+WHERE CLAIM_ID IN (SELECT CLAIM_ID FROM MFQ_CLAIMS WHERE FILE_NUMBER = $TARGET_FILE_NUMBER);
+
+DELETE FROM MFQ_ASSIGNMENT_SECTIONS
+WHERE CLAIM_ID IN (SELECT CLAIM_ID FROM MFQ_CLAIMS WHERE FILE_NUMBER = $TARGET_FILE_NUMBER);
+
+DELETE FROM MFQ_ASSIGNMENTS
+WHERE CLAIM_ID IN (SELECT CLAIM_ID FROM MFQ_CLAIMS WHERE FILE_NUMBER = $TARGET_FILE_NUMBER);
+
+DELETE FROM MFQ_DOCUMENTS
+WHERE CLAIM_ID IN (SELECT CLAIM_ID FROM MFQ_CLAIMS WHERE FILE_NUMBER = $TARGET_FILE_NUMBER);
+
+DELETE FROM MFQ_RECORD_SUMMARY
+WHERE CLAIM_ID IN (SELECT CLAIM_ID FROM MFQ_CLAIMS WHERE FILE_NUMBER = $TARGET_FILE_NUMBER);
+
+DELETE FROM MFQ_MEDCRON_SUMMARY
+WHERE CLAIM_ID IN (SELECT CLAIM_ID FROM MFQ_CLAIMS WHERE FILE_NUMBER = $TARGET_FILE_NUMBER);
+
+DELETE FROM MFQ_LEGAL_MEMO
+WHERE CLAIM_ID IN (SELECT CLAIM_ID FROM MFQ_CLAIMS WHERE FILE_NUMBER = $TARGET_FILE_NUMBER);
+
+DELETE FROM MFQ_CLAIM_DEFENDANTS
+WHERE CLAIM_ID IN (SELECT CLAIM_ID FROM MFQ_CLAIMS WHERE FILE_NUMBER = $TARGET_FILE_NUMBER);
+
+DELETE FROM MFQ_CLAIMS
+WHERE FILE_NUMBER = $TARGET_FILE_NUMBER;
+
+/* ============================================================================
+   5) Insert fresh claim/header data
+============================================================================ */
+SET NEW_CLAIM_ID = UUID_STRING();
+SET NEW_DEFENDANT_ID = UUID_STRING();
+
+INSERT INTO MFQ_CLAIMS (
+  CLAIM_ID, FILE_NUMBER, PATIENT_NAME, STATUS, PRIORITY, DATE_REQUESTED, CREATED_TS, LAST_UPDATED_TS
+)
+VALUES (
+  $NEW_CLAIM_ID, '112814', $$Ondrea Cummings$$, 'MFQ Generated', 'Medium', CURRENT_DATE(), CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()
+);
+
+/* ============================================================================
+   6) Insert defendant/reviewer data
+============================================================================ */
+INSERT INTO MFQ_CLAIM_DEFENDANTS (
+  DEFENDANT_ID, CLAIM_ID, DEFENDANT_NAME, SPECIALTY, BRIEF_SYNOPSIS, ALLEGED_INJURY_TERMS, ALLEGATION_SUMMARY, CREATED_TS, LAST_UPDATED_TS
+)
+VALUES (
+  $NEW_DEFENDANT_ID,
+  $NEW_CLAIM_ID,
+  $$Adriana Lopez,MD$$,
+  $$OB$$,
+  $$Brief Synopsis from completed MFQ PDF for file 112814.$$,
+  $$Alleged Injury from completed MFQ PDF for file 112814.$$,
+  $$Summary Of Allegations from completed MFQ PDF for file 112814.$$,
+  CURRENT_TIMESTAMP(),
+  CURRENT_TIMESTAMP()
+);
+
+/* ============================================================================
+   7/8) Insert MFQ answers using QUESTION_KEY -> QUESTION_ID mapping
+   NOTE: Populate additional rows in pdf_answers VALUES once full extracted PDF
+   field/value set is available.
+============================================================================ */
+MERGE INTO MFQ_ANSWERS tgt
+USING (
+  WITH selected_claim AS (
+    SELECT CLAIM_ID, DEFENDANT_ID
+    FROM MFQ_CLAIMS_VW
+    WHERE FILE_NUMBER = '112814'
+    QUALIFY ROW_NUMBER() OVER (ORDER BY CLAIM_ID, DEFENDANT_ID) = 1
+  ),
+  pdf_answers AS (
+    SELECT * FROM VALUES
+      ('COVER_MAG_FILE', $$112814$$),
+      ('COVER_CONTACT', $$Kira Ptachcinski$$),
+      ('COVER_CONTACT_PHONE', $$803-731-7577$$),
+      ('COVER_CONTACT_EMAIL', $$kptachcinski@magmutual.com$$),
+      ('COVER_PATIENT_NAME', $$Ondrea Cummings$$),
+      ('COVER_DEFENDANT_NAME', $$Adriana Lopez,MD$$),
+      ('COVER_DEFENDANT_SPECIALTY', $$OB$$),
+      ('COVER_REVIEWER_NAME', $$Adrienne Adams,MD$$),
+      ('COVER_REVIEWER_SPECIALTY', $$OB$$),
+      ('COVER_REVIEWER_PHONE', $$773-909-5425$$),
+      ('COVER_REVIEWER_EMAIL', $$aadams4@nm.org$$),
+      ('COVER_BRIEF_SYNOPSIS', $$Brief Synopsis from completed MFQ PDF for file 112814.$$),
+      ('COVER_ALLEGED_INJURY', $$Alleged Injury from completed MFQ PDF for file 112814.$$),
+      ('COVER_ALLEGATION_SUMMARY', $$Summary Of Allegations from completed MFQ PDF for file 112814.$$)
+  ) AS t(QUESTION_KEY, ANSWER_TEXT)
+  SELECT
+    UUID_STRING() AS ANSWER_ID,
+    c.CLAIM_ID,
+    c.DEFENDANT_ID,
+    q.QUESTION_ID,
+    p.ANSWER_TEXT,
+    'EXTRACTED' AS STATUS,
+    TRUE AS IS_CURRENT
+  FROM pdf_answers p
+  JOIN MFQ_QUESTIONS q
+    ON q.FORM_KEY = 'MFQ_V1'
+   AND q.QUESTION_KEY = p.QUESTION_KEY
+   AND q.IS_CURRENT = TRUE
+   AND q.IS_ACTIVE = TRUE
+  CROSS JOIN selected_claim c
+) src
+ON tgt.CLAIM_ID = src.CLAIM_ID
+AND tgt.DEFENDANT_ID = src.DEFENDANT_ID
+AND tgt.QUESTION_ID = src.QUESTION_ID
+AND tgt.IS_CURRENT = TRUE
+WHEN MATCHED THEN UPDATE SET
+  tgt.ANSWER_TEXT = src.ANSWER_TEXT,
+  tgt.STATUS = src.STATUS,
+  tgt.CONFIDENCE_SCORE = 1.00,
+  tgt.LAST_UPDATED_TS = CURRENT_TIMESTAMP()
+WHEN NOT MATCHED THEN INSERT (
+  ANSWER_ID, CLAIM_ID, DEFENDANT_ID, QUESTION_ID, ANSWER_TEXT,
+  ANSWER_JSON, CONFIDENCE_SCORE, STATUS, IS_CURRENT, CREATED_TS, LAST_UPDATED_TS
+)
+VALUES (
+  src.ANSWER_ID, src.CLAIM_ID, src.DEFENDANT_ID, src.QUESTION_ID, src.ANSWER_TEXT,
+  NULL, 1.00, src.STATUS, src.IS_CURRENT, CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP()
+);
+
+/* ============================================================================
+   9) Insert status/history
+============================================================================ */
+INSERT INTO MFQ_STATUS_HISTORY (
+  STATUS_HISTORY_ID, CLAIM_ID, DEFENDANT_ID, EVENT_TYPE, FROM_STATUS, TO_STATUS, EVENT_TS, EVENT_BY_USER_ID, EVENT_NOTE
+)
+SELECT
+  UUID_STRING(), c.CLAIM_ID, d.DEFENDANT_ID, 'PDF_IMPORT', NULL, 'EXTRACTED', CURRENT_TIMESTAMP(), NULL,
+  'DEV/TEST import from completed MFQ PDF file 112814'
+FROM MFQ_CLAIMS c
+JOIN MFQ_CLAIM_DEFENDANTS d ON d.CLAIM_ID = c.CLAIM_ID
+WHERE c.FILE_NUMBER = '112814';
+
+/* ============================================================================
+   10) Optional confidence data
+============================================================================ */
+INSERT INTO MFQ_QUESTION_CONFIDENCE (
+  QUESTION_CONFIDENCE_ID, CLAIM_ID, DEFENDANT_ID, QUESTION_ID, CONFIDENCE_SCORE, CREATED_TS
+)
+SELECT
+  UUID_STRING(), a.CLAIM_ID, a.DEFENDANT_ID, a.QUESTION_ID, 1.00, CURRENT_TIMESTAMP()
+FROM MFQ_ANSWERS a
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = a.CLAIM_ID
+WHERE c.FILE_NUMBER = '112814';
+
+/* ============================================================================
+   11A) Validate claim exists
+============================================================================ */
+SELECT *
+FROM MFQ_CLAIMS_VW
+WHERE FILE_NUMBER = '112814';
+
+/* ============================================================================
+   11B) Validate section-wise answer counts
+============================================================================ */
+SELECT
+  SECTION_NAME,
+  COUNT(*) AS TOTAL_QUESTIONS,
+  COUNT(ANSWER_ID) AS ANSWERED_QUESTIONS,
+  COUNT(*) - COUNT(ANSWER_ID) AS MISSING_ANSWERS
+FROM MFQ_FORM_WORKSPACE_VW
+WHERE CLAIM_ID IN (
+  SELECT CLAIM_ID FROM MFQ_CLAIMS_VW WHERE FILE_NUMBER = '112814'
+)
+AND DEFENDANT_ID IN (
+  SELECT DEFENDANT_ID FROM MFQ_CLAIMS_VW WHERE FILE_NUMBER = '112814'
+)
+GROUP BY SECTION_NAME
+ORDER BY SECTION_NAME;
+
+/* ============================================================================
+   11C) Validate all answers
+============================================================================ */
+SELECT
+  SECTION_NAME,
+  QUESTION_KEY,
+  QUESTION_TEXT,
+  ANSWER_TEXT,
+  ANSWER_STATUS
+FROM MFQ_FORM_WORKSPACE_VW
+WHERE CLAIM_ID IN (
+  SELECT CLAIM_ID FROM MFQ_CLAIMS_VW WHERE FILE_NUMBER = '112814'
+)
+AND DEFENDANT_ID IN (
+  SELECT DEFENDANT_ID FROM MFQ_CLAIMS_VW WHERE FILE_NUMBER = '112814'
+)
+ORDER BY SECTION_ORDER, QUESTION_ORDER;
+
+/* ============================================================================
+   12) Final report queries (run after script)
+============================================================================ */
+-- Unmapped extracted fields against active MFQ questions.
+WITH pdf_answers AS (
+  SELECT * FROM VALUES
+    ('COVER_MAG_FILE'),('COVER_CONTACT'),('COVER_CONTACT_PHONE'),('COVER_CONTACT_EMAIL'),
+    ('COVER_PATIENT_NAME'),('COVER_DEFENDANT_NAME'),('COVER_DEFENDANT_SPECIALTY'),
+    ('COVER_REVIEWER_NAME'),('COVER_REVIEWER_SPECIALTY'),('COVER_REVIEWER_PHONE'),
+    ('COVER_REVIEWER_EMAIL'),('COVER_BRIEF_SYNOPSIS'),('COVER_ALLEGED_INJURY'),('COVER_ALLEGATION_SUMMARY')
+) AS p(QUESTION_KEY)
+SELECT p.QUESTION_KEY AS UNMAPPED_FIELD
+FROM pdf_answers p
+LEFT JOIN MFQ_QUESTIONS q
+  ON q.FORM_KEY = 'MFQ_V1'
+ AND q.IS_CURRENT = TRUE
+ AND q.IS_ACTIVE = TRUE
+ AND q.QUESTION_KEY = p.QUESTION_KEY
+WHERE q.QUESTION_ID IS NULL
+ORDER BY p.QUESTION_KEY;
