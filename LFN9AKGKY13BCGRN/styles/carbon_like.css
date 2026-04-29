@@ -1194,14 +1194,21 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
 [class*="st-key-"][class*="_recent_row_"] [data-testid="stHorizontalBlock"] {
   display: grid !important;
-  grid-template-columns: minmax(110px, 0.9fr) minmax(210px, 1.8fr) minmax(120px, 1fr) minmax(90px, 0.8fr) minmax(120px, 1fr) minmax(110px, 0.9fr) minmax(140px, 1.1fr);
-  gap: 0;
+  grid-template-columns:
+    minmax(120px, 0.9fr)
+    minmax(260px, 2.2fr)
+    minmax(120px, 1fr)
+    minmax(100px, 0.8fr)
+    minmax(120px, 1fr)
+    minmax(110px, 0.9fr)
+    minmax(140px, 1.1fr);
+  gap: 16px;
   align-items: center;
 }
 .claims-grid-header [data-testid="stHorizontalBlock"],
 [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"] { background: #f4f4f4; border-bottom: 1px solid #e0e0e0; }
 .claims-grid-row [data-testid="stHorizontalBlock"],
-[class*="st-key-"][class*="_recent_row_"] [data-testid="stHorizontalBlock"] { min-height: 76px; border-bottom: 1px solid #e0e0e0; }
+[class*="st-key-"][class*="_recent_row_"] [data-testid="stHorizontalBlock"] { min-height: 78px; padding: 16px 12px; border-bottom: 1px solid #e0e0e0; background: #ffffff; }
 [class*="st-key-"][class*="_recent_row_"]:last-child [data-testid="stHorizontalBlock"] { border-bottom: 0; }
 .claims-grid-row [data-testid="stHorizontalBlock"]:hover,
 [class*="st-key-"][class*="_recent_row_"] [data-testid="stHorizontalBlock"]:hover { background: #edf5ff; }
@@ -1223,13 +1230,13 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   min-width: 0 !important;
 }
 
-.enterprise-cell { padding: 14px 12px; font-size: .82rem; color: #161616; min-width: 0; display:flex; flex-direction:column; gap:4px; }
+.enterprise-cell { padding: 14px 0; font-size: .82rem; color: #161616; min-width: 0; display:flex; flex-direction:column; gap:4px; }
 .cell-label { display:none; font-size:.66rem; text-transform:uppercase; letter-spacing:.04em; color:#6f6f6f; font-weight:600; }
 .cell-value { min-width:0; }
 .claim-id-cell,.claim-id { font-weight: 600; white-space: nowrap; }
-.patient-cell { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
-.patient-name { font-weight: 600; color: #161616; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
-.defendant-name { color: #6f6f6f; font-size: .73rem; margin-top: .2rem; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+.patient-cell { min-width: 0; white-space: normal; overflow-wrap: normal; word-break: normal; line-height: 1.35; }
+.patient-name { display: block; font-weight: 600; color: #161616; line-height: 1.35; white-space: normal; word-break: normal; overflow-wrap: normal; }
+.defendant-name { display: block; color: #6f6f6f; font-size: 13px; line-height: 1.35; margin-top: 3px; white-space: normal; word-break: normal; overflow-wrap: normal; }
 .center-cell { text-align: center; align-items:center; }
 .date-requested { white-space: nowrap; }
 
@@ -1253,7 +1260,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .confidence-na { background: #f4f4f4; color: #6f6f6f; border-color: #e0e0e0; }
 
 .actions-cell { width: 100%; min-width: 0; display:flex; align-items:center; justify-content:flex-end; }
-.action-stack { display: flex; flex-direction: column; gap: 8px; width:100%; align-items: stretch; }
+.action-stack { display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
 .action-button,
 .st-key-recent_claims_card .stButton button {
   min-width: 96px;
