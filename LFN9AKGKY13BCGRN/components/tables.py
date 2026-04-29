@@ -203,7 +203,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
             with st.container(key=f"{key_prefix}_recent_row_{claim_id}"):
                 grid = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
                 grid[0].markdown(
-                    f"<div class='enterprise-cell claim-id'><span class='cell-label'>Claim ID</span><span class='cell-value'>{escape(claim_id or '—')}</span></div>",
+                    f"<div class='enterprise-cell claims-cell claim-id' data-label='Claim ID'><span class='cell-label'>Claim ID</span><span class='cell-value'>{escape(claim_id or '—')}</span></div>",
                     unsafe_allow_html=True,
                 )
 
@@ -212,29 +212,29 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                     person_detail.append(f"<div class='defendant-name'>{escape(defendant_name)}</div>")
 
                 grid[1].markdown(
-                    f"<div class='enterprise-cell patient-cell'><span class='cell-label'>Patient / Defendant</span><span class='cell-value'>{''.join(person_detail)}</span></div>",
+                    f"<div class='enterprise-cell claims-cell patient-cell' data-label='Patient / Defendant'><span class='cell-label'>Patient / Defendant</span><span class='cell-value'>{''.join(person_detail)}</span></div>",
                     unsafe_allow_html=True,
                 )
                 grid[2].markdown(
-                    f"<div class='enterprise-cell center-cell'><span class='cell-label'>Status</span><span class='cell-value'>{_status_badge_html(status)}</span></div>",
+                    f"<div class='enterprise-cell claims-cell center-cell status-cell' data-label='Status'><span class='cell-label'>Status</span><span class='cell-value'>{_status_badge_html(status)}</span></div>",
                     unsafe_allow_html=True,
                 )
                 grid[3].markdown(
-                    f"<div class='enterprise-cell center-cell'><span class='cell-label'>Priority</span><span class='cell-value'>{_priority_badge_html(row.get('PRIORITY'))}</span></div>",
+                    f"<div class='enterprise-cell claims-cell center-cell priority-cell' data-label='Priority'><span class='cell-label'>Priority</span><span class='cell-value'>{_priority_badge_html(row.get('PRIORITY'))}</span></div>",
                     unsafe_allow_html=True,
                 )
                 grid[4].markdown(
-                    f"<div class='enterprise-cell date-requested'><span class='cell-label'>Date Requested</span><span class='cell-value'>{escape(_format_date(row.get('DATE_REQUESTED')))}</span></div>",
+                    f"<div class='enterprise-cell claims-cell date-requested' data-label='Requested'><span class='cell-label'>Date Requested</span><span class='cell-value'>{escape(_format_date(row.get('DATE_REQUESTED')))}</span></div>",
                     unsafe_allow_html=True,
                 )
                 grid[5].markdown(
-                    f"<div class='enterprise-cell center-cell'><span class='cell-label'>AI Confidence</span><span class='cell-value'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</span></div>",
+                    f"<div class='enterprise-cell claims-cell center-cell confidence-cell' data-label='AI Conf.'><span class='cell-label'>AI Confidence</span><span class='cell-value'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</span></div>",
                     unsafe_allow_html=True,
                 )
 
                 action_slot = grid[6]
                 with action_slot:
-                    st.markdown("<div class='actions-cell'><div class='action-stack'>", unsafe_allow_html=True)
+                    st.markdown("<div class='claims-cell actions-cell' data-label='Actions'><div class='action-stack'>", unsafe_allow_html=True)
                     show_regenerate = status == "MFQ Generated"
                     pending_key = f"{key_prefix}_pending_confirm_{claim_id}"
                     running_key = f"{key_prefix}_running_{claim_id}"
