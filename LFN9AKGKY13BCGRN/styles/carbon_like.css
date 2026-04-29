@@ -1109,14 +1109,21 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 /* Recent claims premium dashboard table */
-.claims-dashboard-card {
+.claims-dashboard-card,
+.st-key-recent_claims_card {
   background: #ffffff;
   border: 1px solid #e0e0e0;
   border-radius: 14px;
   padding: 20px;
   overflow: hidden;
 }
-.claims-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.claims-toolbar,
+.st-key-recent_claims_toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
 .claims-title-group { min-width: 0; }
 .claims-search { width: 320px; max-width: 100%; }
 
@@ -1173,18 +1180,31 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   margin-left: auto;
 }
 
-.claims-grid-table { width: 100%; margin-top: .5rem; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; background: #fff; }
+.claims-grid-table,
+[class*="st-key-"][class*="_recent_claims_table"] {
+  width: 100%;
+  margin-top: .5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+}
 .claims-grid-header [data-testid="stHorizontalBlock"],
-.claims-grid-row [data-testid="stHorizontalBlock"] {
+.claims-grid-row [data-testid="stHorizontalBlock"],
+[class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
+[class*="st-key-"][class*="_recent_row_"] [data-testid="stHorizontalBlock"] {
   display: grid !important;
   grid-template-columns: minmax(110px, 0.9fr) minmax(210px, 1.8fr) minmax(120px, 1fr) minmax(90px, 0.8fr) minmax(120px, 1fr) minmax(110px, 0.9fr) minmax(140px, 1.1fr);
   gap: 0;
   align-items: center;
 }
-.claims-grid-header [data-testid="stHorizontalBlock"] { background: #f4f4f4; border-bottom: 1px solid #e0e0e0; }
-.claims-grid-row [data-testid="stHorizontalBlock"] { min-height: 76px; border-bottom: 1px solid #e0e0e0; }
-.claims-grid-row:last-child [data-testid="stHorizontalBlock"] { border-bottom: 0; }
-.claims-grid-row [data-testid="stHorizontalBlock"]:hover { background: #edf5ff; }
+.claims-grid-header [data-testid="stHorizontalBlock"],
+[class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"] { background: #f4f4f4; border-bottom: 1px solid #e0e0e0; }
+.claims-grid-row [data-testid="stHorizontalBlock"],
+[class*="st-key-"][class*="_recent_row_"] [data-testid="stHorizontalBlock"] { min-height: 76px; border-bottom: 1px solid #e0e0e0; }
+[class*="st-key-"][class*="_recent_row_"]:last-child [data-testid="stHorizontalBlock"] { border-bottom: 0; }
+.claims-grid-row [data-testid="stHorizontalBlock"]:hover,
+[class*="st-key-"][class*="_recent_row_"] [data-testid="stHorizontalBlock"]:hover { background: #edf5ff; }
 
 .enterprise-header-cell {
   color: #6f6f6f;

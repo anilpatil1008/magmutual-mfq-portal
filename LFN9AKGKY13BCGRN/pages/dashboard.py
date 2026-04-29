@@ -65,32 +65,27 @@ def render(session, ctx) -> None:
     search = st.session_state.get(f"{card_key}_search", "")
 
     with st.container(key="recent_claims_card"):
-        st.markdown("<div class='claims-dashboard-card'>", unsafe_allow_html=True)
-        st.markdown("<div class='claims-toolbar'>", unsafe_allow_html=True)
-        header_left, header_right = st.columns([4, 2], vertical_alignment="top")
-        with header_left:
-            st.markdown(
-                (
-                    "<div class='recent-claims-heading'>"
-                    "<h3 class='recent-claims-title'>Recent Claims</h3>"
-                    "<p class='recent-claims-subtitle'>Latest claims submitted for assessment.</p>"
-                    "</div>"
-                ),
-                unsafe_allow_html=True,
-            )
-        with header_right:
-            st.markdown("<div class='recent-claims-search'>", unsafe_allow_html=True)
-            with st.container(key="recent_claims_search"):
-                search = st.text_input(
-                    "Search",
-                    value=search,
-                    placeholder="Search by patient, file #...",
-                    label_visibility="collapsed",
-                    key=f"{card_key}_search",
+        with st.container(key="recent_claims_toolbar"):
+            header_left, header_right = st.columns([4, 2], vertical_alignment="top")
+            with header_left:
+                st.markdown(
+                    (
+                        "<div class='recent-claims-heading'>"
+                        "<h3 class='recent-claims-title'>Recent Claims</h3>"
+                        "<p class='recent-claims-subtitle'>Latest claims submitted for assessment.</p>"
+                        "</div>"
+                    ),
+                    unsafe_allow_html=True,
                 )
-            st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+            with header_right:
+                with st.container(key="recent_claims_search"):
+                    search = st.text_input(
+                        "Search",
+                        value=search,
+                        placeholder="Search by patient, file #...",
+                        label_visibility="collapsed",
+                        key=f"{card_key}_search",
+                    )
 
         queue = get_claims_queue(session, ctx.app_role, ctx.username, search_text=search)
         render_recent_claims_table(queue.head(20), key_prefix="dash")
-        st.markdown("</div>", unsafe_allow_html=True)

@@ -176,9 +176,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
     show_df = _sort_recent_claims(show_df, "DATE_REQUESTED", False)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
-        st.markdown("<div class='claims-grid-table'>", unsafe_allow_html=True)
         with st.container(key=f"{key_prefix}_recent_sort_header"):
-            st.markdown("<div class='claims-grid-header'>", unsafe_allow_html=True)
             header_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
             header_labels = [
                 "CLAIM ID",
@@ -195,64 +193,63 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                     f"<div class='enterprise-header-cell'>{label}</div>",
                     unsafe_allow_html=True,
                 )
-            st.markdown("</div>", unsafe_allow_html=True)
 
         for _, row in show_df.iterrows():
             claim_id = str(row.get("CLAIM_ID", "")).strip()
             status = str(row.get("STATUS", "")).strip()
             patient_name = str(row.get("PATIENT_NAME", "")).strip() or "Unknown Patient"
             defendant_name = str(row.get("DEFENDANT_NAME", "")).strip()
-            st.markdown("<div class='claims-grid-row'>", unsafe_allow_html=True)
-            grid = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
 
-            grid[0].markdown(
-                f"<div class='enterprise-cell claim-id'><span class='cell-label'>Claim ID</span><span class='cell-value'>{escape(claim_id or '—')}</span></div>",
-                unsafe_allow_html=True,
-            )
+            with st.container(key=f"{key_prefix}_recent_row_{claim_id}"):
+                grid = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
+                grid[0].markdown(
+                    f"<div class='enterprise-cell claim-id'><span class='cell-label'>Claim ID</span><span class='cell-value'>{escape(claim_id or '—')}</span></div>",
+                    unsafe_allow_html=True,
+                )
 
-            person_detail = [f"<div class='patient-name'>{escape(patient_name)}</div>"]
-            if defendant_name:
-                person_detail.append(f"<div class='defendant-name'>{escape(defendant_name)}</div>")
+                person_detail = [f"<div class='patient-name'>{escape(patient_name)}</div>"]
+                if defendant_name:
+                    person_detail.append(f"<div class='defendant-name'>{escape(defendant_name)}</div>")
 
-            grid[1].markdown(
-                f"<div class='enterprise-cell patient-cell'><span class='cell-label'>Patient / Defendant</span><span class='cell-value'>{''.join(person_detail)}</span></div>",
-                unsafe_allow_html=True,
-            )
-            grid[2].markdown(
-                f"<div class='enterprise-cell center-cell'><span class='cell-label'>Status</span><span class='cell-value'>{_status_badge_html(status)}</span></div>",
-                unsafe_allow_html=True,
-            )
-            grid[3].markdown(
-                f"<div class='enterprise-cell center-cell'><span class='cell-label'>Priority</span><span class='cell-value'>{_priority_badge_html(row.get('PRIORITY'))}</span></div>",
-                unsafe_allow_html=True,
-            )
-            grid[4].markdown(
-                f"<div class='enterprise-cell date-requested'><span class='cell-label'>Date Requested</span><span class='cell-value'>{escape(_format_date(row.get('DATE_REQUESTED')))}</span></div>",
-                unsafe_allow_html=True,
-            )
-            grid[5].markdown(
-                f"<div class='enterprise-cell center-cell'><span class='cell-label'>AI Confidence</span><span class='cell-value'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</span></div>",
-                unsafe_allow_html=True,
-            )
+                grid[1].markdown(
+                    f"<div class='enterprise-cell patient-cell'><span class='cell-label'>Patient / Defendant</span><span class='cell-value'>{''.join(person_detail)}</span></div>",
+                    unsafe_allow_html=True,
+                )
+                grid[2].markdown(
+                    f"<div class='enterprise-cell center-cell'><span class='cell-label'>Status</span><span class='cell-value'>{_status_badge_html(status)}</span></div>",
+                    unsafe_allow_html=True,
+                )
+                grid[3].markdown(
+                    f"<div class='enterprise-cell center-cell'><span class='cell-label'>Priority</span><span class='cell-value'>{_priority_badge_html(row.get('PRIORITY'))}</span></div>",
+                    unsafe_allow_html=True,
+                )
+                grid[4].markdown(
+                    f"<div class='enterprise-cell date-requested'><span class='cell-label'>Date Requested</span><span class='cell-value'>{escape(_format_date(row.get('DATE_REQUESTED')))}</span></div>",
+                    unsafe_allow_html=True,
+                )
+                grid[5].markdown(
+                    f"<div class='enterprise-cell center-cell'><span class='cell-label'>AI Confidence</span><span class='cell-value'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</span></div>",
+                    unsafe_allow_html=True,
+                )
 
-            action_slot = grid[6]
-            with action_slot:
-                st.markdown("<div class='actions-cell'><div class='action-stack'>", unsafe_allow_html=True)
-                show_regenerate = status == "MFQ Generated"
-                pending_key = f"{key_prefix}_pending_confirm_{claim_id}"
-                running_key = f"{key_prefix}_running_{claim_id}"
+                action_slot = grid[6]
+                with action_slot:
+                    st.markdown("<div class='actions-cell'><div class='action-stack'>", unsafe_allow_html=True)
+                    show_regenerate = status == "MFQ Generated"
+                    pending_key = f"{key_prefix}_pending_confirm_{claim_id}"
+                    running_key = f"{key_prefix}_running_{claim_id}"
 
-                if show_regenerate:
-                    regen_clicked = st.button(
-                        "↻ Regenerate",
-                        key=f"{key_prefix}_regenerate_{claim_id}",
-                        help="Regenerate MFQ using the latest claim documents and extracted data.",
-                        disabled=bool(st.session_state.get(running_key, False)),
-                        type="secondary",
-                        use_container_width=True,
-                    )
-                    if regen_clicked:
-                        st.session_state[pending_key] = True
+                    if show_regenerate:
+                        regen_clicked = st.button(
+                            "↻ Regenerate",
+                            key=f"{key_prefix}_regenerate_{claim_id}",
+                            help="Regenerate MFQ using the latest claim documents and extracted data.",
+                            disabled=bool(st.session_state.get(running_key, False)),
+                            type="secondary",
+                            use_container_width=True,
+                        )
+                        if regen_clicked:
+                            st.session_state[pending_key] = True
 
                     review_pressed = st.button(
                         "Review →",
@@ -260,50 +257,41 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                         type="tertiary",
                         use_container_width=True,
                     )
-                else:
-                    review_pressed = st.button(
-                        "Review →",
-                        key=f"{key_prefix}_review_{claim_id}",
-                        type="tertiary",
-                        use_container_width=True,
-                    )
-
-                if review_pressed:
-                    st.session_state.selected_claim_id = claim_id
-                    st.session_state.active_page = "Claim Details"
-                    st.rerun()
-
-                if show_regenerate and st.session_state.get(pending_key, False):
-                    st.markdown(
-                        "<div class='regenerate-confirm'>Regenerating MFQ will replace the existing generated questionnaire for this claim. Do you want to continue?</div>",
-                        unsafe_allow_html=True,
-                    )
-                    confirm_cols = st.columns([1, 1], vertical_alignment="center")
-                    if confirm_cols[0].button(
-                        "Cancel",
-                        key=f"{key_prefix}_cancel_{claim_id}",
-                        type="tertiary",
-                        use_container_width=True,
-                    ):
-                        st.session_state[pending_key] = False
+                    if review_pressed:
+                        st.session_state.selected_claim_id = claim_id
+                        st.session_state.active_page = "Claim Details"
                         st.rerun()
 
-                    if confirm_cols[1].button(
-                        "Regenerate",
-                        key=f"{key_prefix}_confirm_{claim_id}",
-                        disabled=bool(st.session_state.get(running_key, False)),
-                        type="primary",
-                        use_container_width=True,
-                    ):
-                        st.session_state[running_key] = True
-                        with st.spinner("Regenerating MFQ..."):
-                            success, message = _run_regeneration(claim_id, row)
-                        st.session_state[running_key] = False
-                        st.session_state[pending_key] = False
-                        if success:
-                            st.success(message)
+                    if show_regenerate and st.session_state.get(pending_key, False):
+                        st.markdown(
+                            "<div class='regenerate-confirm'>Regenerating MFQ will replace the existing generated questionnaire for this claim. Do you want to continue?</div>",
+                            unsafe_allow_html=True,
+                        )
+                        confirm_cols = st.columns([1, 1], vertical_alignment="center")
+                        if confirm_cols[0].button(
+                            "Cancel",
+                            key=f"{key_prefix}_cancel_{claim_id}",
+                            type="tertiary",
+                            use_container_width=True,
+                        ):
+                            st.session_state[pending_key] = False
                             st.rerun()
-                        st.error(message)
-                st.markdown("</div>", unsafe_allow_html=True)
-            st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+
+                        if confirm_cols[1].button(
+                            "Regenerate",
+                            key=f"{key_prefix}_confirm_{claim_id}",
+                            disabled=bool(st.session_state.get(running_key, False)),
+                            type="primary",
+                            use_container_width=True,
+                        ):
+                            st.session_state[running_key] = True
+                            with st.spinner("Regenerating MFQ..."):
+                                success, message = _run_regeneration(claim_id, row)
+                            st.session_state[running_key] = False
+                            st.session_state[pending_key] = False
+                            if success:
+                                st.success(message)
+                                st.rerun()
+                            st.error(message)
+                    st.markdown("</div>", unsafe_allow_html=True)
+            
