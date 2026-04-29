@@ -119,6 +119,22 @@ def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = No
     qc_level_expr = "qc.CONFIDENCE_LEVEL" if "CONFIDENCE_LEVEL" in question_conf_cols else "NULL"
     qc_reason_expr = "qc.CONFIDENCE_REASON" if "CONFIDENCE_REASON" in question_conf_cols else "NULL"
 
+    question_key_join_predicates = ["a.QUESTION_ID = q.QUESTION_ID"]
+    if "QUESTION_KEY" in answer_cols:
+        question_key_join_predicates.append("a.QUESTION_KEY = q.QUESTION_KEY")
+    if "FIELD_NAME" in answer_cols:
+        question_key_join_predicates.append("a.FIELD_NAME = q.QUESTION_KEY")
+    if "PDF_FIELD_NAME" in answer_cols:
+        question_key_join_predicates.append("a.PDF_FIELD_NAME = q.QUESTION_KEY")
+    question_join_predicate = " OR ".join(question_key_join_predicates)
+
+    claim_join_predicates = [f"a.CLAIM_ID = '{claim_id_q}'"]
+    if "FILE_NO" in answer_cols:
+        claim_join_predicates.append(f"TRIM(a.FILE_NO) = '{claim_id_q}'")
+    if "FILE_NUMBER" in answer_cols:
+        claim_join_predicates.append(f"TRIM(a.FILE_NUMBER) = '{claim_id_q}'")
+    answer_claim_join_predicate = " OR ".join(claim_join_predicates)
+
     sql = f"""
       SELECT
           s.SECTION_ID,
@@ -151,8 +167,8 @@ def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = No
           ON q.SECTION_ID = s.SECTION_ID
          AND q.FORM_KEY = s.FORM_KEY
       LEFT JOIN {ANSWERS_TABLE} a
-          ON a.QUESTION_ID = q.QUESTION_ID
-         AND a.CLAIM_ID = '{claim_id_q}'
+          ON ({question_join_predicate})
+         AND ({answer_claim_join_predicate})
          AND a.IS_CURRENT = TRUE
       LEFT JOIN {QUESTION_CONFIDENCE_TABLE} qc
           ON qc.QUESTION_ID = q.QUESTION_ID
@@ -337,14 +353,23 @@ def extract_answer_json_value(raw: Any) -> Any:
 
 
 def get_answer_value(row: pd.Series | dict[str, Any]) -> str:
-    value = (
-        row.get("REVIEWED_ANSWER")
-        or row.get("ANSWER_VALUE")
-        or row.get("ANSWER_TEXT")
-        or extract_answer_json_value(row.get("ANSWER_JSON"))
-        or row.get("GENERATED_ANSWER")
-        or ""
-    )
+    candidates = [
+        row.get("REVIEWED_ANSWER"),
+        row.get("ANSWER_VALUE"),
+        row.get("ANSWER_TEXT"),
+        extract_answer_json_value(row.get("ANSWER_JSON")),
+        row.get("GENERATED_ANSWER"),
+    ]
+    value = ""
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        if isinstance(candidate, float) and pd.isna(candidate):
+            continue
+        if str(candidate).strip() == "":
+            continue
+        value = candidate
+        break
     parsed = _parse_json_like(value)
     if parsed is None:
         return ""
