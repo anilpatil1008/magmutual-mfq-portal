@@ -1175,16 +1175,22 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   margin-left: auto;
 }
 
+.claims-table-container,
 .enterprise-table-wrapper {
   width: 100%;
-  overflow-x: auto;
   margin-top: .55rem;
-  border: 1px solid #dde1e6;
-  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
   background: #ffffff;
   min-width: 0;
 }
 
+.claims-table,
+.enterprise-table-wrapper [data-testid="stHorizontalBlock"] {
+  width: 100%;
+}
+
+.claims-table-header,
 .enterprise-header-cell {
   background: #f4f4f4;
   color: #525252;
@@ -1192,173 +1198,82 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   letter-spacing: .03em;
   font-size: .68rem;
   font-weight: 700;
-  padding: 16px 14px;
+  padding: 14px 12px;
   border-bottom: 1px solid #e0e0e0;
-  white-space: nowrap;
 }
 
-.st-key-recent_claims_card .stButton button {
-  min-height: 28px;
-  white-space: nowrap;
-  box-shadow: none;
-  border-radius: 6px;
-}
+.claims-table-row { border-bottom: 1px solid #e0e0e0; }
+.claims-table-row:hover { background: #f4f4f4; }
 
-[class*="st-key-"][class*="_recent_sort_header"] [data-testid="column"] {
+[class*="st-key-"][class*="_recent_sort_header"] [data-testid="column"],
+[class*="st-key-"][class*="_recent_claims_table"] [data-testid="column"],
+.enterprise-table-wrapper [data-testid="column"] {
   min-width: 0 !important;
 }
 
-[class*="st-key-"][class*="_recent_claims_table"] [data-testid="column"] {
-  min-width: 0 !important;
-}
+.enterprise-cell { padding: 14px 12px; font-size: .82rem; color: #161616; min-width: 0; }
+.claim-id-cell,.claim-id { font-weight: 600; white-space: nowrap; }
+.patient-cell { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+.patient-name { font-weight: 600; color: #161616; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+.defendant-name { color: #6f6f6f; font-size: .73rem; margin-top: .2rem; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
+.center-cell { text-align: center; }
+.date-requested { white-space: nowrap; }
 
-.enterprise-cell {
-  padding: 16px 14px;
-  font-size: .82rem;
-  color: #161616;
-  min-width: 0;
-}
-
-.center-cell {
-  text-align: center;
-}
-
-.patient-cell {
-  min-width: 220px;
-}
-
-.patient-name {
-  font-weight: 600;
-  color: #161616;
-}
-
-.defendant-name,
-.specialty-name {
-  color: #6f6f6f;
-  font-size: .73rem;
-  margin-top: .1rem;
-  line-height: 1.25;
-}
-
-.claim-id,
-.date-requested {
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.enterprise-row-separator {
-  border-bottom: 1px solid #e0e0e0;
-  margin: .05rem 0;
-}
-
+.badge,
 .status-badge,
 .priority-badge,
 .confidence-badge {
   display: inline-flex;
   align-items: center;
-  padding: .2rem .56rem;
+  justify-content: center;
+  padding: .24rem .56rem;
   border-radius: 999px;
   font-size: .7rem;
   font-weight: 600;
   white-space: nowrap;
+  border: 1px solid transparent;
 }
+.badge-status,.status-badge { background: #edf5ff; color: #0f62fe; border-color: #c6d6ff; }
+.badge-priority,.priority-badge { background: #f4f4f4; color: #525252; border-color: #d0d0d0; }
+.confidence-badge { background: #defbe6; color: #198038; border-color: #a7f0ba; min-width: 58px; }
+.confidence-na { background: #f4f4f4; color: #525252; border-color: #d0d0d0; }
 
-.status-mfq-generated { background: #edf5ff; color: #0f62fe; }
-.status-assigned { background: #f0ebff; color: #6929c4; }
-.status-approved { background: #defbe6; color: #198038; }
-.status-rejected { background: #ffd7d9; color: #da1e28; }
-.status-pending { background: #fff4ce; color: #8a6b0f; }
-.status-unknown { background: #e0e0e0; color: #525252; }
-
-.priority-critical { background: #ffd7d9; color: #a2191f; }
-.priority-high { background: #fff1dc; color: #b25f00; }
-.priority-medium { background: #edf5ff; color: #0f62fe; }
-.priority-low { background: #e0e0e0; color: #525252; }
-.priority-unknown { background: #e0e0e0; color: #525252; }
-
-.confidence-high { background: #defbe6; color: #198038; }
-.confidence-medium { background: #fff4ce; color: #8a6b0f; }
-.confidence-low { background: #ffd7d9; color: #a2191f; }
-.confidence-na { background: #e0e0e0; color: #525252; }
-
-.action-cell {
-  width: 100%;
-  min-width: 110px;
-  text-align: right;
-  white-space: nowrap;
-}
-
-.action-link,
-.st-key-recent_claims_card button[kind="tertiary"] {
-  color: #0f62fe;
-  text-decoration: none;
-  font-weight: 600;
-  font-size: .78rem;
-  white-space: nowrap;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.st-key-recent_claims_card button[kind="secondary"] {
-  border: 1px solid #0f62fe;
+.action-cell { width: 100%; min-width: 0; }
+.action-button-group { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
+.action-button,
+.st-key-recent_claims_card .stButton button {
+  min-width: 112px;
+  min-height: 32px;
   border-radius: 6px;
-  background: #ffffff;
-  color: #0f62fe;
-  font-size: .7rem;
-  padding: .02rem .45rem;
+  white-space: nowrap;
+  box-shadow: none;
 }
+.st-key-recent_claims_card button[kind="tertiary"] { color: #0f62fe; font-weight: 600; }
+.st-key-recent_claims_card button[kind="secondary"] { border: 1px solid #0f62fe; background: #fff; color: #0f62fe; }
+.st-key-recent_claims_card button[kind="secondary"]:hover { border-color: #0043ce; color: #0043ce; }
 
-.st-key-recent_claims_card button[kind="secondary"]:hover {
-  border-color: #0043ce;
-  color: #0043ce;
-}
+.enterprise-row-separator { border-bottom: 1px solid #e0e0e0; margin: 0; }
+.action-header { text-align: left; }
 
-.st-key-recent_claims_card .date-requested {
-  min-width: 130px;
-}
+@media (max-width: 1024px) {
+  .recent-claims-header { flex-direction: column; align-items: stretch; }
+  .recent-claims-search, .st-key-recent_claims_search [data-testid="stTextInputRootElement"] { width: 100%; max-width: 100%; margin-left: 0; }
 
-.action-divider {
-  color: #8d8d8d;
-  font-size: .78rem;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-}
+  [class*="st-key-"][class*="_recent_sort_header"] { display: none; }
 
-.regenerate-confirm {
-  color: #525252;
-  font-size: .72rem;
-  margin: .35rem 0 .3rem;
-  line-height: 1.3;
-}
-
-.action-header {
-  text-align: right;
-  min-width: 110px;
-}
-
-.enterprise-table-wrapper [data-testid="stHorizontalBlock"] {
-  width: 100%;
-}
-
-.enterprise-table-wrapper [data-testid="column"] {
-  min-width: 0 !important;
-}
-
-@media (max-width: 1150px) {
-  .enterprise-table-wrapper {
-    overflow-x: auto;
-  }
-
-  [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
   [class*="st-key-"][class*="_recent_claims_table"] [data-testid="stHorizontalBlock"] {
-    min-width: 950px;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 12px;
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #fff;
   }
+  [class*="st-key-"][class*="_recent_claims_table"] [data-testid="column"] { width: 100% !important; }
+  .action-cell { grid-column: 1 / -1; }
+  .action-button-group { flex-direction: column; }
+  .action-button, .st-key-recent_claims_card .stButton button { width: 100%; }
 }
-
 /* Portal header card layout: title + actions in one card */
 .st-key-app_topbar {
   margin: 0 0 1rem !important;
