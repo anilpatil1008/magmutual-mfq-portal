@@ -240,7 +240,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-header_role_select [data-baseweb="select"] span {
   white-space: nowrap;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   text-overflow: ellipsis;
 }
 
@@ -262,7 +263,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   min-width: 0;
   font-size: .84rem;
   color: #1b1f24;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   text-overflow: ellipsis;
 }
 .mm-role-pill-chevron { color: #5f6b7a; font-size: .78rem; }
@@ -301,7 +303,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .mm-header-item-profile .stPopover > div > button p {
   white-space: nowrap;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   text-overflow: ellipsis;
 }
 
@@ -331,7 +334,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   min-height: 36px;
   margin-bottom: .2rem;
   white-space: nowrap;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   text-overflow: ellipsis;
 }
 
@@ -397,7 +401,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   flex: 1;
   min-width: 0;
   white-space: nowrap;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   text-overflow: ellipsis;
   font-size: .84rem;
   color: #1b1f24;
@@ -546,7 +551,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   min-height: 120px;
   height: 100%;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 .mm-card-main {
   display: flex;
@@ -904,7 +910,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-size: .84rem !important;
   margin: 0;
   white-space: nowrap;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   text-overflow: ellipsis;
 }
 
@@ -1182,11 +1189,12 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .claims-dashboard-card .claims-grid-table,
 [class*="st-key-"][class*="_recent_claims_table"] {
   width: 100%;
-  min-width: 920px;
+  min-width: 0;
   margin-top: .5rem;
   border: 1px solid #e0e0e0;
   border-radius: 12px;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   background: #fff;
 }
 
@@ -1195,7 +1203,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
 [class*="st-key-"][class*="_recent_row_"] [data-testid="stHorizontalBlock"] {
   display: grid !important;
-  grid-template-columns: 110px minmax(260px, 1.8fr) 120px 90px 120px 100px 150px;
+  grid-template-columns: minmax(105px, .95fr) minmax(220px, 2fr) minmax(110px, 1fr) minmax(90px, .85fr) minmax(120px, 1fr) minmax(100px, .9fr) minmax(132px, 1.1fr);
   column-gap: 16px;
   align-items: center;
   width: 100%;
@@ -2046,7 +2054,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   height: 6px;
   border-radius: 999px;
   background: #d8f3e3;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .confidence-progress > span {
