@@ -511,11 +511,16 @@ def _render_questions(
 
         if is_child:
             st.markdown("<div class='mfq-child-question'></div>", unsafe_allow_html=True)
+        confidence_badge_html = ""
+        if not is_child:
+            confidence_badge_html = (
+                f"<span class='mfq-confidence-badge tone-{_tone_for_conf(confidence_score)}'>{_fmt_conf(confidence_score)}</span>"
+            )
         with st.container(border=False):
             st.markdown(
                 "<div class='mfq-question-header'>"
                 f"<div class='mfq-question-content mfq-question-text'>{question_order}. {escape(question_text)}</div>"
-                f"<span class='mfq-confidence-badge tone-{_tone_for_conf(confidence_score)}'>{_fmt_conf(confidence_score)}</span>"
+                f"{confidence_badge_html}"
                 "</div>",
                 unsafe_allow_html=True,
             )
