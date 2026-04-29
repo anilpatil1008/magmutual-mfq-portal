@@ -29,7 +29,7 @@ ENTERPRISE_COLUMNS = [
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
 ]
-RECENT_CLAIMS_COLUMN_WIDTHS = [14, 26, 14, 10, 14, 10, 18]
+RECENT_CLAIMS_COLUMN_WIDTHS = [12, 24, 12, 9, 13, 10, 20]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")

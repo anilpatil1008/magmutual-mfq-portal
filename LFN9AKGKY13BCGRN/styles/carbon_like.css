@@ -1203,8 +1203,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 [class*="st-key-"][class*="_recent_sort_header"] [data-testid="stHorizontalBlock"],
 [class*="st-key-"][class*="_recent_row_"] [data-testid="stHorizontalBlock"] {
   display: grid !important;
-  grid-template-columns: minmax(105px, .95fr) minmax(220px, 2fr) minmax(110px, 1fr) minmax(90px, .85fr) minmax(120px, 1fr) minmax(100px, .9fr) minmax(132px, 1.1fr);
-  column-gap: 16px;
+  grid-template-columns: minmax(90px, .9fr) minmax(180px, 2fr) minmax(95px, .95fr) minmax(80px, .8fr) minmax(105px, .95fr) minmax(90px, .85fr) minmax(118px, 1fr);
+  column-gap: 10px;
   align-items: center;
   width: 100%;
   box-sizing: border-box;
@@ -1264,7 +1264,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .claims-dashboard-card .patient-cell,
 [class*="st-key-"][class*="_recent_claims_table"] .patient-cell {
-  min-width: 260px;
+  min-width: 0;
   max-width: 100%;
   display: block;
   white-space: normal;
