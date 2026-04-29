@@ -23,3 +23,41 @@ def get_mfq_form_workspace(session, claim_id: str, answer_value_expr: str, gener
     WHERE s.FORM_KEY='MFQ_V1' AND s.IS_ACTIVE=TRUE AND q.IS_ACTIVE=TRUE AND q.IS_CURRENT=TRUE
     ORDER BY s.DISPLAY_ORDER, q.DISPLAY_ORDER
     """, query_name="mfq.get_form_workspace")
+
+
+def get_claim_summaries(session, claim_id: str) -> pd.DataFrame:
+    claim_q = quote_sql(claim_id)
+    return execute_query_df(
+        session,
+        f"""
+        SELECT 'RECORD_SUMMARY' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM {obj.MFQ_RECORD_SUMMARY_TABLE} WHERE CLAIM_ID = '{claim_q}'
+        UNION ALL
+        SELECT 'MEDCRON' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM {obj.MFQ_MEDCRON_SUMMARY_TABLE} WHERE CLAIM_ID = '{claim_q}'
+        UNION ALL
+        SELECT 'LEGAL_MEMO' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM {obj.MFQ_LEGAL_MEMO_TABLE} WHERE CLAIM_ID = '{claim_q}'
+        ORDER BY GENERATED_TS DESC
+        """,
+        query_name="mfq.get_claim_summaries",
+    )
+
+
+def get_section_confidence(session, claim_id: str, section_id: str) -> pd.DataFrame:
+    claim_q = quote_sql(claim_id)
+    section_q = quote_sql(section_id)
+    return execute_query_df(session, f"SELECT CLAIM_ID,SECTION_ID,CONFIDENCE_SCORE FROM {obj.MFQ_SECTION_CONFIDENCE_TABLE} WHERE CLAIM_ID='{claim_q}' AND SECTION_ID='{section_q}'", query_name="mfq.get_section_confidence")
+
+
+def get_claim_confidence_summary(session, claim_id: str) -> pd.DataFrame:
+    claim_q = quote_sql(claim_id)
+    return execute_query_df(
+        session,
+        f"""SELECT s.SECTION_NAME,s.DISPLAY_ORDER AS SECTION_ORDER,sc.CONFIDENCE_SCORE
+        FROM {obj.MFQ_SECTION_CONFIDENCE_TABLE} sc JOIN {obj.MFQ_SECTIONS_TABLE} s ON s.SECTION_ID=sc.SECTION_ID
+        WHERE sc.CLAIM_ID='{claim_q}' ORDER BY s.DISPLAY_ORDER, s.SECTION_NAME""",
+        query_name="mfq.get_claim_confidence_summary",
+    )
+
+
+def get_llm_evaluation(session, entity_id: str) -> pd.DataFrame:
+    entity_q = quote_sql(entity_id)
+    return execute_query_df(session, f"SELECT NEEDS_HUMAN_REVIEW,FAITHFULNESS_SCORE,CREATED_AT FROM {obj.LLM_EVALUATION_TABLE} WHERE ENTITY_ID='{entity_q}' ORDER BY CREATED_AT DESC LIMIT 1", query_name="mfq.get_llm_evaluation")
