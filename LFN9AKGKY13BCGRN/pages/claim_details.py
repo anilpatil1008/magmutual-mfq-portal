@@ -719,6 +719,13 @@ def render(session, ctx) -> None:
 
     _render_breadcrumb(str(claim_id))
 
+    toolbar_col, _ = st.columns([2, 6])
+    with toolbar_col:
+        if st.button("Refresh answers", key=f"refresh_answers_{claim_id}", type="tertiary"):
+            st.cache_data.clear()
+            st.session_state[f"mfq_refresh_nonce_{claim_id}"] = st.session_state.get(f"mfq_refresh_nonce_{claim_id}", 0) + 1
+            st.rerun()
+
     workspace = get_claim_review_workspace(session, str(claim_id))
     claim = workspace.get("claim")
     if not claim:
@@ -737,6 +744,40 @@ def render(session, ctx) -> None:
     _render_missing_objects(workspace.get("missing_objects", []))
     st.session_state["review_snowflake_objects"] = workspace.get("used_objects", [])
     st.session_state["review_missing_objects"] = workspace.get("missing_objects", [])
+    debug_enabled = bool(st.session_state.get("debug_mfq_binding", False))
+    if st.checkbox("Developer debug (MFQ binding)", key="debug_mfq_binding"):
+        debug_enabled = True
+    if debug_enabled:
+        sections_df = workspace.get("sections", pd.DataFrame())
+        display_answer_series = (
+            sections_df["DISPLAY_ANSWER"] if (not sections_df.empty and "DISPLAY_ANSWER" in sections_df.columns) else pd.Series(dtype="object")
+        )
+        non_empty_mask = display_answer_series.astype(str).str.strip() != "" if not display_answer_series.empty else pd.Series(dtype="bool")
+        question_keys = sorted(
+            {
+                str(v).strip()
+                for v in sections_df.get("QUESTION_KEY", pd.Series(dtype="object")).dropna().tolist()
+                if str(v).strip()
+            }
+        ) if not sections_df.empty else []
+        answer_keys = sorted(
+            {
+                str(v).strip()
+                for v in sections_df.loc[non_empty_mask, "QUESTION_KEY"].dropna().tolist()
+            }
+        ) if (not sections_df.empty and "QUESTION_KEY" in sections_df.columns and not non_empty_mask.empty) else []
+        missing_ui_keys = [k for k in question_keys if k not in set(answer_keys)]
+        with st.expander("MFQ binding debug", expanded=False):
+            st.json(
+                {
+                    "selected_claim_id": str(claim_id),
+                    "selected_file_number": claim.get("FILE_NUMBER"),
+                    "answer_table": "MFQ_ANSWERS",
+                    "answer_rows_returned": int(non_empty_mask.sum()) if not non_empty_mask.empty else 0,
+                    "first_10_answer_keys": answer_keys[:10],
+                    "first_10_missing_ui_keys": missing_ui_keys[:10],
+                }
+            )
 
     tabs = st.tabs(["MFQ Form", "Records Summary", "MedCron", "Legal Memo", "Enquiries", "AI Assist", "Documents"])
     edit_key = f"mfq_edit_mode_{claim_id}"

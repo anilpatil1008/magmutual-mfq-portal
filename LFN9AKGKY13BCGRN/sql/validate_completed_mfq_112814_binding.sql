@@ -1,0 +1,78 @@
+-- Validate completed MFQ PDF answer binding for file number 112814
+-- Run in the app database/schema context.
+
+-- 1) Verify claim/header rows are resolvable by the UI claim key variants.
+SELECT *
+FROM MFQ_CLAIMS
+WHERE TRIM(FILE_NUMBER) = '112814'
+   OR TRIM(CLAIM_ID) = '112814';
+
+SELECT *
+FROM MFQ_CLAIMS_VW
+WHERE TRIM(FILE_NUMBER) = '112814'
+   OR TRIM(CLAIM_ID) = '112814';
+
+SELECT d.*, c.FILE_NUMBER
+FROM MFQ_CLAIM_DEFENDANTS d
+JOIN MFQ_CLAIMS c ON c.CLAIM_ID = d.CLAIM_ID
+WHERE TRIM(c.FILE_NUMBER) = '112814'
+   OR TRIM(c.CLAIM_ID) = '112814';
+
+-- 2) Verify answer rows exist for the claim/file across supported key variants.
+SELECT *
+FROM MFQ_ANSWERS
+WHERE TRIM(CLAIM_ID) = '112814'
+   OR TRIM(COALESCE(FILE_NO, '')) = '112814'
+   OR TRIM(COALESCE(FILE_NUMBER, '')) = '112814'
+ORDER BY COALESCE(SECTION_NAME, SECTION_ID), COALESCE(FIELD_NAME, QUESTION_ID);
+
+-- 3) Verify key field values that should populate top cards / early sections.
+SELECT
+  COALESCE(FIELD_NAME, PDF_FIELD_NAME, QUESTION_KEY, QUESTION_ID) AS SOURCE_KEY,
+  ANSWER_VALUE,
+  ANSWER_TEXT,
+  GENERATED_ANSWER,
+  REVIEWED_ANSWER,
+  IS_CURRENT
+FROM MFQ_ANSWERS
+WHERE (TRIM(CLAIM_ID) = '112814'
+    OR TRIM(COALESCE(FILE_NO, '')) = '112814'
+    OR TRIM(COALESCE(FILE_NUMBER, '')) = '112814')
+  AND COALESCE(FIELD_NAME, PDF_FIELD_NAME, QUESTION_KEY, QUESTION_ID) IN (
+    'Defendant_Specialty',
+    'Reviewer_Name',
+    'Reviewer_Specialty',
+    'Overview_Q1',
+    'Treatment_Q1a',
+    'Treatment_Q1a_Explain'
+  )
+ORDER BY SOURCE_KEY;
+
+-- 4) Verify question mapping keys expected by UI, and identify unmapped answer keys.
+WITH ui_keys AS (
+  SELECT UPPER(TRIM(QUESTION_KEY)) AS QUESTION_KEY
+  FROM MFQ_QUESTIONS
+  WHERE FORM_KEY = 'MFQ_V1' AND IS_CURRENT = TRUE AND IS_ACTIVE = TRUE
+),
+answer_keys AS (
+  SELECT DISTINCT UPPER(TRIM(COALESCE(FIELD_NAME, PDF_FIELD_NAME, QUESTION_KEY, QUESTION_ID))) AS ANSWER_KEY
+  FROM MFQ_ANSWERS
+  WHERE TRIM(CLAIM_ID) = '112814'
+     OR TRIM(COALESCE(FILE_NO, '')) = '112814'
+     OR TRIM(COALESCE(FILE_NUMBER, '')) = '112814'
+)
+SELECT a.ANSWER_KEY
+FROM answer_keys a
+LEFT JOIN ui_keys u ON u.QUESTION_KEY = a.ANSWER_KEY
+WHERE u.QUESTION_KEY IS NULL
+ORDER BY a.ANSWER_KEY;
+
+-- 5) Ensure no accidental blanks for current answers on this claim/file.
+SELECT
+  COUNT(*) AS TOTAL_CURRENT_ROWS,
+  COUNT_IF(TRIM(COALESCE(ANSWER_VALUE, ANSWER_TEXT, REVIEWED_ANSWER, GENERATED_ANSWER, '')) = '') AS BLANK_ROWS
+FROM MFQ_ANSWERS
+WHERE IS_CURRENT = TRUE
+  AND (TRIM(CLAIM_ID) = '112814'
+    OR TRIM(COALESCE(FILE_NO, '')) = '112814'
+    OR TRIM(COALESCE(FILE_NUMBER, '')) = '112814');
