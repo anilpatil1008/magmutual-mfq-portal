@@ -5,18 +5,23 @@ from typing import Any
 
 import pandas as pd
 
+import streamlit as st
+
+from config import column_mappings as col
+from config import snowflake_objects as obj
+from repositories import claims_repository, faculty_repository, mfq_repository, user_repository
 from services.snowflake_service import quote_sql, safe_collect_df
 
 
-CLAIMS_VIEW = "MFQ_RECENT_CLAIMS_VW"
-DETAIL_VIEW = "MFQ_CLAIM_DETAIL_VW"
-FORM_VIEW = "MFQ_FORM_WORKSPACE_VW"
-SECTIONS_TABLE = "MFQ_SECTIONS"
-QUESTIONS_TABLE = "MFQ_QUESTIONS"
-ANSWERS_TABLE = "MFQ_ANSWERS"
-QUESTION_CONFIDENCE_TABLE = "MFQ_QUESTION_CONFIDENCE"
-SECTION_CONFIDENCE_TABLE = "MFQ_SECTION_CONFIDENCE"
-LLM_EVAL_TABLE = "LLM_EVALUATION"
+CLAIMS_VIEW = obj.MFQ_RECENT_CLAIMS_VIEW
+DETAIL_VIEW = obj.MFQ_CLAIM_DETAIL_VIEW
+FORM_VIEW = obj.MFQ_FORM_WORKSPACE_VIEW
+SECTIONS_TABLE = obj.MFQ_SECTIONS_TABLE
+QUESTIONS_TABLE = obj.MFQ_QUESTIONS_TABLE
+ANSWERS_TABLE = obj.MFQ_ANSWERS_TABLE
+QUESTION_CONFIDENCE_TABLE = obj.MFQ_QUESTION_CONFIDENCE_TABLE
+SECTION_CONFIDENCE_TABLE = obj.MFQ_SECTION_CONFIDENCE_TABLE
+LLM_EVAL_TABLE = obj.LLM_EVALUATION_TABLE
 
 
 def _apply_rbac(df: pd.DataFrame, app_role: str, username: str) -> pd.DataFrame:
@@ -43,7 +48,7 @@ def _object_exists(session, object_name: str) -> bool:
         AND TABLE_NAME = '{object_q}'
       LIMIT 1
     """
-    return not safe_collect_df(session, sql).empty
+    return claims_repository.object_exists(session, object_name)
 
 
 def _table_columns(session, table_name: str) -> set[str]:
@@ -72,7 +77,7 @@ def _safe_read(session, object_name: str, sql: str, missing_objects: list[str]) 
 
 
 def get_claims_queue(session, app_role: str, username: str, search_text: str = "", status_filter: str = "All") -> pd.DataFrame:
-    df = safe_collect_df(session, f"SELECT * FROM {CLAIMS_VIEW}")
+    df = claims_repository.get_claims_queue(session)
     if df.empty:
         return df
 
@@ -80,23 +85,23 @@ def get_claims_queue(session, app_role: str, username: str, search_text: str = "
     if search_text.strip():
         needle = search_text.strip().lower()
         scoped = scoped[
-            scoped["CLAIM_ID"].astype(str).str.lower().str.contains(needle)
-            | scoped["PATIENT_NAME"].astype(str).str.lower().str.contains(needle)
-            | scoped["DEFENDANT_NAME"].astype(str).str.lower().str.contains(needle)
-            | scoped["FILE_NUMBER"].astype(str).str.lower().str.contains(needle)
-            | scoped["STATUS"].astype(str).str.lower().str.contains(needle)
-            | scoped["PRIORITY"].astype(str).str.lower().str.contains(needle)
+            scoped[col.CLAIM_ID].astype(str).str.lower().str.contains(needle)
+            | scoped[col.PATIENT_NAME].astype(str).str.lower().str.contains(needle)
+            | scoped[col.DEFENDANT_NAME].astype(str).str.lower().str.contains(needle)
+            | scoped[col.FILE_NUMBER].astype(str).str.lower().str.contains(needle)
+            | scoped[col.STATUS].astype(str).str.lower().str.contains(needle)
+            | scoped[col.PRIORITY].astype(str).str.lower().str.contains(needle)
         ]
 
     if status_filter != "All":
-        scoped = scoped[scoped["STATUS"] == status_filter]
+        scoped = scoped[scoped[col.STATUS] == status_filter]
 
-    return scoped.sort_values("LAST_UPDATED_TS", ascending=False)
+    return scoped.sort_values(col.LAST_UPDATED_TS, ascending=False)
 
 
 def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
     claim_id_q = quote_sql(claim_id)
-    df = safe_collect_df(session, f"SELECT * FROM {DETAIL_VIEW} WHERE CLAIM_ID = '{claim_id_q}'")
+    df = claims_repository.get_claim_detail(session, claim_id)
     if df.empty:
         return None
     return df.iloc[0].to_dict()
@@ -161,8 +166,9 @@ def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = No
     return safe_collect_df(session, sql)
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def get_status_values(session) -> list[str]:
-    df = safe_collect_df(session, f"SELECT DISTINCT STATUS FROM {CLAIMS_VIEW} ORDER BY STATUS")
+    df = mfq_repository.get_status_values(session)
     statuses = [str(v) for v in df["STATUS"].dropna().tolist()] if not df.empty else []
     return ["All", *statuses]
 
@@ -495,6 +501,7 @@ def update_claim_status(session, claim_id: str, new_status: str, assigned_to: st
         ).collect()
 
 
+@st.cache_data(ttl=300, show_spinner=False)
 def get_assignable_faculty(session) -> list[dict[str, str]]:
     if not _object_exists(session, "MFQ_USERS"):
         return []
