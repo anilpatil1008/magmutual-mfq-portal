@@ -1108,19 +1108,17 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   }
 }
 
-/* Recent claims enterprise table */
-.st-key-recent_claims_card {
+/* Recent claims premium dashboard table */
+.claims-dashboard-card {
   background: #ffffff;
-  border: 1px solid #dde1e6;
-  border-radius: 8px;
-  box-shadow: none;
-  padding: .9rem 1rem 1rem;
-  margin-top: .5rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 14px;
+  padding: 20px;
+  overflow: hidden;
 }
-
-.recent-claims-card {
-  background: #ffffff;
-}
+.claims-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.claims-title-group { min-width: 0; }
+.claims-search { width: 320px; max-width: 100%; }
 
 .recent-claims-header {
   display: flex;
@@ -1175,36 +1173,29 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   margin-left: auto;
 }
 
-.claims-table-container,
-.enterprise-table-wrapper {
-  width: 100%;
-  margin-top: .55rem;
-  border: 1px solid #e0e0e0;
-  border-radius: 10px;
-  background: #ffffff;
-  min-width: 0;
-  overflow: hidden;
+.claims-grid-table { width: 100%; margin-top: .5rem; border: 1px solid #e0e0e0; border-radius: 12px; overflow: hidden; background: #fff; }
+.claims-grid-header [data-testid="stHorizontalBlock"],
+.claims-grid-row [data-testid="stHorizontalBlock"] {
+  display: grid !important;
+  grid-template-columns: minmax(110px, 0.9fr) minmax(210px, 1.8fr) minmax(120px, 1fr) minmax(90px, 0.8fr) minmax(120px, 1fr) minmax(110px, 0.9fr) minmax(140px, 1.1fr);
+  gap: 0;
+  align-items: center;
 }
+.claims-grid-header [data-testid="stHorizontalBlock"] { background: #f4f4f4; border-bottom: 1px solid #e0e0e0; }
+.claims-grid-row [data-testid="stHorizontalBlock"] { min-height: 76px; border-bottom: 1px solid #e0e0e0; }
+.claims-grid-row:last-child [data-testid="stHorizontalBlock"] { border-bottom: 0; }
+.claims-grid-row [data-testid="stHorizontalBlock"]:hover { background: #edf5ff; }
 
-.claims-table,
-.enterprise-table-wrapper [data-testid="stHorizontalBlock"] {
-  width: 100%;
-}
-
-.claims-table-header,
 .enterprise-header-cell {
-  background: #f4f4f4;
   color: #6f6f6f;
   text-transform: uppercase;
-  letter-spacing: .03em;
-  font-size: .68rem;
-  font-weight: 700;
+  letter-spacing: .04em;
+  font-size: 11px;
+  font-weight: 600;
   padding: 14px 12px;
-  border-bottom: 1px solid #e0e0e0;
+  white-space: nowrap;
+  word-break: keep-all;
 }
-
-.claims-table-row { border-bottom: 1px solid #e0e0e0; }
-.claims-table-row:hover { background: #f4f4f4; }
 
 [class*="st-key-"][class*="_recent_sort_header"] [data-testid="column"],
 [class*="st-key-"][class*="_recent_claims_table"] [data-testid="column"],
@@ -1241,8 +1232,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .confidence-badge { background: #edf5ff; color: #0f62fe; border-color: #c6d6ff; min-width: 0; padding: .2rem .5rem; font-size:.68rem; }
 .confidence-na { background: #f4f4f4; color: #6f6f6f; border-color: #e0e0e0; }
 
-.action-cell { width: 100%; min-width: 0; display:flex; align-items:center; }
-.action-button-group { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; width:100%; }
+.actions-cell { width: 100%; min-width: 0; display:flex; align-items:center; justify-content:flex-end; }
+.action-stack { display: flex; flex-direction: column; gap: 8px; width:100%; align-items: stretch; }
 .action-button,
 .st-key-recent_claims_card .stButton button {
   min-width: 96px;
@@ -1251,37 +1242,32 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   white-space: nowrap;
   box-shadow: none;
 }
+.btn-regenerate {}
+.btn-review {}
 .st-key-recent_claims_card button[kind="tertiary"] { color: #0f62fe; font-weight: 600; }
 .st-key-recent_claims_card button[kind="secondary"] { border: 1px solid #0f62fe; background: #fff; color: #0f62fe; }
 .st-key-recent_claims_card button[kind="secondary"]:hover { border-color: #0043ce; color: #0043ce; }
 
-.enterprise-row-separator { border-bottom: 1px solid #e0e0e0; margin: 0; }
-.action-header { text-align: left; }
-
-@media (max-width: 1024px) {
+@media (max-width: 900px) {
   .recent-claims-header { flex-direction: column; align-items: stretch; }
   .recent-claims-search, .st-key-recent_claims_search [data-testid="stTextInputRootElement"] { width: 100%; max-width: 100%; margin-left: 0; }
-
-  [class*="st-key-"][class*="_recent_sort_header"] { display: none; }
-
-  [class*="st-key-"][class*="_recent_claims_table"] [data-testid="stHorizontalBlock"] {
-    display: grid !important;
+  .claims-search { width: 100%; }
+  .claims-grid-header { display: none; }
+  .claims-grid-row { padding: 10px; border-bottom: 1px solid #e0e0e0; }
+  .claims-grid-row [data-testid="stHorizontalBlock"] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px 12px;
-    padding: 12px;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
+    gap: 10px 12px;
+    min-height: 0;
+    border: 0;
     background: #fff;
-    margin: 10px 8px;
   }
   [class*="st-key-"][class*="_recent_claims_table"] [data-testid="column"] { width: 100% !important; }
   .enterprise-cell { padding: 0; align-items:flex-start; text-align:left; }
   .center-cell { align-items:flex-start; }
   .cell-label { display:block; }
-  .action-cell { grid-column: 1 / -1; }
-  .action-button-group { flex-wrap: wrap; flex-direction: row; }
-  .action-button, .st-key-recent_claims_card .stButton button { width: 100%; }
-  [class*="st-key-"][class*="_recent_claims_table"] .enterprise-row-separator { display:none; }
+  .actions-cell { grid-column: 1 / -1; justify-content: stretch; }
+  .action-stack { width: 100%; }
+  .action-button, .st-key-recent_claims_card .stButton button { width: 100%; min-width: 100%; }
 }
 /* Portal header card layout: title + actions in one card */
 .st-key-app_topbar {
