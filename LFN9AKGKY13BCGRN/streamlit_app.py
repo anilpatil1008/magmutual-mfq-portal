@@ -23,6 +23,15 @@ missing_objects = validate_required_objects(session, [
     {"object_name": obj.MFQ_RECENT_CLAIMS_VIEW, "expected_location": "config/snowflake_objects.py", "page": "Claims/Dashboard"},
     {"object_name": obj.MFQ_CLAIM_DETAIL_VIEW, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
     {"object_name": obj.MFQ_NOTIFICATIONS_VIEW, "expected_location": "config/snowflake_objects.py", "page": "Header Notifications"},
+    {"object_name": obj.MFQ_CLAIM_DEFENDANTS_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
+    {"object_name": obj.MFQ_RECORD_SUMMARY_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
+    {"object_name": obj.MFQ_MEDCRON_SUMMARY_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
+    {"object_name": obj.MFQ_LEGAL_MEMO_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
+    {"object_name": obj.MFQ_DOCUMENTS_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
+    {"object_name": obj.MFQ_ASSIGNMENT_QUEUE_VIEW, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
+    {"object_name": obj.MFQ_STATUS_HISTORY_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
+    {"object_name": obj.MFQ_SECTION_CONFIDENCE_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
+    {"object_name": obj.LLM_EVALUATION_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
 ])
 render_missing_objects(missing_objects)
 

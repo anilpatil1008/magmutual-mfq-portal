@@ -9,7 +9,7 @@ import streamlit as st
 
 from config import column_mappings as col
 from config import snowflake_objects as obj
-from repositories import claims_repository, faculty_repository, mfq_repository, user_repository
+from repositories import assignment_repository, claims_repository, faculty_repository, mfq_repository, user_repository
 from services.snowflake_service import quote_sql, safe_collect_df
 
 
@@ -183,12 +183,7 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
         f"SELECT * FROM {DETAIL_VIEW} WHERE CLAIM_ID = '{claim_id_q}'",
         missing_objects,
     )
-    defendant_df = _safe_read(
-        session,
-        "MFQ_CLAIM_DEFENDANTS",
-        f"SELECT * FROM MFQ_CLAIM_DEFENDANTS WHERE CLAIM_ID = '{claim_id_q}'",
-        missing_objects,
-    )
+    defendant_df = claims_repository.get_claim_defendants(session, claim_id) if _object_exists(session, obj.MFQ_CLAIM_DEFENDANTS_TABLE) else pd.DataFrame()
 
     detail = detail_df.iloc[0].to_dict() if not detail_df.empty else None
     synopsis = defendant_df.iloc[0].to_dict() if not defendant_df.empty else {}
@@ -211,38 +206,11 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
             missing_objects,
         )
 
-    summary_df = _safe_read(
-        session,
-        "MFQ_RECORD_SUMMARY",
-        f"""
-        SELECT 'RECORD_SUMMARY' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM MFQ_RECORD_SUMMARY WHERE CLAIM_ID = '{claim_id_q}'
-        UNION ALL
-        SELECT 'MEDCRON' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM MFQ_MEDCRON_SUMMARY WHERE CLAIM_ID = '{claim_id_q}'
-        UNION ALL
-        SELECT 'LEGAL_MEMO' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM MFQ_LEGAL_MEMO WHERE CLAIM_ID = '{claim_id_q}'
-        ORDER BY GENERATED_TS DESC
-        """,
-        missing_objects,
-    )
-    docs_df = _safe_read(
-        session,
-        "MFQ_DOCUMENTS",
-        f"SELECT * FROM MFQ_DOCUMENTS WHERE CLAIM_ID = '{claim_id_q}' ORDER BY CREATED_TS DESC",
-        missing_objects,
-    )
-    assignment_df = _safe_read(
-        session,
-        "MFQ_ASSIGNMENT_QUEUE_VW",
-        f"SELECT * FROM MFQ_ASSIGNMENT_QUEUE_VW WHERE CLAIM_ID = '{claim_id_q}' ORDER BY ASSIGNED_AT DESC",
-        missing_objects,
-    )
+    summary_df = mfq_repository.get_claim_summaries(session, claim_id)
+    docs_df = claims_repository.get_claim_documents(session, claim_id) if _object_exists(session, obj.MFQ_DOCUMENTS_TABLE) else pd.DataFrame()
+    assignment_df = claims_repository.get_assignment_queue(session, claim_id) if _object_exists(session, obj.MFQ_ASSIGNMENT_QUEUE_VIEW) else pd.DataFrame()
 
-    enquiries_df = _safe_read(
-        session,
-        "MFQ_STATUS_HISTORY",
-        f"SELECT * FROM MFQ_STATUS_HISTORY WHERE CLAIM_ID = '{claim_id_q}' ORDER BY EVENT_TS DESC",
-        missing_objects,
-    )
+    enquiries_df = claims_repository.get_status_history(session, claim_id) if _object_exists(session, obj.MFQ_STATUS_HISTORY_TABLE) else pd.DataFrame()
 
     confidence_summary = get_claim_confidence_summary(
         session=session,
@@ -441,17 +409,7 @@ def get_claim_confidence_summary(
     explanation = None
     defendant_id = synopsis.get("DEFENDANT_ID")
     if defendant_id and _object_exists(session, LLM_EVAL_TABLE):
-        defendant_id_q = quote_sql(str(defendant_id))
-        llm_eval_df = safe_collect_df(
-            session,
-            f"""
-            SELECT NEEDS_HUMAN_REVIEW, FAITHFULNESS_SCORE
-            FROM {LLM_EVAL_TABLE}
-            WHERE ENTITY_ID = '{defendant_id_q}'
-            ORDER BY CREATED_AT DESC
-            LIMIT 1
-            """,
-        )
+        llm_eval_df = mfq_repository.get_llm_evaluation(session, str(defendant_id))
         if not llm_eval_df.empty:
             needs_human_review = llm_eval_df.iloc[0].get("NEEDS_HUMAN_REVIEW")
             if needs_human_review is True:
@@ -484,21 +442,9 @@ def get_claim_confidence_summary(
 
 
 def update_claim_status(session, claim_id: str, new_status: str, assigned_to: str | None = None) -> None:
-    claim_id_q = quote_sql(claim_id)
-    status_q = quote_sql(new_status)
-    session.sql(
-        f"UPDATE MFQ_CLAIMS SET STATUS = '{status_q}', LAST_UPDATED_TS = CURRENT_TIMESTAMP() WHERE CLAIM_ID = '{claim_id_q}'"
-    ).collect()
+    claims_repository.update_claim_status(session, claim_id, new_status)
     if assigned_to:
-        assigned_q = quote_sql(assigned_to)
-        session.sql(
-            f"""
-            UPDATE MFQ_ASSIGNMENTS ca
-               SET LAST_UPDATED_TS = CURRENT_TIMESTAMP()
-             WHERE CLAIM_ID = '{claim_id_q}'
-               AND ASSIGNED_TO_USER_ID IN (SELECT USER_ID FROM MFQ_USERS WHERE USERNAME = '{assigned_q}')
-            """
-        ).collect()
+        claims_repository.touch_assignment_for_username(session, claim_id, assigned_to)
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -580,98 +526,24 @@ def save_claim_assignment(
         )
         return False, "Assignment persistence tables are unavailable in this environment."
 
-    claim_q = quote_sql(claim_id)
-    faculty_user_id_q = quote_sql(faculty_user_id)
-    assigned_by_q = quote_sql(assigned_by_username)
-    section_ids_q = [quote_sql(str(section_id)) for section_id in section_ids]
-
-    assigned_user_df = safe_collect_df(
-        session,
-        f"""
-        SELECT USERNAME
-        FROM MFQ_USERS
-        WHERE USER_ID = '{faculty_user_id_q}'
-        LIMIT 1
-        """,
-    )
+    assigned_user_df = assignment_repository.get_assignment_username(session, faculty_user_id)
     assigned_username = (
         str(assigned_user_df.iloc[0].get("USERNAME", "") or "").strip()
         if not assigned_user_df.empty
         else ""
     )
-    assigned_username_q = quote_sql(assigned_username) if assigned_username else ""
+    assignment_repository.insert_assignment(session, claim_id, faculty_user_id, assigned_by_username)
 
-    session.sql(
-        f"""
-        INSERT INTO MFQ_ASSIGNMENTS (
-          ASSIGNMENT_ID,
-          CLAIM_ID,
-          ASSIGNED_TO_USER_ID,
-          ASSIGNED_BY_USER_ID,
-          ASSIGNMENT_STATUS,
-          PRIORITY,
-          ASSIGNED_AT,
-          LAST_UPDATED_TS
-        )
-        SELECT
-          CONCAT('ASG-', REPLACE(UUID_STRING(), '-', '')),
-          '{claim_q}',
-          '{faculty_user_id_q}',
-          COALESCE((SELECT USER_ID FROM MFQ_USERS WHERE UPPER(USERNAME) = UPPER('{assigned_by_q}') LIMIT 1), '{faculty_user_id_q}'),
-          'ASSIGNED',
-          'Medium',
-          CURRENT_TIMESTAMP(),
-          CURRENT_TIMESTAMP()
-        """
-    ).collect()
-
-    assignment_id_df = safe_collect_df(
-        session,
-        f"""
-        SELECT ASSIGNMENT_ID
-        FROM MFQ_ASSIGNMENTS
-        WHERE CLAIM_ID = '{claim_q}'
-          AND ASSIGNED_TO_USER_ID = '{faculty_user_id_q}'
-        ORDER BY ASSIGNED_AT DESC, LAST_UPDATED_TS DESC
-        LIMIT 1
-        """,
-    )
+    assignment_id_df = assignment_repository.get_latest_assignment_id(session, claim_id, faculty_user_id)
     if assignment_id_df.empty:
         return False, "Could not resolve assignment identifier after save."
 
-    assignment_id_q = quote_sql(str(assignment_id_df.iloc[0]["ASSIGNMENT_ID"]))
-    values_sql = ",\n          ".join(
-        [
-            f"(CONCAT('ASSEC-', REPLACE(UUID_STRING(), '-', '')), '{assignment_id_q}', '{claim_q}', '{section_id_q}', '{faculty_user_id_q}', 'ASSIGNED', CURRENT_TIMESTAMP())"
-            for section_id_q in section_ids_q
-        ]
+    assignment_repository.insert_assignment_sections(
+        session, str(assignment_id_df.iloc[0]["ASSIGNMENT_ID"]), claim_id, faculty_user_id, section_ids
     )
-    session.sql(
-        f"""
-        INSERT INTO MFQ_ASSIGNMENT_SECTIONS (
-          ASSIGNMENT_SECTION_ID,
-          ASSIGNMENT_ID,
-          CLAIM_ID,
-          SECTION_ID,
-          ASSIGNED_TO_USER_ID,
-          ASSIGNMENT_STATUS,
-          ASSIGNED_AT
-        )
-        SELECT * FROM VALUES
-          {values_sql}
-        """
-    ).collect()
 
-    claim_cols = _table_columns(session, "MFQ_CLAIMS")
-    status_update_sql = f"UPDATE MFQ_CLAIMS SET STATUS = 'Assigned'"
-    if "LAST_UPDATED_TS" in claim_cols:
-        status_update_sql += ", LAST_UPDATED_TS = CURRENT_TIMESTAMP()"
-    if assigned_username_q and "ASSIGNED_TO" in claim_cols:
-        status_update_sql = (
-            f"{status_update_sql}, ASSIGNED_TO = '{assigned_username_q}'"
-        )
-    status_update_sql += f" WHERE CLAIM_ID = '{claim_q}'"
-    session.sql(status_update_sql).collect()
+    claim_cols = _table_columns(session, obj.MFQ_CLAIMS_TABLE)
+    assignment_repository.update_claim_for_assignment(session, claim_id, assigned_username, claim_cols)
 
     return True, "Claim assigned successfully."
 
@@ -883,20 +755,10 @@ def get_editable_section_ids_for_user(session, claim_id: str, app_role: str, use
 
     claim_q = quote_sql(claim_id)
     user_q = quote_sql(username)
-    if not (_object_exists(session, "MFQ_ASSIGNMENT_SECTIONS") and _object_exists(session, "MFQ_USERS")):
+    if not (_object_exists(session, obj.MFQ_ASSIGNMENT_SECTIONS_TABLE) and _object_exists(session, obj.MFQ_USERS_TABLE)):
         return set()
 
-    df = safe_collect_df(
-        session,
-        f"""
-        SELECT DISTINCT ase.SECTION_ID
-        FROM MFQ_ASSIGNMENT_SECTIONS ase
-        JOIN MFQ_USERS u
-          ON u.USER_ID = ase.ASSIGNED_TO_USER_ID
-        WHERE ase.CLAIM_ID = '{claim_q}'
-          AND UPPER(u.USERNAME) = UPPER('{user_q}')
-        """,
-    )
+    df = assignment_repository.get_editable_section_ids(session, claim_id, username)
     if df.empty:
         return set()
     return {str(v) for v in df["SECTION_ID"].dropna().tolist()}

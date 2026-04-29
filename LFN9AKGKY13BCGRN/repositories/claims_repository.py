@@ -46,3 +46,35 @@ def get_claims_queue(session) -> pd.DataFrame:
 def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
     claim_q = quote_sql(claim_id)
     return execute_query_df(session, f"SELECT * FROM {obj.MFQ_CLAIM_DETAIL_VIEW} WHERE CLAIM_ID = '{claim_q}'", query_name="claims.get_claim_detail")
+
+
+def get_claim_defendants(session, claim_id: str) -> pd.DataFrame:
+    claim_q = quote_sql(claim_id)
+    return execute_query_df(session, f"SELECT DEFENDANT_ID, CLAIM_ID, DEFENDANT_NAME FROM {obj.MFQ_CLAIM_DEFENDANTS_TABLE} WHERE CLAIM_ID = '{claim_q}'", query_name="claims.get_claim_defendants")
+
+
+def get_claim_documents(session, claim_id: str) -> pd.DataFrame:
+    claim_q = quote_sql(claim_id)
+    return execute_query_df(session, f"SELECT CLAIM_ID,DOCUMENT_ID,DOCUMENT_NAME,DOCUMENT_TYPE,CREATED_TS FROM {obj.MFQ_DOCUMENTS_TABLE} WHERE CLAIM_ID = '{claim_q}' ORDER BY CREATED_TS DESC", query_name="claims.get_claim_documents")
+
+
+def get_assignment_queue(session, claim_id: str) -> pd.DataFrame:
+    claim_q = quote_sql(claim_id)
+    return execute_query_df(session, f"SELECT CLAIM_ID,ASSIGNMENT_ID,ASSIGNED_TO,ASSIGNED_AT,ASSIGNMENT_STATUS FROM {obj.MFQ_ASSIGNMENT_QUEUE_VIEW} WHERE CLAIM_ID = '{claim_q}' ORDER BY ASSIGNED_AT DESC", query_name="claims.get_assignment_queue")
+
+
+def get_status_history(session, claim_id: str) -> pd.DataFrame:
+    claim_q = quote_sql(claim_id)
+    return execute_query_df(session, f"SELECT CLAIM_ID,STATUS,EVENT_TS,EVENT_NOTE,UPDATED_BY FROM {obj.MFQ_STATUS_HISTORY_TABLE} WHERE CLAIM_ID = '{claim_q}' ORDER BY EVENT_TS DESC", query_name="claims.get_status_history")
+
+
+def update_claim_status(session, claim_id: str, new_status: str) -> None:
+    claim_q = quote_sql(claim_id)
+    status_q = quote_sql(new_status)
+    session.sql(f"UPDATE {obj.MFQ_CLAIMS_TABLE} SET STATUS = '{status_q}', LAST_UPDATED_TS = CURRENT_TIMESTAMP() WHERE CLAIM_ID = '{claim_q}'").collect()
+
+
+def touch_assignment_for_username(session, claim_id: str, assigned_to: str) -> None:
+    claim_q = quote_sql(claim_id)
+    assigned_q = quote_sql(assigned_to)
+    session.sql(f"UPDATE {obj.MFQ_ASSIGNMENTS_TABLE} ca SET LAST_UPDATED_TS = CURRENT_TIMESTAMP() WHERE CLAIM_ID = '{claim_q}' AND ASSIGNED_TO_USER_ID IN (SELECT USER_ID FROM {obj.MFQ_USERS_TABLE} WHERE USERNAME = '{assigned_q}')").collect()
