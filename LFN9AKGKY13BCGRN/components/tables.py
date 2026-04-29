@@ -29,7 +29,7 @@ ENTERPRISE_COLUMNS = [
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
 ]
-RECENT_CLAIMS_COLUMN_WIDTHS = [12, 24, 12, 12, 14, 14, 12]
+RECENT_CLAIMS_COLUMN_WIDTHS = [14, 26, 14, 10, 14, 10, 18]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -232,14 +232,13 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
 
             action_slot = grid[6]
             with action_slot:
-                st.markdown("<div class='action-cell'>", unsafe_allow_html=True)
+                st.markdown("<div class='action-cell'><div class='action-button-group'>", unsafe_allow_html=True)
                 show_regenerate = status == "MFQ Generated"
                 pending_key = f"{key_prefix}_pending_confirm_{claim_id}"
                 running_key = f"{key_prefix}_running_{claim_id}"
 
                 if show_regenerate:
-                    action_cols = st.columns([1.15, 0.25, 0.95], vertical_alignment="center")
-                    regen_clicked = action_cols[0].button(
+                    regen_clicked = st.button(
                         "↻ Regenerate",
                         key=f"{key_prefix}_regenerate_{claim_id}",
                         help="Regenerate MFQ using the latest claim documents and extracted data.",
@@ -250,20 +249,18 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                     if regen_clicked:
                         st.session_state[pending_key] = True
 
-                    action_cols[1].markdown("<span class='action-divider'>|</span>", unsafe_allow_html=True)
-
-                    review_pressed = action_cols[2].button(
+                    review_pressed = st.button(
                         "Review →",
                         key=f"{key_prefix}_review_{claim_id}",
                         type="tertiary",
-                        use_container_width=False,
+                        use_container_width=True,
                     )
                 else:
                     review_pressed = st.button(
                         "Review →",
                         key=f"{key_prefix}_review_{claim_id}",
                         type="tertiary",
-                        use_container_width=False,
+                        use_container_width=True,
                     )
 
                 if review_pressed:
@@ -302,7 +299,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                             st.success(message)
                             st.rerun()
                         st.error(message)
-                st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("</div></div>", unsafe_allow_html=True)
 
             st.markdown("<div class='enterprise-row-separator'></div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
