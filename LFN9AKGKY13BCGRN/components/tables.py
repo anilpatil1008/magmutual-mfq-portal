@@ -176,7 +176,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
     show_df = _sort_recent_claims(show_df, "DATE_REQUESTED", False)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
-        st.markdown("<div class='claims-dashboard-card'><div class='claims-grid-table'>", unsafe_allow_html=True)
+        st.markdown("<div class='claims-grid-table'>", unsafe_allow_html=True)
         with st.container(key=f"{key_prefix}_recent_sort_header"):
             st.markdown("<div class='claims-grid-header'>", unsafe_allow_html=True)
             header_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
@@ -304,6 +304,6 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                             st.success(message)
                             st.rerun()
                         st.error(message)
-                st.markdown("</div></div>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown("</div></div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
