@@ -1180,9 +1180,10 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   width: 100%;
   margin-top: .55rem;
   border: 1px solid #e0e0e0;
-  border-radius: 12px;
+  border-radius: 10px;
   background: #ffffff;
   min-width: 0;
+  overflow: hidden;
 }
 
 .claims-table,
@@ -1193,7 +1194,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .claims-table-header,
 .enterprise-header-cell {
   background: #f4f4f4;
-  color: #525252;
+  color: #6f6f6f;
   text-transform: uppercase;
   letter-spacing: .03em;
   font-size: .68rem;
@@ -1211,12 +1212,14 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   min-width: 0 !important;
 }
 
-.enterprise-cell { padding: 14px 12px; font-size: .82rem; color: #161616; min-width: 0; }
+.enterprise-cell { padding: 14px 12px; font-size: .82rem; color: #161616; min-width: 0; display:flex; flex-direction:column; gap:4px; }
+.cell-label { display:none; font-size:.66rem; text-transform:uppercase; letter-spacing:.04em; color:#6f6f6f; font-weight:600; }
+.cell-value { min-width:0; }
 .claim-id-cell,.claim-id { font-weight: 600; white-space: nowrap; }
 .patient-cell { white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
 .patient-name { font-weight: 600; color: #161616; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
 .defendant-name { color: #6f6f6f; font-size: .73rem; margin-top: .2rem; white-space: normal; overflow-wrap: anywhere; line-height: 1.35; }
-.center-cell { text-align: center; }
+.center-cell { text-align: center; align-items:center; }
 .date-requested { white-space: nowrap; }
 
 .badge,
@@ -1234,15 +1237,15 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   border: 1px solid transparent;
 }
 .badge-status,.status-badge { background: #edf5ff; color: #0f62fe; border-color: #c6d6ff; }
-.badge-priority,.priority-badge { background: #f4f4f4; color: #525252; border-color: #d0d0d0; }
-.confidence-badge { background: #defbe6; color: #198038; border-color: #a7f0ba; min-width: 58px; }
-.confidence-na { background: #f4f4f4; color: #525252; border-color: #d0d0d0; }
+.badge-priority,.priority-badge { background: #f4f4f4; color: #6f6f6f; border-color: #e0e0e0; }
+.confidence-badge { background: #edf5ff; color: #0f62fe; border-color: #c6d6ff; min-width: 0; padding: .2rem .5rem; font-size:.68rem; }
+.confidence-na { background: #f4f4f4; color: #6f6f6f; border-color: #e0e0e0; }
 
-.action-cell { width: 100%; min-width: 0; }
-.action-button-group { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; }
+.action-cell { width: 100%; min-width: 0; display:flex; align-items:center; }
+.action-button-group { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-start; width:100%; }
 .action-button,
 .st-key-recent_claims_card .stButton button {
-  min-width: 112px;
+  min-width: 96px;
   min-height: 32px;
   border-radius: 6px;
   white-space: nowrap;
@@ -1263,16 +1266,22 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
   [class*="st-key-"][class*="_recent_claims_table"] [data-testid="stHorizontalBlock"] {
     display: grid !important;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px 12px;
     padding: 12px;
-    border-bottom: 1px solid #e0e0e0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
     background: #fff;
+    margin: 10px 8px;
   }
   [class*="st-key-"][class*="_recent_claims_table"] [data-testid="column"] { width: 100% !important; }
+  .enterprise-cell { padding: 0; align-items:flex-start; text-align:left; }
+  .center-cell { align-items:flex-start; }
+  .cell-label { display:block; }
   .action-cell { grid-column: 1 / -1; }
-  .action-button-group { flex-direction: column; }
+  .action-button-group { flex-wrap: wrap; flex-direction: row; }
   .action-button, .st-key-recent_claims_card .stButton button { width: 100%; }
+  [class*="st-key-"][class*="_recent_claims_table"] .enterprise-row-separator { display:none; }
 }
 /* Portal header card layout: title + actions in one card */
 .st-key-app_topbar {
