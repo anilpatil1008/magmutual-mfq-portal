@@ -346,28 +346,18 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
     section_options = _build_assignable_sections(sections_df)
     faculty_options = get_assignable_faculty(session)
 
-    selected_section_ids_key = f"assign_selected_sections_{claim_id}"
+    selected_section_ids_key = "selected_mfq_sections"
     selected_faculty_key = f"assign_selected_faculty_{claim_id}"
     select_all_key = f"assign_select_all_{claim_id}"
     if selected_section_ids_key not in st.session_state:
         st.session_state[selected_section_ids_key] = []
     if selected_faculty_key not in st.session_state:
         st.session_state[selected_faculty_key] = ""
-    if select_all_key not in st.session_state:
-        st.session_state[select_all_key] = False
 
     all_section_ids = [item["id"] for item in section_options]
     selected_set = set(st.session_state.get(selected_section_ids_key, []))
     selected_set = {sid for sid in selected_set if sid in all_section_ids}
-
-    for idx, item in enumerate(section_options):
-        widget_key = f"assign_sec_{claim_id}_{item['id']}_{idx}"
-        if widget_key not in st.session_state:
-            st.session_state[widget_key] = item["id"] in selected_set
-
-    all_selected = bool(all_section_ids) and len(selected_set) == len(all_section_ids)
-    if st.session_state.get(select_all_key) != all_selected:
-        st.session_state[select_all_key] = all_selected
+    st.session_state[selected_section_ids_key] = sorted(selected_set)
 
     st.markdown("<div class='assign-modal-section-head'>", unsafe_allow_html=True)
     title_col, count_col = st.columns([4, 1.2], vertical_alignment="center")
@@ -377,27 +367,30 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
         st.markdown(f"<div class='assign-selected-count'>{len(selected_set)} selected</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
-    previous_select_all = bool(st.session_state.get(select_all_key, False))
+    is_all_selected = bool(all_section_ids) and len(st.session_state[selected_section_ids_key]) == len(all_section_ids)
+    st.session_state[select_all_key] = is_all_selected
     select_all_clicked = st.checkbox("Select All", key=select_all_key)
-    select_all_toggled = select_all_clicked != previous_select_all
 
-    if select_all_toggled:
-        for idx, item in enumerate(section_options):
-            widget_key = f"assign_sec_{claim_id}_{item['id']}_{idx}"
-            st.session_state[widget_key] = select_all_clicked
+    if select_all_clicked != is_all_selected:
+        st.session_state[selected_section_ids_key] = all_section_ids if select_all_clicked else []
 
-    selected_set = set()
+    selected_set = set(st.session_state[selected_section_ids_key])
     with st.container(border=True, height=260):
-        for idx, item in enumerate(section_options):
-            widget_key = f"assign_sec_{claim_id}_{item['id']}_{idx}"
+        for item in section_options:
+            widget_key = f"assign_sec_{claim_id}_{item['id']}"
+            expected_checked = item["id"] in selected_set
+            if st.session_state.get(widget_key) != expected_checked:
+                st.session_state[widget_key] = expected_checked
             is_checked = st.checkbox(
                 item["label"],
                 key=widget_key,
             )
             if is_checked:
                 selected_set.add(item["id"])
+            else:
+                selected_set.discard(item["id"])
 
-    st.session_state[selected_section_ids_key] = sorted(selected_set)
+    st.session_state[selected_section_ids_key] = [sid for sid in all_section_ids if sid in selected_set]
 
     st.markdown("**Faculty Member**")
     faculty_map = {item["USER_ID"]: item["DISPLAY_NAME"] for item in faculty_options}
