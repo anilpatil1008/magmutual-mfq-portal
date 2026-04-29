@@ -359,9 +359,15 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
     all_section_ids = [item["id"] for item in section_options]
     selected_set = set(st.session_state.get(selected_section_ids_key, []))
     selected_set = {sid for sid in selected_set if sid in all_section_ids}
-    st.session_state[selected_section_ids_key] = list(selected_set)
+
+    for idx, item in enumerate(section_options):
+        widget_key = f"assign_sec_{claim_id}_{item['id']}_{idx}"
+        if widget_key not in st.session_state:
+            st.session_state[widget_key] = item["id"] in selected_set
+
     all_selected = bool(all_section_ids) and len(selected_set) == len(all_section_ids)
-    st.session_state[select_all_key] = all_selected
+    if st.session_state.get(select_all_key) != all_selected:
+        st.session_state[select_all_key] = all_selected
 
     st.markdown("<div class='assign-modal-section-head'>", unsafe_allow_html=True)
     title_col, count_col = st.columns([4, 1.2], vertical_alignment="center")
@@ -371,28 +377,28 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
         st.markdown(f"<div class='assign-selected-count'>{len(selected_set)} selected</div>", unsafe_allow_html=True)
     st.markdown("</div>", unsafe_allow_html=True)
 
+    previous_select_all = bool(st.session_state.get(select_all_key, False))
     select_all_clicked = st.checkbox("Select All", key=select_all_key)
-    if select_all_clicked and len(selected_set) != len(all_section_ids):
-        selected_set = set(all_section_ids)
-    if not select_all_clicked and len(selected_set) == len(all_section_ids) and all_section_ids:
-        selected_set = set()
+    select_all_toggled = select_all_clicked != previous_select_all
 
+    if select_all_toggled:
+        for idx, item in enumerate(section_options):
+            widget_key = f"assign_sec_{claim_id}_{item['id']}_{idx}"
+            st.session_state[widget_key] = select_all_clicked
+
+    selected_set = set()
     with st.container(border=True, height=260):
-        for item in section_options:
-            checked = item["id"] in selected_set
-            widget_key = f"assign_sec_{claim_id}_{item['id']}"
-            if widget_key not in st.session_state or st.session_state[widget_key] != checked:
-                st.session_state[widget_key] = checked
+        for idx, item in enumerate(section_options):
+            widget_key = f"assign_sec_{claim_id}_{item['id']}_{idx}"
             is_checked = st.checkbox(
                 item["label"],
                 key=widget_key,
             )
             if is_checked:
                 selected_set.add(item["id"])
-            else:
-                selected_set.discard(item["id"])
 
     st.session_state[selected_section_ids_key] = sorted(selected_set)
+    st.session_state[select_all_key] = bool(all_section_ids) and len(selected_set) == len(all_section_ids)
 
     st.markdown("**Faculty Member**")
     faculty_map = {item["USER_ID"]: item["DISPLAY_NAME"] for item in faculty_options}
