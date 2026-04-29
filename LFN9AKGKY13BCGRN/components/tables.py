@@ -203,30 +203,33 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
             defendant_name = str(row.get("DEFENDANT_NAME", "")).strip()
             grid = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
 
-            grid[0].markdown(f"<div class='enterprise-cell claim-id'>{escape(claim_id or '—')}</div>", unsafe_allow_html=True)
+            grid[0].markdown(
+                f"<div class='enterprise-cell claim-id'><span class='cell-label'>Claim ID</span><span class='cell-value'>{escape(claim_id or '—')}</span></div>",
+                unsafe_allow_html=True,
+            )
 
             person_detail = [f"<div class='patient-name'>{escape(patient_name)}</div>"]
             if defendant_name:
                 person_detail.append(f"<div class='defendant-name'>{escape(defendant_name)}</div>")
 
             grid[1].markdown(
-                f"<div class='enterprise-cell patient-cell'>{''.join(person_detail)}</div>",
+                f"<div class='enterprise-cell patient-cell'><span class='cell-label'>Patient / Defendant</span><span class='cell-value'>{''.join(person_detail)}</span></div>",
                 unsafe_allow_html=True,
             )
             grid[2].markdown(
-                f"<div class='enterprise-cell center-cell'>{_status_badge_html(status)}</div>",
+                f"<div class='enterprise-cell center-cell'><span class='cell-label'>Status</span><span class='cell-value'>{_status_badge_html(status)}</span></div>",
                 unsafe_allow_html=True,
             )
             grid[3].markdown(
-                f"<div class='enterprise-cell center-cell'>{_priority_badge_html(row.get('PRIORITY'))}</div>",
+                f"<div class='enterprise-cell center-cell'><span class='cell-label'>Priority</span><span class='cell-value'>{_priority_badge_html(row.get('PRIORITY'))}</span></div>",
                 unsafe_allow_html=True,
             )
             grid[4].markdown(
-                f"<div class='enterprise-cell date-requested'>{escape(_format_date(row.get('DATE_REQUESTED')))}</div>",
+                f"<div class='enterprise-cell date-requested'><span class='cell-label'>Date Requested</span><span class='cell-value'>{escape(_format_date(row.get('DATE_REQUESTED')))}</span></div>",
                 unsafe_allow_html=True,
             )
             grid[5].markdown(
-                f"<div class='enterprise-cell center-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div>",
+                f"<div class='enterprise-cell center-cell'><span class='cell-label'>AI Confidence</span><span class='cell-value'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</span></div>",
                 unsafe_allow_html=True,
             )
 
