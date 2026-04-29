@@ -176,31 +176,33 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
     show_df = _sort_recent_claims(show_df, "DATE_REQUESTED", False)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
-        st.markdown("<div class='enterprise-table-wrapper'>", unsafe_allow_html=True)
+        st.markdown("<div class='claims-dashboard-card'><div class='claims-grid-table'>", unsafe_allow_html=True)
         with st.container(key=f"{key_prefix}_recent_sort_header"):
+            st.markdown("<div class='claims-grid-header'>", unsafe_allow_html=True)
             header_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
             header_labels = [
-                "Claim ID",
-                "Patient / Defendant",
-                "Status",
-                "Priority",
-                "Date Requested",
-                "AI Confidence",
-                "Action",
+                "CLAIM ID",
+                "PATIENT / DEFENDANT",
+                "STATUS",
+                "PRIORITY",
+                "REQUESTED",
+                "AI CONF.",
+                "ACTIONS",
             ]
 
             for idx, label in enumerate(header_labels):
-                alignment = "action-header" if label == "Action" else ""
                 header_cols[idx].markdown(
-                    f"<div class='enterprise-header-cell {alignment}'>{label}</div>",
+                    f"<div class='enterprise-header-cell'>{label}</div>",
                     unsafe_allow_html=True,
                 )
+            st.markdown("</div>", unsafe_allow_html=True)
 
         for _, row in show_df.iterrows():
             claim_id = str(row.get("CLAIM_ID", "")).strip()
             status = str(row.get("STATUS", "")).strip()
             patient_name = str(row.get("PATIENT_NAME", "")).strip() or "Unknown Patient"
             defendant_name = str(row.get("DEFENDANT_NAME", "")).strip()
+            st.markdown("<div class='claims-grid-row'>", unsafe_allow_html=True)
             grid = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
 
             grid[0].markdown(
@@ -235,7 +237,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
 
             action_slot = grid[6]
             with action_slot:
-                st.markdown("<div class='action-cell'><div class='action-button-group'>", unsafe_allow_html=True)
+                st.markdown("<div class='actions-cell'><div class='action-stack'>", unsafe_allow_html=True)
                 show_regenerate = status == "MFQ Generated"
                 pending_key = f"{key_prefix}_pending_confirm_{claim_id}"
                 running_key = f"{key_prefix}_running_{claim_id}"
@@ -303,6 +305,5 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                             st.rerun()
                         st.error(message)
                 st.markdown("</div></div>", unsafe_allow_html=True)
-
-            st.markdown("<div class='enterprise-row-separator'></div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div></div>", unsafe_allow_html=True)
