@@ -398,7 +398,6 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
                 selected_set.add(item["id"])
 
     st.session_state[selected_section_ids_key] = sorted(selected_set)
-    st.session_state[select_all_key] = bool(all_section_ids) and len(selected_set) == len(all_section_ids)
 
     st.markdown("**Faculty Member**")
     faculty_map = {item["USER_ID"]: item["DISPLAY_NAME"] for item in faculty_options}
