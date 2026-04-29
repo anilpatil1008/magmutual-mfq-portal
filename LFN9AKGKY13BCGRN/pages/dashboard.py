@@ -65,6 +65,8 @@ def render(session, ctx) -> None:
     search = st.session_state.get(f"{card_key}_search", "")
 
     with st.container(key="recent_claims_card"):
+        st.markdown("<div class='claims-dashboard-card'>", unsafe_allow_html=True)
+        st.markdown("<div class='claims-toolbar'>", unsafe_allow_html=True)
         header_left, header_right = st.columns([4, 2], vertical_alignment="top")
         with header_left:
             st.markdown(
@@ -87,6 +89,8 @@ def render(session, ctx) -> None:
                     key=f"{card_key}_search",
                 )
             st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
         queue = get_claims_queue(session, ctx.app_role, ctx.username, search_text=search)
         render_recent_claims_table(queue.head(20), key_prefix="dash")
+        st.markdown("</div>", unsafe_allow_html=True)
