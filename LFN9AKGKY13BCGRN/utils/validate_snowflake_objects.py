@@ -22,7 +22,7 @@ REQUIRED_CORE_OBJECTS = [
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def validate_required_objects(session, requirements: tuple[tuple[str, str, str], ...] | None = None) -> list[dict[str, str]]:
+def validate_required_objects(_session, requirements: tuple[tuple[str, str, str], ...] | None = None) -> list[dict[str, str]]:
     missing: list[dict[str, str]] = []
     normalized_requirements: list[dict[str, str]] = []
     if requirements is None:
@@ -38,7 +38,7 @@ def validate_required_objects(session, requirements: tuple[tuple[str, str, str],
 
     for req in normalized_requirements:
         object_name = req["object_name"]
-        if not object_exists(session, object_name):
+        if not object_exists(_session, object_name):
             missing.append(req)
     return missing
 
