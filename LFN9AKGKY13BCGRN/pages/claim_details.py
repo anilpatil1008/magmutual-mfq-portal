@@ -22,8 +22,9 @@ logger = logging.getLogger(__name__)
 
 
 @st.cache_data(ttl=120, show_spinner=False)
-def _get_cached_claim_review_workspace(claim_id: str) -> dict:
+def _get_cached_claim_review_workspace(claim_id: str, refresh_nonce: int = 0) -> dict:
     from services.snowflake_service import get_session
+    _ = refresh_nonce
     return get_claim_review_workspace(get_session(), claim_id)
 
 
@@ -733,14 +734,13 @@ def render(session, ctx) -> None:
     toolbar_col, _ = st.columns([2, 6])
     with toolbar_col:
         if st.button("Refresh answers", key=f"refresh_answers_{claim_id}", type="tertiary"):
-            st.cache_data.clear()
-            _get_cached_claim_review_workspace.clear()
             st.session_state[f"mfq_refresh_nonce_{claim_id}"] = st.session_state.get(f"mfq_refresh_nonce_{claim_id}", 0) + 1
             st.rerun()
 
     with st.spinner("Loading claim details..."):
         started = perf_counter()
-        workspace = _get_cached_claim_review_workspace(str(claim_id))
+        refresh_nonce = int(st.session_state.get(f"mfq_refresh_nonce_{claim_id}", 0))
+        workspace = _get_cached_claim_review_workspace(str(claim_id), refresh_nonce=refresh_nonce)
         logger.info("claim_details.workspace_load_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
     claim = workspace.get("claim")
     if not claim:

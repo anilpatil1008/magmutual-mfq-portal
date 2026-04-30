@@ -21,15 +21,22 @@ REQUIRED_CORE_OBJECTS = [
 ]
 
 
-def validate_required_objects(session, requirements: Iterable[dict[str, str]] | None = None) -> list[dict[str, str]]:
+@st.cache_data(ttl=300, show_spinner=False)
+def validate_required_objects(session, requirements: tuple[tuple[str, str, str], ...] | None = None) -> list[dict[str, str]]:
     missing: list[dict[str, str]] = []
+    normalized_requirements: list[dict[str, str]] = []
     if requirements is None:
-        requirements = [
+        normalized_requirements = [
             {"object_name": name, "expected_location": "CURRENT_SCHEMA", "page": "core"}
             for name in REQUIRED_CORE_OBJECTS
         ]
+    else:
+        normalized_requirements = [
+            {"object_name": obj_name, "expected_location": expected_location, "page": page}
+            for obj_name, expected_location, page in requirements
+        ]
 
-    for req in requirements:
+    for req in normalized_requirements:
         object_name = req["object_name"]
         if not object_exists(session, object_name):
             missing.append(req)
