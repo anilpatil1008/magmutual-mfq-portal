@@ -45,14 +45,8 @@ def _resolve_user_display_name(ctx) -> str:
     return str(getattr(ctx, "username", "") or "").strip()
 
 
-def render(session, ctx) -> None:
-    if "current_view" not in st.session_state:
-        st.session_state["current_view"] = "recent_claims"
-
-    if st.session_state.get("current_view") == "claim_details" and st.session_state.get("selected_claim_id"):
-        claim_details.render(session=session, ctx=ctx)
-        st.stop()
-
+def _render_dashboard_view(session, ctx) -> None:
+    logger.info("render_dashboard called")
     st.title("Dashboard")
     display_name = _resolve_user_display_name(ctx)
     if display_name:
@@ -71,7 +65,7 @@ def render(session, ctx) -> None:
 
     t0 = perf_counter()
     metrics = get_dashboard_metrics(session, app_role=ctx.app_role, username=ctx.username)
-    logger.info("dashboard_metrics_ms=%d", int((perf_counter()-t0)*1000))
+    logger.info("dashboard_metrics_ms=%d", int((perf_counter() - t0) * 1000))
     render_kpi_cards(metrics)
     render_legend()
 
@@ -103,5 +97,25 @@ def render(session, ctx) -> None:
 
         t1 = perf_counter()
         queue = get_claims_queue(session, ctx.app_role, ctx.username, search_text=search)
-        logger.info("dashboard_recent_claims_ms=%d rows=%d", int((perf_counter()-t1)*1000), len(queue))
+        logger.info("dashboard_recent_claims_ms=%d rows=%d", int((perf_counter() - t1) * 1000), len(queue))
+        logger.info("render_recent_claims called")
         render_recent_claims_table(queue.head(20), key_prefix="dash")
+
+
+def render(session, ctx) -> None:
+    if "current_view" not in st.session_state:
+        st.session_state["current_view"] = "dashboard"
+
+    if st.session_state.get("current_view") == "claim_details" and st.session_state.get("selected_claim_id"):
+        logger.info("render_claim_details called claim_id=%s", st.session_state.get("selected_claim_id"))
+        claim_details.render(session=session, ctx=ctx)
+        st.stop()
+
+    if st.session_state.get("current_view") == "dashboard":
+        _render_dashboard_view(session=session, ctx=ctx)
+        st.stop()
+
+    # Fallback to dashboard when state is unknown.
+    st.session_state["current_view"] = "dashboard"
+    _render_dashboard_view(session=session, ctx=ctx)
+    st.stop()

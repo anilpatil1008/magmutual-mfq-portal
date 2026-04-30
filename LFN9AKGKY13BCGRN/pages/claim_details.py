@@ -95,7 +95,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
 
 def _go_back_to_dashboard() -> None:
     st.session_state["selected_claim_id"] = None
-    st.session_state["current_view"] = "recent_claims"
+    st.session_state["current_view"] = "dashboard"
     st.session_state["active_page"] = "Dashboard"
     st.rerun()
 

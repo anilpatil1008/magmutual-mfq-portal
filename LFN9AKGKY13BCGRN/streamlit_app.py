@@ -44,7 +44,8 @@ if "selected_claim_id" not in st.session_state:
 query_page = st.query_params.get("page")
 query_claim_id = st.query_params.get("claim_id")
 if query_page == "Claim Details" and query_claim_id:
-    st.session_state.active_page = "Claim Details"
+    st.session_state.active_page = "Dashboard"
+    st.session_state.current_view = "claim_details"
     st.session_state.selected_claim_id = str(query_claim_id).strip()
     st.query_params.clear()
 
