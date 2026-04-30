@@ -98,7 +98,6 @@ def _go_back_to_dashboard() -> None:
     st.session_state["selected_claim_id"] = None
     st.session_state["current_view"] = "dashboard"
     st.session_state["active_page"] = "Dashboard"
-    st.rerun()
 
 
 def _render_breadcrumb(claim_id: str) -> None:
