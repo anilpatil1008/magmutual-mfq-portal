@@ -46,11 +46,6 @@ def _normalize_slug(value: Any) -> str:
     return "".join(ch for ch in text if ch.isalnum() or ch == "-") or "unknown"
 
 
-def _review_href(claim_id: str) -> str:
-    safe_claim_id = escape(claim_id, quote=True)
-    return f"?page=Claim+Details&claim_id={safe_claim_id}"
-
-
 def _format_date(value: Any) -> str:
     if value is None:
         return "—"
@@ -190,6 +185,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
     show_df = _sort_recent_claims(show_df, "DATE_REQUESTED", False)
 
     rows_html: list[str] = []
+    review_buttons: list[tuple[str, str, str]] = []
     for _, row in show_df.iterrows():
         claim_id = str(row.get("CLAIM_ID", "")).strip() or "—"
         status = str(row.get("STATUS", "")).strip()
@@ -204,9 +200,10 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
         actions_html = "<div class='action-stack'>"
         if status == "MFQ Generated":
             actions_html += "<button type='button' class='btn-regenerate'>↻ Regenerate</button>"
-        actions_html += (
-            f"<a href='{_review_href(claim_id)}' class='btn-review'>Review →</a></div>"
-        )
+        review_key = f"{key_prefix}_review_{claim_id}"
+        review_placeholder = f"__REVIEW_BUTTON__{review_key}__"
+        actions_html += f"{review_placeholder}</div>"
+        review_buttons.append((review_key, claim_id, review_placeholder))
 
         rows_html.append(
             "<tr>"
@@ -238,4 +235,19 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
         f"<tbody>{''.join(rows_html)}</tbody>"
         "</table></div>"
     )
+    for review_key, claim_id, review_placeholder in review_buttons:
+        table_html = table_html.replace(
+            review_placeholder,
+            (
+                f"<span id='{escape(review_key, quote=True)}' class='btn-review'>"
+                "Review →"
+                "</span>"
+            ),
+        )
     st.markdown(table_html, unsafe_allow_html=True)
+
+    for review_key, claim_id, _ in review_buttons:
+        if st.button(f"Review {claim_id}", key=review_key, type="secondary"):
+            st.session_state["selected_claim_id"] = claim_id
+            st.session_state["current_view"] = "claim_details"
+            st.rerun()
