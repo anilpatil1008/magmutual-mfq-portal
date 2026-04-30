@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 from html import escape
 from time import perf_counter
 
@@ -723,8 +724,15 @@ def _render_missing_objects(missing_objects: list[str]) -> None:
     st.markdown("\n".join([f"- `{obj}`" for obj in missing_objects]))
 
 
+def _is_debug_mode_enabled() -> bool:
+    if bool(st.session_state.get("debug_mode", False)):
+        return True
+    return str(os.getenv("APP_DEBUG", "")).strip().lower() == "true"
+
+
 def render(session, ctx) -> None:
     claim_id = st.session_state.get("selected_claim_id")
+    logger.info("render_claim_details called claim_id=%s", claim_id)
     if not claim_id:
         st.info("Open a claim from Dashboard or Claims page.")
         return
@@ -759,9 +767,10 @@ def render(session, ctx) -> None:
     _render_missing_objects(workspace.get("missing_objects", []))
     st.session_state["review_snowflake_objects"] = workspace.get("used_objects", [])
     st.session_state["review_missing_objects"] = workspace.get("missing_objects", [])
-    debug_enabled = bool(st.session_state.get("debug_mfq_binding", False))
-    if st.checkbox("Developer debug (MFQ binding)", key="debug_mfq_binding"):
-        debug_enabled = True
+    debug_enabled = _is_debug_mode_enabled() and bool(st.session_state.get("debug_mfq_binding", False))
+    if _is_debug_mode_enabled():
+        if st.checkbox("Developer debug (MFQ binding)", key="debug_mfq_binding"):
+            debug_enabled = True
     if debug_enabled:
         sections_df = workspace.get("sections", pd.DataFrame())
         display_answer_series = (
