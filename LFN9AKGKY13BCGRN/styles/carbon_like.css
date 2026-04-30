@@ -1165,28 +1165,33 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   padding: 0;
 }
 .st-key-dash_recent_claims_table [data-testid="stHorizontalBlock"] > [data-testid="column"] {
-  padding: 12px 14px;
+  padding: 10px 12px;
+  text-align: left !important;
 }
 .st-key-dash_recent_claims_table [data-testid="stHorizontalBlock"]:first-child {
   background: #f4f4f4;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #d9d9d9;
 }
 .st-key-recent_claims_card .recent-claims-col-header {
-  color:#525252; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; white-space:nowrap;
+  color:#525252; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em; white-space:nowrap; text-align:left !important;
 }
+.st-key-recent_claims_card .claim-id-cell,
+.st-key-recent_claims_card .patient-cell,
+.st-key-recent_claims_card .status-cell,
+.st-key-recent_claims_card .priority-cell,
+.st-key-recent_claims_card .requested-cell,
+.st-key-recent_claims_card .confidence-cell,
+.st-key-recent_claims_card .actions-cell { text-align:left !important; }
 .st-key-recent_claims_card .claim-id-cell { font-weight:700; white-space:nowrap; }
 .st-key-recent_claims_card .requested-cell { white-space: nowrap; }
 .st-key-recent_claims_card .patient-cell,
 .st-key-recent_claims_card .patient-name,
-.st-key-recent_claims_card .defendant-name { white-space:normal; word-break:normal !important; overflow-wrap:normal !important; writing-mode:horizontal-tb !important; }
+.st-key-recent_claims_card .defendant-name { white-space:normal; word-break:normal !important; overflow-wrap:normal !important; writing-mode:horizontal-tb !important; text-align:left !important; }
 .st-key-recent_claims_card .patient-name { display:block; font-weight:700; color:#161616; }
 .st-key-recent_claims_card .defendant-name { display:block; margin-top:4px; color:#6f6f6f; font-size:13px; }
-.st-key-recent_claims_card .status-cell,
-.st-key-recent_claims_card .priority-cell,
-.st-key-recent_claims_card .confidence-cell { text-align:center; }
 .st-key-recent_claims_card .status-badge,
 .st-key-recent_claims_card .priority-badge,
-.st-key-recent_claims_card .confidence-badge { display:inline-flex; align-items:center; justify-content:center; border-radius:999px; font-size:12px; font-weight:600; line-height:1.2; padding:5px 10px; white-space:nowrap; }
+.st-key-recent_claims_card .confidence-badge { display:inline-flex; align-items:center; justify-content:flex-start; border-radius:999px; font-size:12px; font-weight:600; line-height:1.2; padding:5px 10px; white-space:nowrap; }
 .st-key-recent_claims_card .status-badge { background:#edf5ff; color:#0f62fe; border:1px solid #a6c8ff; }
 .st-key-recent_claims_card .priority-badge { background:#f4f4f4; color:#525252; border:1px solid #e0e0e0; }
 .st-key-recent_claims_card .confidence-badge { background:#defbe6; color:#0e6027; border:1px solid #24a148; min-width:54px; }
@@ -1199,7 +1204,11 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 .st-key-dash_recent_claims_table .actions-cell + div [data-testid="stButton"] {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  margin: 0 0 8px 0;
+}
+.st-key-dash_recent_claims_table .actions-cell + div [data-testid="stButton"]:last-child {
+  margin-bottom: 0;
 }
 .st-key-dash_recent_claims_table .recent-claims-row-divider {
   border-bottom: 1px solid #e0e0e0;

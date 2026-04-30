@@ -223,12 +223,11 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
 
             with row_cols[6]:
                 review_key = f"{key_prefix}_review_{claim_id}"
-                st.markdown("<div class='actions-cell'>", unsafe_allow_html=True)
+                st.markdown("<div class='actions-cell action-buttons-stack'>", unsafe_allow_html=True)
                 if st.button("Review", key=review_key, type="secondary"):
                     st.session_state["selected_claim_id"] = claim_id
                     st.session_state["current_view"] = "claim_details"
                     st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
 
                 if status == "MFQ Generated":
                     regen_key = f"{key_prefix}_regenerate_{claim_id}"
@@ -238,4 +237,5 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                             st.success(message)
                         else:
                             st.error(message)
+                st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("<div class='recent-claims-row-divider'></div>", unsafe_allow_html=True)
