@@ -1141,10 +1141,10 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .st-key-recent_claims_search { min-width: 280px; max-width: 360px; }
 
 .st-key-recent_claims_card .claims-table-scroll {
-  width: 100%; overflow-x: auto; border: 1px solid #e0e0e0; border-radius: 12px;
+  width: 100%; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; border: 1px solid #e0e0e0; border-radius: 12px;
 }
 .st-key-recent_claims_card .claims-table {
-  width: 100%; min-width: 900px; border-collapse: collapse; table-layout: fixed; background: #ffffff;
+  width: 100%; min-width: 980px; border-collapse: collapse; table-layout: fixed; background: #ffffff;
 }
 .st-key-recent_claims_card .claims-table .col-claim-id { width: 14%; }
 .st-key-recent_claims_card .claims-table .col-patient { width: 27%; }
@@ -1179,8 +1179,10 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .st-key-recent_claims_card .confidence-badge { background:#defbe6; color:#0e6027; border:1px solid #24a148; min-width:54px; }
 .st-key-recent_claims_card .actions-cell { text-align:right; }
 .st-key-recent_claims_card .action-stack { display:inline-flex; flex-direction:column; align-items:flex-end; gap:8px; }
-.st-key-recent_claims_card .btn-regenerate { border:1px solid #0f62fe; color:#0f62fe; background:#ffffff; border-radius:6px; padding:7px 12px; font-size:13px; font-weight:500; white-space:nowrap; text-decoration:none; }
+.st-key-recent_claims_card .btn-regenerate { border:1px solid #0f62fe; color:#0f62fe; background:#ffffff; border-radius:6px; padding:7px 12px; font-size:13px; font-weight:500; white-space:nowrap; text-decoration:none; cursor:pointer; font-family:inherit; line-height:1.2; }
 .st-key-recent_claims_card .btn-review { color:#0f62fe; font-size:14px; font-weight:500; white-space:nowrap; text-decoration:none; }
+.st-key-recent_claims_card .btn-regenerate:focus-visible,
+.st-key-recent_claims_card .btn-review:focus-visible { outline: 2px solid #0f62fe; outline-offset: 2px; }
 
 
 .st-key-recent_claims_card .claims-table .cell-label { display: none; }

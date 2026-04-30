@@ -29,7 +29,17 @@ ENTERPRISE_COLUMNS = [
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
 ]
-RECENT_CLAIMS_COLUMN_WIDTHS = [12, 24, 12, 9, 13, 10, 20]
+RECENT_CLAIMS_HEADERS = [
+    "Claim ID",
+    "Patient / Defendant",
+    "Status",
+    "Priority",
+    "Requested",
+    "AI Conf.",
+    "Actions",
+]
+
+RECENT_CLAIMS_COLUMN_WIDTHS = [14, 27, 14, 10, 13, 10, 12]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -188,8 +198,8 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
 
         actions_html = "<div class='action-stack'>"
         if status == "MFQ Generated":
-            actions_html += "<span class='btn-regenerate'>↻ Regenerate</span>"
-        actions_html += "<span class='btn-review'>Review →</span></div>"
+            actions_html += "<button type='button' class='btn-regenerate'>↻ Regenerate</button>"
+        actions_html += "<a href='#' class='btn-review'>Review →</a></div>"
 
         rows_html.append(
             "<tr>"
@@ -216,14 +226,8 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
         "<col class='col-actions' />"
         "</colgroup>"
         "<thead><tr>"
-        "<th>Claim ID</th>"
-        "<th>Patient / Defendant</th>"
-        "<th>Status</th>"
-        "<th>Priority</th>"
-        "<th>Requested</th>"
-        "<th>AI Conf.</th>"
-        "<th>Actions</th>"
-        "</tr></thead>"
+        + "".join(f"<th>{escape(header)}</th>" for header in RECENT_CLAIMS_HEADERS)
+        + "</tr></thead>"
         f"<tbody>{''.join(rows_html)}</tbody>"
         "</table></div>"
     )
