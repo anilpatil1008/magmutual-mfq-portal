@@ -238,4 +238,3 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                         else:
                             st.error(message)
                 st.markdown("</div>", unsafe_allow_html=True)
-            st.markdown("<div class='recent-claims-row-divider'></div>", unsafe_allow_html=True)
