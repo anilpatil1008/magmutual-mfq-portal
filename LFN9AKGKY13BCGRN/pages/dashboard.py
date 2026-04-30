@@ -46,10 +46,6 @@ def render(session, ctx) -> None:
         st.session_state["current_view"] = "recent_claims"
 
     if st.session_state.get("current_view") == "claim_details" and st.session_state.get("selected_claim_id"):
-        if st.button("← Back to Recent Claims", key="dash_back_to_claims", type="secondary"):
-            st.session_state["selected_claim_id"] = None
-            st.session_state["current_view"] = "recent_claims"
-            st.rerun()
         claim_details.render(session=session, ctx=ctx)
         return
 
