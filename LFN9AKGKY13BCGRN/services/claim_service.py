@@ -488,14 +488,14 @@ def update_claim_status(session, claim_id: str, new_status: str, assigned_to: st
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def get_assignable_faculty(session) -> list[dict[str, str]]:
-    if not _object_exists(session, "MFQ_USERS"):
+def get_assignable_faculty(_session) -> list[dict[str, str]]:
+    if not _object_exists(_session, "MFQ_USERS"):
         return []
 
-    has_role_tables = _object_exists(session, "MFQ_USER_ROLES") and _object_exists(session, "MFQ_ROLES")
+    has_role_tables = _object_exists(_session, "MFQ_USER_ROLES") and _object_exists(_session, "MFQ_ROLES")
     if has_role_tables:
         df = safe_collect_df(
-            session,
+            _session,
             """
             SELECT DISTINCT
               u.USER_ID,
@@ -518,7 +518,7 @@ def get_assignable_faculty(session) -> list[dict[str, str]]:
         )
     else:
         df = safe_collect_df(
-            session,
+            _session,
             """
             SELECT
               USER_ID,
