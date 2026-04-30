@@ -39,7 +39,7 @@ RECENT_CLAIMS_HEADERS = [
     "Actions",
 ]
 
-RECENT_CLAIMS_COLUMN_WIDTHS = [140, 280, 150, 120, 140, 120, 140]
+RECENT_CLAIMS_COLUMN_WIDTHS = [1.15, 2.35, 1.25, 1.1, 1.15, 1.0, 1.2]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -184,14 +184,11 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
     show_df = _sort_recent_claims(show_df, "DATE_REQUESTED", False)
 
-    col_widths = RECENT_CLAIMS_COLUMN_WIDTHS
     with st.container(key=f"{key_prefix}_recent_claims_table"):
-        header_cols = st.columns(col_widths, vertical_alignment="center")
+        st.markdown("<div class='recent-claims-table-shell'>", unsafe_allow_html=True)
+        header_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
         for idx, header in enumerate(RECENT_CLAIMS_HEADERS):
-            header_cols[idx].markdown(
-                f"<div class='recent-claims-col-header'>{escape(header)}</div>",
-                unsafe_allow_html=True,
-            )
+            header_cols[idx].markdown(f"<div class='recent-claims-col-header'>{escape(header)}</div>", unsafe_allow_html=True)
 
         for _, row in show_df.iterrows():
             claim_id = str(row.get("CLAIM_ID", "")).strip() or "—"
@@ -204,7 +201,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
             if defendant_name:
                 patient_html += f"<span class='defendant-name'>{escape(defendant_name)}</span>"
 
-            row_cols = st.columns(col_widths, vertical_alignment="center")
+            row_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
             row_cols[0].markdown(f"<div class='claim-id-cell'>{escape(claim_id)}</div>", unsafe_allow_html=True)
             row_cols[1].markdown(f"<div class='patient-cell'>{patient_html}</div>", unsafe_allow_html=True)
             row_cols[2].markdown(
@@ -238,3 +235,4 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                         else:
                             st.error(message)
                 st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
