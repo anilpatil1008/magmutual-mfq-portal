@@ -39,7 +39,7 @@ RECENT_CLAIMS_HEADERS = [
     "Actions",
 ]
 
-RECENT_CLAIMS_COLUMN_WIDTHS = [14, 27, 14, 10, 13, 10, 12]
+RECENT_CLAIMS_COLUMN_WIDTHS = [16, 32, 14, 11, 13, 10, 12]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -207,17 +207,28 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
             row_cols = st.columns(col_widths, vertical_alignment="center")
             row_cols[0].markdown(f"<div class='claim-id-cell'>{escape(claim_id)}</div>", unsafe_allow_html=True)
             row_cols[1].markdown(f"<div class='patient-cell'>{patient_html}</div>", unsafe_allow_html=True)
-            row_cols[2].markdown(_status_badge_html(status), unsafe_allow_html=True)
-            row_cols[3].markdown(_priority_badge_html(row.get("PRIORITY")), unsafe_allow_html=True)
+            row_cols[2].markdown(
+                f"<div class='status-cell'>{_status_badge_html(status)}</div>",
+                unsafe_allow_html=True,
+            )
+            row_cols[3].markdown(
+                f"<div class='priority-cell'>{_priority_badge_html(row.get('PRIORITY'))}</div>",
+                unsafe_allow_html=True,
+            )
             row_cols[4].markdown(f"<div class='requested-cell'>{escape(requested)}</div>", unsafe_allow_html=True)
-            row_cols[5].markdown(_confidence_badge_html(row.get("AI_CONFIDENCE")), unsafe_allow_html=True)
+            row_cols[5].markdown(
+                f"<div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div>",
+                unsafe_allow_html=True,
+            )
 
             with row_cols[6]:
                 review_key = f"{key_prefix}_review_{claim_id}"
+                st.markdown("<div class='actions-cell'>", unsafe_allow_html=True)
                 if st.button("Review", key=review_key, type="secondary"):
                     st.session_state["selected_claim_id"] = claim_id
                     st.session_state["current_view"] = "claim_details"
                     st.rerun()
+                st.markdown("</div>", unsafe_allow_html=True)
 
                 if status == "MFQ Generated":
                     regen_key = f"{key_prefix}_regenerate_{claim_id}"
