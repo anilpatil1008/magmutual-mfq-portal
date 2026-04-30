@@ -184,37 +184,47 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
     show_df = _sort_recent_claims(show_df, "DATE_REQUESTED", False)
 
-    table_header_html = (
-        "<div class='claims-table-scroll'><table class='claims-table'><colgroup>"
-        "<col class='col-claim-id' /><col class='col-patient' /><col class='col-status' />"
-        "<col class='col-priority' /><col class='col-requested' /><col class='col-confidence' />"
-        "<col class='col-actions' /></colgroup><thead><tr>"
-        + "".join(f"<th>{escape(header)}</th>" for header in RECENT_CLAIMS_HEADERS)
-        + "</tr></thead></table></div>"
-    )
-    st.markdown(table_header_html, unsafe_allow_html=True)
-
     col_widths = RECENT_CLAIMS_COLUMN_WIDTHS
-    for _, row in show_df.iterrows():
-        claim_id = str(row.get("CLAIM_ID", "")).strip() or "—"
-        status = str(row.get("STATUS", "")).strip()
-        patient_name = str(row.get("PATIENT_NAME", "")).strip() or "Unknown Patient"
-        defendant_name = str(row.get("DEFENDANT_NAME", "")).strip()
-        requested = _format_date(row.get("DATE_REQUESTED"))
+    with st.container(key=f"{key_prefix}_recent_claims_table"):
+        header_cols = st.columns(col_widths, vertical_alignment="center")
+        for idx, header in enumerate(RECENT_CLAIMS_HEADERS):
+            header_cols[idx].markdown(
+                f"<div class='recent-claims-col-header'>{escape(header)}</div>",
+                unsafe_allow_html=True,
+            )
 
-        patient_html = f"<span class='patient-name'>{escape(patient_name)}</span>"
-        if defendant_name:
-            patient_html += f"<span class='defendant-name'>{escape(defendant_name)}</span>"
+        for _, row in show_df.iterrows():
+            claim_id = str(row.get("CLAIM_ID", "")).strip() or "—"
+            status = str(row.get("STATUS", "")).strip()
+            patient_name = str(row.get("PATIENT_NAME", "")).strip() or "Unknown Patient"
+            defendant_name = str(row.get("DEFENDANT_NAME", "")).strip()
+            requested = _format_date(row.get("DATE_REQUESTED"))
 
-        row_cols = st.columns(col_widths)
-        row_cols[0].markdown(f"<div class='claim-id-cell'>{escape(claim_id)}</div>", unsafe_allow_html=True)
-        row_cols[1].markdown(f"<div class='patient-cell'>{patient_html}</div>", unsafe_allow_html=True)
-        row_cols[2].markdown(_status_badge_html(status), unsafe_allow_html=True)
-        row_cols[3].markdown(_priority_badge_html(row.get("PRIORITY")), unsafe_allow_html=True)
-        row_cols[4].markdown(escape(requested))
-        row_cols[5].markdown(_confidence_badge_html(row.get("AI_CONFIDENCE")), unsafe_allow_html=True)
-        review_key = f"{key_prefix}_review_{claim_id}"
-        if row_cols[6].button("Review →", key=review_key, type="secondary"):
-            st.session_state["selected_claim_id"] = claim_id
-            st.session_state["current_view"] = "claim_details"
-            st.rerun()
+            patient_html = f"<span class='patient-name'>{escape(patient_name)}</span>"
+            if defendant_name:
+                patient_html += f"<span class='defendant-name'>{escape(defendant_name)}</span>"
+
+            row_cols = st.columns(col_widths, vertical_alignment="center")
+            row_cols[0].markdown(f"<div class='claim-id-cell'>{escape(claim_id)}</div>", unsafe_allow_html=True)
+            row_cols[1].markdown(f"<div class='patient-cell'>{patient_html}</div>", unsafe_allow_html=True)
+            row_cols[2].markdown(_status_badge_html(status), unsafe_allow_html=True)
+            row_cols[3].markdown(_priority_badge_html(row.get("PRIORITY")), unsafe_allow_html=True)
+            row_cols[4].markdown(f"<div class='requested-cell'>{escape(requested)}</div>", unsafe_allow_html=True)
+            row_cols[5].markdown(_confidence_badge_html(row.get("AI_CONFIDENCE")), unsafe_allow_html=True)
+
+            with row_cols[6]:
+                review_key = f"{key_prefix}_review_{claim_id}"
+                if st.button("Review", key=review_key, type="secondary"):
+                    st.session_state["selected_claim_id"] = claim_id
+                    st.session_state["current_view"] = "claim_details"
+                    st.rerun()
+
+                if status == "MFQ Generated":
+                    regen_key = f"{key_prefix}_regenerate_{claim_id}"
+                    if st.button("Regenerate", key=regen_key, type="secondary"):
+                        ok, message = _run_regeneration(claim_id=claim_id, row=row)
+                        if ok:
+                            st.success(message)
+                        else:
+                            st.error(message)
+            st.markdown("<div class='recent-claims-row-divider'></div>", unsafe_allow_html=True)
