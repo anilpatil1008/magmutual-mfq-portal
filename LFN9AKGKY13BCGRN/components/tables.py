@@ -185,10 +185,12 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
     show_df = _sort_recent_claims(show_df, "DATE_REQUESTED", False)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
-        st.markdown("<div class='recent-claims-table-shell'>", unsafe_allow_html=True)
+        st.markdown("<div class='recent-claims-table-wrapper'><div class='recent-claims-table-shell'>", unsafe_allow_html=True)
+        st.markdown("<div class='recent-claims-table-head'>", unsafe_allow_html=True)
         header_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
         for idx, header in enumerate(RECENT_CLAIMS_HEADERS):
             header_cols[idx].markdown(f"<div class='recent-claims-col-header'>{escape(header)}</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
         for _, row in show_df.iterrows():
             claim_id = str(row.get("CLAIM_ID", "")).strip() or "—"
@@ -201,6 +203,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
             if defendant_name:
                 patient_html += f"<span class='defendant-name'>{escape(defendant_name)}</span>"
 
+            st.markdown("<div class='recent-claims-table-row'>", unsafe_allow_html=True)
             row_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
             row_cols[0].markdown(f"<div class='claim-id-cell'>{escape(claim_id)}</div>", unsafe_allow_html=True)
             row_cols[1].markdown(f"<div class='patient-cell'>{patient_html}</div>", unsafe_allow_html=True)
@@ -235,4 +238,5 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                         else:
                             st.error(message)
                 st.markdown("</div>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div></div>", unsafe_allow_html=True)
