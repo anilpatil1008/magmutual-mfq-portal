@@ -39,7 +39,7 @@ RECENT_CLAIMS_HEADERS = [
     "Actions",
 ]
 
-RECENT_CLAIMS_COLUMN_WIDTHS = [120, 230, 130, 100, 130, 100, 150]
+RECENT_CLAIMS_COLUMN_WIDTHS = [120, 230, 130, 100, 130, 100, 110]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
