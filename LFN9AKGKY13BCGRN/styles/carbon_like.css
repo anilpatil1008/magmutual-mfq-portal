@@ -1175,7 +1175,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-dash_recent_claims_table .recent-claims-table-shell {
   width: 100%;
-  min-width: 1050px;
+  min-width: 960px;
   max-width: 100%;
   box-sizing: border-box;
   border: 1px solid #dde1e6;
@@ -1221,25 +1221,26 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"],
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"] {
-  padding: 10px 14px;
+  padding: 10px 12px;
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1) { min-width: 150px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1) { min-width: 120px; width: 120px; flex: 0 0 120px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) { min-width: 260px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) { min-width: 230px; width: 230px; flex: 0 0 230px; padding-right: 6px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3) { min-width: 150px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3) { min-width: 130px; width: 130px; flex: 0 0 130px; padding-left: 6px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4) { min-width: 110px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4) { min-width: 100px; width: 100px; flex: 0 0 100px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5) { min-width: 135px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5) { min-width: 130px; width: 130px; flex: 0 0 130px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6) { min-width: 110px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6) { min-width: 100px; width: 100px; flex: 0 0 100px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(7),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(7) {
-  min-width: 135px;
-  padding-right: 18px;
+  min-width: 150px;
+  width: 150px;
+  flex: 0 0 150px;
 }
 
 .recent-claims-col-header {
@@ -1314,7 +1315,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .actions-cell {
   display: flex;
   align-items: flex-start;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .actions-cell-stacked {
@@ -1331,9 +1332,10 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .st-key-dash_recent_claims_table [data-testid="stButton"] button {
-  width: 104px;
+  width: 128px;
   min-height: 28px;
-  padding: 0 8px;
+  padding: 0 10px;
+  white-space: nowrap;
   font-size: 0.73rem;
   font-weight: 600;
 }
