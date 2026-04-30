@@ -38,6 +38,8 @@ render_missing_objects(missing_objects)
 
 if "active_page" not in st.session_state:
     st.session_state.active_page = "Dashboard"
+if "current_view" not in st.session_state:
+    st.session_state.current_view = "dashboard"
 if "selected_claim_id" not in st.session_state:
     st.session_state.selected_claim_id = None
 
@@ -57,6 +59,10 @@ page_map = {
     "Reports": reports.render,
     "Admin": admin.render,
 }
+
+if st.session_state.active_page == "Claim Details" and st.session_state.get("selected_claim_id"):
+    st.session_state.active_page = "Dashboard"
+    st.session_state.current_view = "claim_details"
 
 render_fn = page_map.get(st.session_state.active_page, dashboard.render)
 
