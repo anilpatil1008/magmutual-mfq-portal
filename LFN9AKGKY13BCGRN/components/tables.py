@@ -46,6 +46,11 @@ def _normalize_slug(value: Any) -> str:
     return "".join(ch for ch in text if ch.isalnum() or ch == "-") or "unknown"
 
 
+def _review_href(claim_id: str) -> str:
+    safe_claim_id = escape(claim_id, quote=True)
+    return f"?page=Claim+Details&claim_id={safe_claim_id}"
+
+
 def _format_date(value: Any) -> str:
     if value is None:
         return "—"
@@ -199,7 +204,9 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
         actions_html = "<div class='action-stack'>"
         if status == "MFQ Generated":
             actions_html += "<button type='button' class='btn-regenerate'>↻ Regenerate</button>"
-        actions_html += "<a href='#' class='btn-review'>Review →</a></div>"
+        actions_html += (
+            f"<a href='{_review_href(claim_id)}' class='btn-review'>Review →</a></div>"
+        )
 
         rows_html.append(
             "<tr>"
