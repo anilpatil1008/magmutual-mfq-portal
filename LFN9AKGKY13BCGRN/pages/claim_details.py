@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import logging
 from html import escape
+from time import perf_counter
 
 import pandas as pd
 import streamlit as st
@@ -15,6 +17,14 @@ from services.claim_service import (
     update_claim_status,
 )
 from services.rbac_service import can_edit_claim
+
+logger = logging.getLogger(__name__)
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _get_cached_claim_review_workspace(claim_id: str) -> dict:
+    from services.snowflake_service import get_session
+    return get_claim_review_workspace(get_session(), claim_id)
 
 
 def _fmt_conf(value) -> str:
@@ -724,10 +734,14 @@ def render(session, ctx) -> None:
     with toolbar_col:
         if st.button("Refresh answers", key=f"refresh_answers_{claim_id}", type="tertiary"):
             st.cache_data.clear()
+            _get_cached_claim_review_workspace.clear()
             st.session_state[f"mfq_refresh_nonce_{claim_id}"] = st.session_state.get(f"mfq_refresh_nonce_{claim_id}", 0) + 1
             st.rerun()
 
-    workspace = get_claim_review_workspace(session, str(claim_id))
+    with st.spinner("Loading claim details..."):
+        started = perf_counter()
+        workspace = _get_cached_claim_review_workspace(str(claim_id))
+        logger.info("claim_details.workspace_load_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
     claim = workspace.get("claim")
     if not claim:
         st.error(f"Claim {claim_id} not found in claim detail view.")

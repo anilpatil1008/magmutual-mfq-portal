@@ -229,6 +229,7 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
                 if st.button("Review", key=review_key, type="secondary"):
                     st.session_state["selected_claim_id"] = claim_id
                     st.session_state["current_view"] = "claim_details"
+                    st.session_state["active_page"] = "Dashboard"
                     st.rerun()
 
                 if has_regen:
