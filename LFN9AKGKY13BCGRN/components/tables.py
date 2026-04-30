@@ -184,8 +184,17 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
     show_df = _sort_recent_claims(show_df, "DATE_REQUESTED", False)
 
-    rows_html: list[str] = []
-    review_buttons: list[tuple[str, str, str]] = []
+    table_header_html = (
+        "<div class='claims-table-scroll'><table class='claims-table'><colgroup>"
+        "<col class='col-claim-id' /><col class='col-patient' /><col class='col-status' />"
+        "<col class='col-priority' /><col class='col-requested' /><col class='col-confidence' />"
+        "<col class='col-actions' /></colgroup><thead><tr>"
+        + "".join(f"<th>{escape(header)}</th>" for header in RECENT_CLAIMS_HEADERS)
+        + "</tr></thead></table></div>"
+    )
+    st.markdown(table_header_html, unsafe_allow_html=True)
+
+    col_widths = RECENT_CLAIMS_COLUMN_WIDTHS
     for _, row in show_df.iterrows():
         claim_id = str(row.get("CLAIM_ID", "")).strip() or "—"
         status = str(row.get("STATUS", "")).strip()
@@ -197,57 +206,15 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
         if defendant_name:
             patient_html += f"<span class='defendant-name'>{escape(defendant_name)}</span>"
 
-        actions_html = "<div class='action-stack'>"
-        if status == "MFQ Generated":
-            actions_html += "<button type='button' class='btn-regenerate'>↻ Regenerate</button>"
+        row_cols = st.columns(col_widths)
+        row_cols[0].markdown(f"<div class='claim-id-cell'>{escape(claim_id)}</div>", unsafe_allow_html=True)
+        row_cols[1].markdown(f"<div class='patient-cell'>{patient_html}</div>", unsafe_allow_html=True)
+        row_cols[2].markdown(_status_badge_html(status), unsafe_allow_html=True)
+        row_cols[3].markdown(_priority_badge_html(row.get("PRIORITY")), unsafe_allow_html=True)
+        row_cols[4].markdown(escape(requested))
+        row_cols[5].markdown(_confidence_badge_html(row.get("AI_CONFIDENCE")), unsafe_allow_html=True)
         review_key = f"{key_prefix}_review_{claim_id}"
-        review_placeholder = f"__REVIEW_BUTTON__{review_key}__"
-        actions_html += f"{review_placeholder}</div>"
-        review_buttons.append((review_key, claim_id, review_placeholder))
-
-        rows_html.append(
-            "<tr>"
-            f"<td class='claim-id-cell' data-label='Claim ID'>{escape(claim_id)}</td>"
-            f"<td class='patient-cell' data-label='Patient / Defendant'>{patient_html}</td>"
-            f"<td class='status-cell' data-label='Status'>{_status_badge_html(status)}</td>"
-            f"<td class='priority-cell' data-label='Priority'>{_priority_badge_html(row.get('PRIORITY'))}</td>"
-            f"<td class='requested-cell' data-label='Requested'>{escape(requested)}</td>"
-            f"<td class='confidence-cell' data-label='AI Conf.'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</td>"
-            f"<td class='actions-cell' data-label='Actions'>{actions_html}</td>"
-            "</tr>"
-        )
-
-    table_html = (
-        "<div class='claims-table-scroll'>"
-        "<table class='claims-table'>"
-        "<colgroup>"
-        "<col class='col-claim-id' />"
-        "<col class='col-patient' />"
-        "<col class='col-status' />"
-        "<col class='col-priority' />"
-        "<col class='col-requested' />"
-        "<col class='col-confidence' />"
-        "<col class='col-actions' />"
-        "</colgroup>"
-        "<thead><tr>"
-        + "".join(f"<th>{escape(header)}</th>" for header in RECENT_CLAIMS_HEADERS)
-        + "</tr></thead>"
-        f"<tbody>{''.join(rows_html)}</tbody>"
-        "</table></div>"
-    )
-    for review_key, claim_id, review_placeholder in review_buttons:
-        table_html = table_html.replace(
-            review_placeholder,
-            (
-                f"<span id='{escape(review_key, quote=True)}' class='btn-review'>"
-                "Review →"
-                "</span>"
-            ),
-        )
-    st.markdown(table_html, unsafe_allow_html=True)
-
-    for review_key, claim_id, _ in review_buttons:
-        if st.button(f"Review {claim_id}", key=review_key, type="secondary"):
+        if row_cols[6].button("Review →", key=review_key, type="secondary"):
             st.session_state["selected_claim_id"] = claim_id
             st.session_state["current_view"] = "claim_details"
             st.rerun()
