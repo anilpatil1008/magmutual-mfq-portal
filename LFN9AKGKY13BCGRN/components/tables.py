@@ -39,7 +39,7 @@ RECENT_CLAIMS_HEADERS = [
     "Actions",
 ]
 
-RECENT_CLAIMS_COLUMN_WIDTHS = [1.15, 2.35, 1.25, 1.1, 1.15, 1.0, 1.2]
+RECENT_CLAIMS_COLUMN_WIDTHS = [1.5, 2.6, 1.5, 1.1, 1.35, 1.1, 1.35]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -223,13 +223,15 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
 
             with row_cols[6]:
                 review_key = f"{key_prefix}_review_{claim_id}"
-                st.markdown("<div class='actions-cell action-buttons-stack'>", unsafe_allow_html=True)
+                has_regen = status == "MFQ Generated"
+                action_cell_class = "actions-cell actions-cell-stacked" if has_regen else "actions-cell actions-cell-single"
+                st.markdown(f"<div class='{action_cell_class}'>", unsafe_allow_html=True)
                 if st.button("Review", key=review_key, type="secondary"):
                     st.session_state["selected_claim_id"] = claim_id
                     st.session_state["current_view"] = "claim_details"
                     st.rerun()
 
-                if status == "MFQ Generated":
+                if has_regen:
                     regen_key = f"{key_prefix}_regenerate_{claim_id}"
                     if st.button("Regenerate", key=regen_key, type="secondary"):
                         ok, message = _run_regeneration(claim_id=claim_id, row=row)
