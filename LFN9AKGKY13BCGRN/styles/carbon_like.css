@@ -1175,7 +1175,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-dash_recent_claims_table .recent-claims-table-shell {
   width: 100%;
-  min-width: 960px;
+  min-width: 920px;
   max-width: 100%;
   box-sizing: border-box;
   border: 1px solid #dde1e6;
@@ -1238,9 +1238,9 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6) { min-width: 100px; width: 100px; flex: 0 0 100px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(7),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(7) {
-  min-width: 150px;
-  width: 150px;
-  flex: 0 0 150px;
+  min-width: 110px;
+  width: 110px;
+  flex: 0 0 110px;
 }
 
 .recent-claims-col-header {
@@ -1320,7 +1320,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .actions-cell-stacked {
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .actions-cell-single {
@@ -1332,12 +1332,16 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .st-key-dash_recent_claims_table [data-testid="stButton"] button {
-  width: 128px;
+  width: auto;
+  min-width: 72px;
+  height: 28px;
   min-height: 28px;
   padding: 0 10px;
+  border-radius: 6px;
   white-space: nowrap;
-  font-size: 0.73rem;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
 }
 /* Portal header card layout: title + actions in one card */
 .st-key-app_topbar {
