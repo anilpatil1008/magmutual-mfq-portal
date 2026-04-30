@@ -40,6 +40,13 @@ if "active_page" not in st.session_state:
 if "selected_claim_id" not in st.session_state:
     st.session_state.selected_claim_id = None
 
+query_page = st.query_params.get("page")
+query_claim_id = st.query_params.get("claim_id")
+if query_page == "Claim Details" and query_claim_id:
+    st.session_state.active_page = "Claim Details"
+    st.session_state.selected_claim_id = str(query_claim_id).strip()
+    st.query_params.clear()
+
 notifications = get_user_notifications(session, ctx.username, limit=6)
 render_header(ctx, notifications)
 render_sidebar(ctx)
