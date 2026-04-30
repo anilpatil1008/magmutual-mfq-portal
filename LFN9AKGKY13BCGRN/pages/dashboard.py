@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from html import escape
+import logging
+from time import perf_counter
 
 import streamlit as st
 
@@ -10,6 +12,8 @@ from components.tables import render_recent_claims_table
 from pages import claim_details
 from services.claim_service import get_claims_queue
 from services.dashboard_service import get_dashboard_metrics
+
+logger = logging.getLogger(__name__)
 
 
 def _resolve_user_display_name(ctx) -> str:
@@ -47,7 +51,7 @@ def render(session, ctx) -> None:
 
     if st.session_state.get("current_view") == "claim_details" and st.session_state.get("selected_claim_id"):
         claim_details.render(session=session, ctx=ctx)
-        return
+        st.stop()
 
     st.title("Dashboard")
     display_name = _resolve_user_display_name(ctx)
@@ -65,7 +69,9 @@ def render(session, ctx) -> None:
             unsafe_allow_html=True,
         )
 
+    t0 = perf_counter()
     metrics = get_dashboard_metrics(session, app_role=ctx.app_role, username=ctx.username)
+    logger.info("dashboard_metrics_ms=%d", int((perf_counter()-t0)*1000))
     render_kpi_cards(metrics)
     render_legend()
 
@@ -95,5 +101,7 @@ def render(session, ctx) -> None:
                         key=f"{card_key}_search",
                     )
 
+        t1 = perf_counter()
         queue = get_claims_queue(session, ctx.app_role, ctx.username, search_text=search)
+        logger.info("dashboard_recent_claims_ms=%d rows=%d", int((perf_counter()-t1)*1000), len(queue))
         render_recent_claims_table(queue.head(20), key_prefix="dash")

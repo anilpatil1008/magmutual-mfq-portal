@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import json
+import logging
+from time import perf_counter
 from typing import Any
 
 import pandas as pd
@@ -22,6 +24,8 @@ ANSWERS_TABLE = obj.MFQ_ANSWERS_TABLE
 QUESTION_CONFIDENCE_TABLE = obj.MFQ_QUESTION_CONFIDENCE_TABLE
 SECTION_CONFIDENCE_TABLE = obj.MFQ_SECTION_CONFIDENCE_TABLE
 LLM_EVAL_TABLE = obj.LLM_EVALUATION_TABLE
+
+logger = logging.getLogger(__name__)
 
 
 def _apply_rbac(df: pd.DataFrame, app_role: str, username: str) -> pd.DataFrame:
@@ -77,8 +81,10 @@ def _safe_read(session, object_name: str, sql: str, missing_objects: list[str]) 
 
 
 def get_claims_queue(session, app_role: str, username: str, search_text: str = "", status_filter: str = "All") -> pd.DataFrame:
+    started = perf_counter()
     df = claims_repository.get_claims_queue(session)
     if df.empty:
+        logger.info("get_claims_queue_ms=%d rows=0", int((perf_counter() - started) * 1000))
         return df
 
     scoped = _apply_rbac(df, app_role, username)
@@ -96,7 +102,9 @@ def get_claims_queue(session, app_role: str, username: str, search_text: str = "
     if status_filter != "All":
         scoped = scoped[scoped[col.STATUS] == status_filter]
 
-    return scoped.sort_values(col.LAST_UPDATED_TS, ascending=False)
+    result = scoped.sort_values(col.LAST_UPDATED_TS, ascending=False)
+    logger.info("get_claims_queue_ms=%d rows=%d", int((perf_counter() - started) * 1000), len(result))
+    return result
 
 
 def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
@@ -190,15 +198,18 @@ def get_status_values(session) -> list[str]:
 
 
 def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
+    started = perf_counter()
     claim_id_q = quote_sql(claim_id)
     missing_objects: list[str] = []
 
+    t_detail = perf_counter()
     detail_df = _safe_read(
         session,
         DETAIL_VIEW,
         f"SELECT * FROM {DETAIL_VIEW} WHERE CLAIM_ID = '{claim_id_q}'",
         missing_objects,
     )
+    logger.info("claim_workspace.detail_ms=%d claim_id=%s", int((perf_counter() - t_detail) * 1000), claim_id)
     defendant_df = claims_repository.get_claim_defendants(session, claim_id) if _object_exists(session, obj.MFQ_CLAIM_DEFENDANTS_TABLE) else pd.DataFrame()
 
     detail = detail_df.iloc[0].to_dict() if not detail_df.empty else None
@@ -208,7 +219,9 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
     sections_df = pd.DataFrame()
     form_objects = [SECTIONS_TABLE, QUESTIONS_TABLE, ANSWERS_TABLE, QUESTION_CONFIDENCE_TABLE]
     if all(_object_exists(session, obj) for obj in form_objects):
+        t_sections = perf_counter()
         sections_df = get_mfq_form_workspace(session, claim_id, defendant_id=str(defendant_id) if defendant_id else None)
+        logger.info("claim_workspace.sections_ms=%d claim_id=%s", int((perf_counter() - t_sections) * 1000), claim_id)
     else:
         sections_df = _safe_read(
             session,
@@ -291,7 +304,7 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
         LLM_EVAL_TABLE,
     }
 
-    return {
+    result = {
         "claim": detail,
         "sections": sections_df,
         "synopsis": synopsis,
@@ -305,6 +318,8 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
         "missing_objects": sorted(set(missing_objects)),
         "used_objects": sorted(used_objects),
     }
+    logger.info("get_claim_review_workspace_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
+    return result
 
 
 def _normalize_confidence_score(value: Any) -> float | None:
