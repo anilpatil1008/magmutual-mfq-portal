@@ -19,20 +19,21 @@ load_css()
 session = get_session()
 ctx = get_current_user_context(session)
 
-missing_objects = validate_required_objects(session, [
-    {"object_name": obj.MFQ_RECENT_CLAIMS_VIEW, "expected_location": "config/snowflake_objects.py", "page": "Claims/Dashboard"},
-    {"object_name": obj.MFQ_CLAIM_DETAIL_VIEW, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
-    {"object_name": obj.MFQ_NOTIFICATIONS_VIEW, "expected_location": "config/snowflake_objects.py", "page": "Header Notifications"},
-    {"object_name": obj.MFQ_CLAIM_DEFENDANTS_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
-    {"object_name": obj.MFQ_RECORD_SUMMARY_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
-    {"object_name": obj.MFQ_MEDCRON_SUMMARY_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
-    {"object_name": obj.MFQ_LEGAL_MEMO_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
-    {"object_name": obj.MFQ_DOCUMENTS_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
-    {"object_name": obj.MFQ_ASSIGNMENT_QUEUE_VIEW, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
-    {"object_name": obj.MFQ_STATUS_HISTORY_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
-    {"object_name": obj.MFQ_SECTION_CONFIDENCE_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
-    {"object_name": obj.LLM_EVALUATION_TABLE, "expected_location": "config/snowflake_objects.py", "page": "Claim Details"},
-])
+required_objects = (
+        (obj.MFQ_RECENT_CLAIMS_VIEW, "config/snowflake_objects.py", "Claims/Dashboard"),
+        (obj.MFQ_CLAIM_DETAIL_VIEW, "config/snowflake_objects.py", "Claim Details"),
+        (obj.MFQ_NOTIFICATIONS_VIEW, "config/snowflake_objects.py", "Header Notifications"),
+        (obj.MFQ_CLAIM_DEFENDANTS_TABLE, "config/snowflake_objects.py", "Claim Details"),
+        (obj.MFQ_RECORD_SUMMARY_TABLE, "config/snowflake_objects.py", "Claim Details"),
+        (obj.MFQ_MEDCRON_SUMMARY_TABLE, "config/snowflake_objects.py", "Claim Details"),
+        (obj.MFQ_LEGAL_MEMO_TABLE, "config/snowflake_objects.py", "Claim Details"),
+        (obj.MFQ_DOCUMENTS_TABLE, "config/snowflake_objects.py", "Claim Details"),
+        (obj.MFQ_ASSIGNMENT_QUEUE_VIEW, "config/snowflake_objects.py", "Claim Details"),
+        (obj.MFQ_STATUS_HISTORY_TABLE, "config/snowflake_objects.py", "Claim Details"),
+        (obj.MFQ_SECTION_CONFIDENCE_TABLE, "config/snowflake_objects.py", "Claim Details"),
+        (obj.LLM_EVALUATION_TABLE, "config/snowflake_objects.py", "Claim Details"),
+ )
+missing_objects = validate_required_objects(session, required_objects)
 render_missing_objects(missing_objects)
 
 if "active_page" not in st.session_state:
@@ -71,3 +72,4 @@ if not is_dashboard_claim_details:
     render_sidebar(ctx)
 
 render_fn(session=session, ctx=ctx)
+st.stop()
