@@ -193,13 +193,13 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
 
         rows_html.append(
             "<tr>"
-            f"<td class='claim-id-cell'>{escape(claim_id)}</td>"
-            f"<td class='patient-cell'>{patient_html}</td>"
-            f"<td class='status-cell'>{_status_badge_html(status)}</td>"
-            f"<td class='priority-cell'>{_priority_badge_html(row.get('PRIORITY'))}</td>"
-            f"<td class='requested-cell'>{escape(requested)}</td>"
-            f"<td class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</td>"
-            f"<td class='actions-cell'>{actions_html}</td>"
+            f"<td class='claim-id-cell' data-label='Claim ID'>{escape(claim_id)}</td>"
+            f"<td class='patient-cell' data-label='Patient / Defendant'>{patient_html}</td>"
+            f"<td class='status-cell' data-label='Status'>{_status_badge_html(status)}</td>"
+            f"<td class='priority-cell' data-label='Priority'>{_priority_badge_html(row.get('PRIORITY'))}</td>"
+            f"<td class='requested-cell' data-label='Requested'>{escape(requested)}</td>"
+            f"<td class='confidence-cell' data-label='AI Conf.'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</td>"
+            f"<td class='actions-cell' data-label='Actions'>{actions_html}</td>"
             "</tr>"
         )
 
