@@ -138,19 +138,24 @@ def render_header(ctx, notifications_df) -> None:
 
     header_container = st.container(key="app_topbar")
     actions_container = header_container.container(key="portal_header_actions")
-    role_col, bell_col, profile_col = actions_container.columns([2.4, 0.8, 2.2], gap="small")
+    role_col, bell_col, profile_col = actions_container.columns([1, 1, 1], gap="small")
 
     with role_col:
+        st.markdown('<div class="mm-header-item mm-header-item-role">', unsafe_allow_html=True)
         _render_role_selector(ctx.app_role)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with bell_col:
-        with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
+        st.markdown('<div class="mm-header-item mm-header-item-bell">', unsafe_allow_html=True)
+        with st.popover(f"🔔 {unread}", use_container_width=False, key="header_notifications_popover"):
             render_notification_center(notifications_df)
+        st.markdown('</div>', unsafe_allow_html=True)
 
     with profile_col:
+        st.markdown('<div class="mm-header-item mm-header-item-profile">', unsafe_allow_html=True)
         with st.popover(
             f"{safe_short_name} ▾",
-            use_container_width=True,
+            use_container_width=False,
             key="header_profile_popover",
         ):
             st.markdown(
@@ -173,7 +178,7 @@ def render_header(ctx, notifications_df) -> None:
                 ).strip(),
                 unsafe_allow_html=True,
             )
-
+        st.markdown('</div>', unsafe_allow_html=True)
 
 
 def render_sidebar(ctx) -> None:
@@ -197,7 +202,7 @@ def render_sidebar(ctx) -> None:
         )
         st.markdown('<div class="mm-sidebar-divider"></div>', unsafe_allow_html=True)
 
-        pages = allowed_pages(ctx.app_role)
+        pages = [page for page in allowed_pages(ctx.app_role) if page in {"Dashboard", "Claims", "Reports"}]
         for page in pages:
             active = st.session_state.active_page == page
             icon = page_icons.get(page, ":material/chevron_right:")

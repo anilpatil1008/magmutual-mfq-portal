@@ -2057,3 +2057,60 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-size: .88rem;
   padding: .6rem .7rem;
 }
+
+/* MFQ topbar + sidebar nav cleanup (May 2026) */
+.st-key-app_topbar {
+  margin-top: .45rem;
+}
+
+.st-key-portal_header_actions [data-testid="stHorizontalBlock"] {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: nowrap;
+}
+
+.st-key-portal_header_actions [data-testid="column"] {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  min-width: 0 !important;
+}
+
+.st-key-portal_header_actions .stSelectbox,
+.st-key-header_notifications_popover,
+.st-key-header_profile_popover,
+.st-key-header_notifications_popover > div,
+.st-key-header_profile_popover > div {
+  width: auto !important;
+}
+
+.st-key-header_role_select .stSelectbox > div[data-baseweb="select"] {
+  width: fit-content !important;
+  min-width: 170px;
+  max-width: 230px;
+}
+
+.st-key-header_notifications_popover > div > button {
+  width: auto !important;
+  min-width: 64px;
+  padding: .35rem .6rem !important;
+}
+
+.st-key-header_profile_popover > div > button {
+  width: auto !important;
+  max-width: 220px;
+  padding: .35rem .75rem !important;
+}
+
+.st-key-header_profile_popover > div > button p,
+.st-key-header_notifications_popover > div > button p,
+.st-key-header_role_select [data-baseweb="select"] span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.st-key-portal_header_actions {
+  overflow-x: visible;
+}
