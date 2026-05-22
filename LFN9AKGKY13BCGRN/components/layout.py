@@ -138,7 +138,7 @@ def render_header(ctx, notifications_df) -> None:
 
     header_container = st.container(key="app_topbar")
     actions_container = header_container.container(key="portal_header_actions")
-    role_col, bell_col, profile_col = actions_container.columns([2.4, 0.8, 2.2], gap="small")
+    role_col, bell_col, profile_col = actions_container.columns([380, 120, 330], gap="small")
 
     with role_col:
         _render_role_selector(ctx.app_role)
@@ -197,7 +197,7 @@ def render_sidebar(ctx) -> None:
         )
         st.markdown('<div class="mm-sidebar-divider"></div>', unsafe_allow_html=True)
 
-        pages = allowed_pages(ctx.app_role)
+        pages = [page for page in allowed_pages(ctx.app_role) if page in {"Dashboard", "Claims", "Reports"}]
         for page in pages:
             active = st.session_state.active_page == page
             icon = page_icons.get(page, ":material/chevron_right:")
