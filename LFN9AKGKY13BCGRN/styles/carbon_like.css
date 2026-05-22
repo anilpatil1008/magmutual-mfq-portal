@@ -2098,3 +2098,75 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-size: .88rem;
   padding: .6rem .7rem;
 }
+
+
+/* Topbar control alignment + sizing */
+.st-key-portal_header_actions {
+  overflow: visible !important;
+}
+
+.st-key-portal_header_actions [data-testid="stHorizontalBlock"] {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 12px;
+  padding-right: 70px;
+  overflow: visible !important;
+  box-sizing: border-box;
+}
+
+.st-key-portal_header_actions [data-testid="column"] {
+  flex: 0 0 auto !important;
+  overflow: visible !important;
+  margin: 0 !important;
+}
+
+.st-key-portal_header_actions [data-testid="column"]:nth-child(1) { width: clamp(360px, 30vw, 380px) !important; }
+.st-key-portal_header_actions [data-testid="column"]:nth-child(2) { width: clamp(110px, 10vw, 120px) !important; }
+.st-key-portal_header_actions [data-testid="column"]:nth-child(3) { width: clamp(220px, 27vw, 340px) !important; }
+
+.st-key-portal_header_actions .stSelectbox > div[data-baseweb="select"],
+.st-key-header_notifications_popover > div,
+.st-key-header_profile_popover > div {
+  width: 100%;
+}
+
+.st-key-portal_header_actions .stSelectbox > div[data-baseweb="select"] > div,
+.st-key-header_notifications_popover > div > button,
+.st-key-header_profile_popover > div > button {
+  height: 42px;
+  min-height: 42px;
+  max-height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.st-key-header_notifications_popover > div > button,
+.st-key-header_profile_popover > div > button {
+  width: 100%;
+  padding: 0 12px;
+}
+
+.st-key-header_notifications_popover > div > button p,
+.st-key-header_profile_popover > div > button p,
+.st-key-portal_header_actions .stSelectbox p {
+  margin: 0;
+  width: 100%;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.st-key-header_profile_popover {
+  position: relative;
+  overflow: visible !important;
+}
+
+.st-key-header_profile_popover [data-testid="stPopoverContent"] {
+  right: 0 !important;
+  left: auto !important;
+  top: calc(100% + 8px) !important;
+  z-index: 9999 !important;
+}
