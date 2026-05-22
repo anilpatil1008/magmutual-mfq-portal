@@ -39,13 +39,66 @@ def table_columns(session, table_name: str) -> set[str]:
 def get_claims_queue(session) -> pd.DataFrame:
     return execute_query_df(
         session,
-        f"""SELECT CLAIM_ID,PATIENT_NAME,DEFENDANT_NAME,FILE_NUMBER,STATUS,PRIORITY,ASSIGNED_TO,LAST_UPDATED_TS,DATE_REQUESTED FROM {obj.MFQ_RECENT_CLAIMS_VIEW}""",
+        f"""
+        SELECT
+            c.CLAIM_ID,
+            c.PATIENT_NAME,
+            c.DRAWER_NAME AS FILE_NUMBER,
+            c.CLAIM_STATUS AS STATUS,
+            c.UPDATED_AT AS LAST_UPDATED_TS,
+            c.FIRST_DOCUMENT_DATE AS DATE_REQUESTED,
+            COALESCE(d.DEFENDANT_NAME, 'Unknown Defendant') AS DEFENDANT_NAME
+        FROM {obj.MFQ_CLAIMS_TABLE} c
+        LEFT JOIN {obj.MFQ_CLAIM_DEFENDANTS_TABLE} d
+          ON d.CLAIM_ID = c.CLAIM_ID
+         AND COALESCE(d.IS_CURRENT, TRUE) = TRUE
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY c.CLAIM_ID
+            ORDER BY COALESCE(d.UPDATED_AT, d.CREATED_AT) DESC
+        ) = 1
+        """,
         query_name="claims.get_claims_queue",
     )
 
 def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
     claim_q = quote_sql(claim_id)
-    return execute_query_df(session, f"SELECT * FROM {obj.MFQ_CLAIM_DETAIL_VIEW} WHERE CLAIM_ID = '{claim_q}'", query_name="claims.get_claim_detail")
+    return execute_query_df(
+        session,
+        f"""
+        SELECT
+            c.CLAIM_ID,
+            c.PATIENT_NAME,
+            c.DRAWER_NAME AS FILE_NUMBER,
+            c.FOLDER_NAME,
+            c.CLAIM_STATUS AS STATUS,
+            c.SYNC_STATUS,
+            c.DEFENDANT_STATUS,
+            c.MINIMUM_GATE_STATUS,
+            c.MINIMUM_GATE_DETAILS,
+            c.EMBEDDING_STATUS,
+            c.FIRST_DOCUMENT_DATE AS DATE_REQUESTED,
+            c.LAST_DOCUMENT_DATE,
+            c.SOURCE_DOCUMENT_COUNT,
+            c.LAST_SYNCED_AT,
+            c.CREATED_AT,
+            c.UPDATED_AT AS LAST_UPDATED_TS,
+            d.DEFENDANT_ID,
+            d.DEFENDANT_NAME,
+            d.DEFENDANT_TYPE AS SPECIALTY,
+            d.NORMALIZED_DEFENDANT_KEY,
+            d.EXTRACTION_STATUS
+        FROM {obj.MFQ_CLAIMS_TABLE} c
+        LEFT JOIN {obj.MFQ_CLAIM_DEFENDANTS_TABLE} d
+          ON d.CLAIM_ID = c.CLAIM_ID
+         AND COALESCE(d.IS_CURRENT, TRUE) = TRUE
+        WHERE c.CLAIM_ID = '{claim_q}'
+        QUALIFY ROW_NUMBER() OVER (
+            PARTITION BY c.CLAIM_ID
+            ORDER BY COALESCE(d.UPDATED_AT, d.CREATED_AT) DESC
+        ) = 1
+        """,
+        query_name="claims.get_claim_detail",
+    )
 
 
 def get_claim_defendants(session, claim_id: str) -> pd.DataFrame:

@@ -88,6 +88,15 @@ def get_claims_queue(session, app_role: str, username: str, search_text: str = "
         return df
 
     scoped = _apply_rbac(df, app_role, username)
+    for fallback_col, default_value in [
+        (col.PRIORITY, "Unknown"),
+        (col.ASSIGNED_TO, "Unassigned"),
+        (col.FILE_NUMBER, ""),
+        (col.DATE_REQUESTED, None),
+        (col.LAST_UPDATED_TS, None),
+    ]:
+        if fallback_col not in scoped.columns:
+            scoped[fallback_col] = default_value
     if search_text.strip():
         needle = search_text.strip().lower()
         scoped = scoped[
@@ -108,11 +117,14 @@ def get_claims_queue(session, app_role: str, username: str, search_text: str = "
 
 
 def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
-    claim_id_q = quote_sql(claim_id)
     df = claims_repository.get_claim_detail(session, claim_id)
     if df.empty:
         return None
-    return df.iloc[0].to_dict()
+    detail = df.iloc[0].to_dict()
+    detail.setdefault("PRIORITY", "Unknown")
+    detail.setdefault("ASSIGNED_TO", "Unassigned")
+    detail.setdefault("DATE_REQUESTED", detail.get("FIRST_DOCUMENT_DATE"))
+    return detail
 
 
 def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = None) -> pd.DataFrame:
@@ -203,12 +215,9 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
     missing_objects: list[str] = []
 
     t_detail = perf_counter()
-    detail_df = _safe_read(
-        session,
-        DETAIL_VIEW,
-        f"SELECT * FROM {DETAIL_VIEW} WHERE CLAIM_ID = '{claim_id_q}'",
-        missing_objects,
-    )
+    detail_df = claims_repository.get_claim_detail(session, claim_id)
+    if detail_df.empty:
+        missing_objects.append(obj.MFQ_CLAIMS_TABLE)
     logger.info("claim_workspace.detail_ms=%d claim_id=%s", int((perf_counter() - t_detail) * 1000), claim_id)
     defendant_df = claims_repository.get_claim_defendants(session, claim_id) if _object_exists(session, obj.MFQ_CLAIM_DEFENDANTS_TABLE) else pd.DataFrame()
 
@@ -292,9 +301,8 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
         ANSWERS_TABLE,
         QUESTION_CONFIDENCE_TABLE,
         SECTION_CONFIDENCE_TABLE,
-        "MFQ_CLAIMS_VW",
-        "MFQ_CLAIM_DETAIL_VW",
-        "MFQ_CLAIM_DEFENDANTS",
+        obj.MFQ_CLAIMS_TABLE,
+        obj.MFQ_CLAIM_DEFENDANTS_TABLE,
         "MFQ_RECORD_SUMMARY",
         "MFQ_MEDCRON_SUMMARY",
         "MFQ_LEGAL_MEMO",
