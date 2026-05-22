@@ -138,19 +138,22 @@ def render_header(ctx, notifications_df) -> None:
 
     header_container = st.container(key="app_topbar")
     actions_container = header_container.container(key="portal_header_actions")
-    role_col, bell_col, profile_col = actions_container.columns([2.4, 0.8, 2.2], gap="small")
+    spacer_col, role_col, bell_col, profile_col = actions_container.columns([7.4, 2.3, 0.9, 2.2], gap="small")
+
+    with spacer_col:
+        st.markdown("&nbsp;", unsafe_allow_html=True)
 
     with role_col:
         _render_role_selector(ctx.app_role)
 
     with bell_col:
-        with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
+        with st.popover(f"🔔 {unread}", use_container_width=False, key="header_notifications_popover"):
             render_notification_center(notifications_df)
 
     with profile_col:
         with st.popover(
             f"{safe_short_name} ▾",
-            use_container_width=True,
+            use_container_width=False,
             key="header_profile_popover",
         ):
             st.markdown(

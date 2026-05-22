@@ -2057,3 +2057,57 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-size: .88rem;
   padding: .6rem .7rem;
 }
+
+
+/* Header controls alignment */
+.st-key-portal_header_actions {
+  margin: 0 0 .5rem;
+}
+
+.st-key-portal_header_actions [data-testid="stHorizontalBlock"] {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 12px;
+}
+
+.st-key-portal_header_actions [data-testid="column"] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex: 0 0 auto !important;
+  min-width: 0;
+}
+
+.st-key-portal_header_actions [data-testid="column"]:nth-child(1) {
+  flex: 1 1 auto !important;
+  justify-content: flex-start;
+}
+
+.st-key-portal_header_actions [data-testid="column"]:nth-child(2) {
+  width: auto;
+  max-width: 260px;
+}
+
+.st-key-portal_header_actions [data-testid="column"]:nth-child(3),
+.st-key-portal_header_actions [data-testid="column"]:nth-child(4) {
+  width: auto;
+}
+
+.st-key-portal_header_actions .stSelectbox,
+.st-key-portal_header_actions .stPopover {
+  width: auto;
+}
+
+.st-key-portal_header_actions .stSelectbox > div[data-baseweb="select"] > div,
+.st-key-header_notifications_popover > div > button,
+.st-key-header_profile_popover > div > button {
+  min-height: 42px;
+  white-space: nowrap;
+}
+
+.st-key-header_notifications_popover > div > button,
+.st-key-header_profile_popover > div > button {
+  padding-left: .7rem;
+  padding-right: .7rem;
+}
