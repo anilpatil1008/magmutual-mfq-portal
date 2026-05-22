@@ -137,8 +137,14 @@ def render_header(ctx, notifications_df) -> None:
     safe_sf_role = escape(sf_role or "N/A")
 
     header_container = st.container(key="app_topbar")
-    actions_container = header_container.container(key="portal_header_actions")
-    role_col, bell_col, profile_col = actions_container.columns([2.4, 0.8, 2.2], gap="small")
+    actions_container = header_container.container(key="mm_header_controls")
+    left_spacer, role_col, bell_col, profile_col, right_spacer = actions_container.columns(
+        [3.2, 2.4, 0.7, 1.0, 1.2],
+        gap="small",
+    )
+
+    with left_spacer:
+        st.markdown("<div class=\"mm-header-spacer\"></div>", unsafe_allow_html=True)
 
     with role_col:
         _render_role_selector(ctx.app_role)
@@ -174,6 +180,8 @@ def render_header(ctx, notifications_df) -> None:
                 unsafe_allow_html=True,
             )
 
+    with right_spacer:
+        st.markdown("<div class=\"mm-header-spacer\"></div>", unsafe_allow_html=True)
 
 
 def render_sidebar(ctx) -> None:
