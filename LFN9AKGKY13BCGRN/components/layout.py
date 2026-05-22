@@ -144,13 +144,13 @@ def render_header(ctx, notifications_df) -> None:
         _render_role_selector(ctx.app_role)
 
     with bell_col:
-        with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
+        with st.popover(f"🔔 {unread}", use_container_width=False, key="header_notifications_popover"):
             render_notification_center(notifications_df)
 
     with profile_col:
         with st.popover(
             f"{safe_short_name} ▾",
-            use_container_width=True,
+            use_container_width=False,
             key="header_profile_popover",
         ):
             st.markdown(
