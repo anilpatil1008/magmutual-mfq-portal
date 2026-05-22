@@ -40,6 +40,14 @@ RECENT_CLAIMS_HEADERS = [
 ]
 
 RECENT_CLAIMS_COLUMN_WIDTHS = [120, 230, 130, 100, 130, 100, 110]
+RECENT_CLAIMS_SORTABLE_COLUMNS: list[tuple[str, str]] = [
+    ("CLAIM_ID", "Claim ID"),
+    ("PATIENT_NAME", "Patient / Defendant"),
+    ("STATUS", "Status"),
+    ("PRIORITY", "Priority"),
+    ("DATE_REQUESTED", "Requested"),
+    ("AI_CONFIDENCE", "AI Conf."),
+]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -145,6 +153,19 @@ def _sort_recent_claims(df: pd.DataFrame, sort_column: str, sort_ascending: bool
     ).drop(columns=["_sort_value"], errors="ignore")
 
 
+def _toggle_recent_claims_sort(key_prefix: str, sort_column: str) -> None:
+    sort_column_key = f"{key_prefix}_sort_column"
+    sort_ascending_key = f"{key_prefix}_sort_ascending"
+    active_column = st.session_state.get(sort_column_key, "DATE_REQUESTED")
+    is_ascending = bool(st.session_state.get(sort_ascending_key, False))
+
+    if active_column == sort_column:
+        st.session_state[sort_ascending_key] = not is_ascending
+    else:
+        st.session_state[sort_column_key] = sort_column
+        st.session_state[sort_ascending_key] = True
+
+
 def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
     if df.empty:
         st.info("No claims found for this filter context.")
@@ -180,16 +201,41 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
         st.info("No claims found for this filter context.")
         return
 
+    sort_column_key = f"{key_prefix}_sort_column"
+    sort_ascending_key = f"{key_prefix}_sort_ascending"
+    if sort_column_key not in st.session_state:
+        st.session_state[sort_column_key] = "DATE_REQUESTED"
+    if sort_ascending_key not in st.session_state:
+        st.session_state[sort_ascending_key] = False
+
+    active_sort_column = str(st.session_state.get(sort_column_key, "DATE_REQUESTED"))
+    active_sort_ascending = bool(st.session_state.get(sort_ascending_key, False))
+
     show_df = df.copy()
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
-    show_df = _sort_recent_claims(show_df, "DATE_REQUESTED", False)
+    show_df = _sort_recent_claims(show_df, active_sort_column, active_sort_ascending)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
         st.markdown("<div class='recent-claims-table-wrapper'><div class='recent-claims-table-shell'>", unsafe_allow_html=True)
         st.markdown("<div class='recent-claims-table-head'>", unsafe_allow_html=True)
         header_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
         for idx, header in enumerate(RECENT_CLAIMS_HEADERS):
-            header_cols[idx].markdown(f"<div class='recent-claims-col-header'>{escape(header)}</div>", unsafe_allow_html=True)
+            if idx < len(RECENT_CLAIMS_SORTABLE_COLUMNS):
+                sort_column, label = RECENT_CLAIMS_SORTABLE_COLUMNS[idx]
+                arrow = ""
+                if active_sort_column == sort_column:
+                    arrow = " ↑" if active_sort_ascending else " ↓"
+                with header_cols[idx]:
+                    if st.button(
+                        f"{label}{arrow}",
+                        key=f"{key_prefix}_sort_{sort_column}",
+                        type="tertiary",
+                        use_container_width=False,
+                    ):
+                        _toggle_recent_claims_sort(key_prefix=key_prefix, sort_column=sort_column)
+                        st.rerun()
+            else:
+                header_cols[idx].markdown(f"<div class='recent-claims-col-header'>{escape(header)}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
         for _, row in show_df.iterrows():

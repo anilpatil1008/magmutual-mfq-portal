@@ -1292,6 +1292,26 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   letter-spacing: 0.01em;
 }
 
+.st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stButton"] {
+  margin: 0;
+}
+
+.st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stButton"] button {
+  background: transparent;
+  border: none;
+  color: #525252;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  min-height: 0;
+  height: auto;
+  min-width: 0;
+  width: auto;
+  padding: 0;
+  line-height: 1.2;
+  justify-content: flex-start;
+}
+
 .claim-id-cell,
 .requested-cell,
 .patient-cell,
