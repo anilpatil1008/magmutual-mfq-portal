@@ -1416,6 +1416,51 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   justify-content: center !important;
 }
 
+/* Notification topbar control: force single-line horizontal layout (🔔 1 ▼). */
+.st-key-header_notifications_popover {
+  min-width: 74px;
+  max-width: 90px;
+}
+
+.st-key-header_notifications_popover > div,
+.st-key-header_notifications_popover [data-testid="stPopoverButton"] {
+  width: 100% !important;
+}
+
+.st-key-header_notifications_popover > div > button,
+.st-key-header_notifications_popover [data-testid="stPopoverButton"] {
+  width: 100% !important;
+  min-width: 74px !important;
+  max-width: 90px !important;
+  min-height: 40px !important;
+  height: 40px !important;
+  padding: 0 8px !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+  overflow: visible !important;
+  line-height: 1 !important;
+  text-align: center !important;
+}
+
+.st-key-header_notifications_popover > div > button p,
+.st-key-header_notifications_popover [data-testid="stPopoverButton"] p,
+.st-key-header_notifications_popover > div > button span,
+.st-key-header_notifications_popover [data-testid="stPopoverButton"] span,
+.st-key-header_notifications_popover > div > button svg,
+.st-key-header_notifications_popover [data-testid="stPopoverButton"] svg {
+  margin: 0 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  vertical-align: middle !important;
+}
+
 .st-key-header_profile_popover > div > button {
   justify-content: space-between !important;
   gap: 8px !important;
