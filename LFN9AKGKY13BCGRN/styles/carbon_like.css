@@ -136,6 +136,55 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 /* top bar redesign */
+
+.st-key-portal_header_actions [data-testid="stHorizontalBlock"] {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 12px;
+  width: 100%;
+  padding-right: 120px;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
+.st-key-portal_header_actions [data-testid="column"] {
+  flex: 0 0 auto !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.st-key-role_control {
+  width: 230px;
+  flex: 0 0 230px;
+  margin: 0 !important;
+}
+
+.st-key-notification_control {
+  width: 78px;
+  flex: 0 0 78px;
+  margin: 0 !important;
+}
+
+.st-key-user_control {
+  width: 110px;
+  flex: 0 0 110px;
+  margin: 0 !important;
+}
+
+.st-key-portal_header_actions .st-key-role_control,
+.st-key-portal_header_actions .st-key-notification_control,
+.st-key-portal_header_actions .st-key-user_control {
+  padding: 0 !important;
+}
+
+.st-key-portal_header_actions .st-key-header_notifications_popover,
+.st-key-portal_header_actions .st-key-header_profile_popover,
+.st-key-portal_header_actions .st-key-header_role_select {
+  margin: 0 !important;
+}
 .st-key-app_topbar {
   margin-bottom: .85rem;
 }

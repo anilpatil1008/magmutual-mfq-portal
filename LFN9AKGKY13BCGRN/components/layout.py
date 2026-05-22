@@ -138,22 +138,28 @@ def render_header(ctx, notifications_df) -> None:
 
     header_container = st.container(key="app_topbar")
     actions_container = header_container.container(key="portal_header_actions")
-    role_col, bell_col, profile_col = actions_container.columns([2.4, 0.8, 2.2], gap="small")
+    role_col, bell_col, profile_col = actions_container.columns([1, 1, 1], gap="small")
 
     with role_col:
-        _render_role_selector(ctx.app_role)
+        role_control = st.container(key="role_control")
+        with role_control:
+            _render_role_selector(ctx.app_role)
 
     with bell_col:
-        with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
-            render_notification_center(notifications_df)
+        notification_control = st.container(key="notification_control")
+        with notification_control:
+            with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
+                render_notification_center(notifications_df)
 
     with profile_col:
-        with st.popover(
-            f"{safe_short_name} ▾",
-            use_container_width=True,
-            key="header_profile_popover",
-        ):
-            st.markdown(
+        user_control = st.container(key="user_control")
+        with user_control:
+            with st.popover(
+                f"{safe_short_name} ▾",
+                use_container_width=True,
+                key="header_profile_popover",
+            ):
+                st.markdown(
                 dedent(
                     f"""
                     <div class="mm-profile-card">
