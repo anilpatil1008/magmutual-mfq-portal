@@ -2057,3 +2057,55 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-size: .88rem;
   padding: .6rem .7rem;
 }
+
+
+/* Stable top-right header controls layout */
+.st-key-app_topbar,
+.st-key-portal_header_actions,
+.st-key-portal_header_actions [data-testid="stHorizontalBlock"],
+.st-key-portal_header_actions [data-testid="column"] {
+  overflow: visible !important;
+  box-sizing: border-box;
+}
+
+.st-key-app_topbar {
+  padding-right: 56px;
+}
+
+.st-key-portal_header_actions [data-testid="stHorizontalBlock"] {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 12px;
+  width: 100%;
+}
+
+.st-key-portal_header_actions [data-testid="column"] {
+  flex: 0 0 auto !important;
+  min-width: 0;
+}
+
+.st-key-portal_header_actions [data-testid="column"]:nth-child(1) {
+  width: 240px;
+}
+
+.st-key-portal_header_actions [data-testid="column"]:nth-child(2) {
+  width: 70px;
+}
+
+.st-key-portal_header_actions [data-testid="column"]:nth-child(3) {
+  width: 110px;
+}
+
+.st-key-portal_header_actions .stSelectbox,
+.st-key-portal_header_actions .stPopover {
+  width: 100%;
+}
+
+.st-key-portal_header_actions .stPopover > div,
+.st-key-portal_header_actions .stPopover > div > button,
+.st-key-portal_header_actions .stSelectbox > div[data-baseweb="select"] {
+  width: 100%;
+  min-height: 42px;
+}
