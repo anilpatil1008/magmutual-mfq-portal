@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import base64
 from html import escape, unescape
-from textwrap import dedent
 from pathlib import Path
 import re
+from textwrap import dedent
 
 import streamlit as st
 
@@ -136,8 +137,32 @@ def render_header(ctx, notifications_df) -> None:
     safe_app_role = escape(app_role or "N/A")
     safe_sf_role = escape(sf_role or "N/A")
 
+    logo_file = Path(__file__).resolve().parent.parent / "assets" / "images" / "magmutual-logo.png"
+    logo_html = '<span class="mm-logo-fallback">MagMutual</span>'
+    if logo_file.exists():
+        encoded_logo = base64.b64encode(logo_file.read_bytes()).decode("utf-8")
+        logo_html = (
+            f'<img class="mm-logo" src="data:image/png;base64,{encoded_logo}" '
+            'alt="MagMutual logo" loading="eager" decoding="async" />'
+        )
+
     header_container = st.container(key="app_topbar")
-    actions_container = header_container.container(key="portal_header_actions")
+    brand_col, actions_shell_col = header_container.columns([1.15, 2.25], gap="small")
+
+    with brand_col:
+        st.markdown(
+            dedent(
+                f"""
+                <div class="mm-brand-wrap">
+                    {logo_html}
+                    <div class="mm-brand-title">MFQ Enterprise Portal</div>
+                </div>
+                """
+            ).strip(),
+            unsafe_allow_html=True,
+        )
+
+    actions_container = actions_shell_col.container(key="portal_header_actions")
     role_col, bell_col, profile_col = actions_container.columns([380, 120, 330], gap="small")
 
     with role_col:
