@@ -74,7 +74,13 @@ is_dashboard_claim_details = (
 )
 
 if not is_dashboard_claim_details:
-    notifications = get_user_notifications(session, ctx.username, limit=6)
+    notifications = get_user_notifications(
+        session,
+        ctx.username,
+        limit=6,
+        app_role=ctx.app_role,
+        sf_role=ctx.sf_role,
+    )
     render_header(ctx, notifications)
     render_sidebar(ctx)
 

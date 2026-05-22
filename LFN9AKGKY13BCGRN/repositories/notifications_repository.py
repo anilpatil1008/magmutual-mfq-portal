@@ -7,8 +7,16 @@ from core.query_executor import execute_query_df
 from services.snowflake_service import quote_sql
 
 
-def get_notifications_for_user(session, username: str, limit: int = 10) -> pd.DataFrame:
+def get_notifications_for_user(
+    session,
+    username: str,
+    limit: int = 10,
+    app_role: str = "",
+    sf_role: str = "",
+) -> pd.DataFrame:
     username_q = quote_sql(username)
+    app_role_q = quote_sql(app_role)
+    sf_role_q = quote_sql(sf_role)
     sql = f"""
     SELECT
         NOTIFICATION_ID,
@@ -20,6 +28,10 @@ def get_notifications_for_user(session, username: str, limit: int = 10) -> pd.Da
     FROM {obj.MFQ_NOTIFICATIONS_VIEW}
     WHERE UPPER(COALESCE(USERNAME, '')) = UPPER('{username_q}')
        OR UPPER(COALESCE(USERNAME, '')) = 'ALL'
+       OR UPPER(COALESCE(APP_ROLE, '')) = UPPER('{app_role_q}')
+       OR UPPER(COALESCE(APP_ROLE, '')) = 'ALL'
+       OR UPPER(COALESCE(SF_ROLE, '')) = UPPER('{sf_role_q}')
+       OR UPPER(COALESCE(SF_ROLE, '')) = 'ALL'
     ORDER BY EVENT_TS DESC
     LIMIT {int(limit)}
     """
