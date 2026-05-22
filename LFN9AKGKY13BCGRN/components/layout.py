@@ -138,7 +138,13 @@ def render_header(ctx, notifications_df) -> None:
 
     header_container = st.container(key="app_topbar")
     actions_container = header_container.container(key="portal_header_actions")
-    role_col, bell_col, profile_col = actions_container.columns([2.4, 0.8, 2.2], gap="small")
+    left_spacer, role_col, bell_col, profile_col, right_spacer = actions_container.columns(
+        [4, 2.4, 0.8, 1.1, 0.5],
+        gap="small",
+    )
+
+    with left_spacer:
+        st.empty()
 
     with role_col:
         _render_role_selector(ctx.app_role)
@@ -174,6 +180,8 @@ def render_header(ctx, notifications_df) -> None:
                 unsafe_allow_html=True,
             )
 
+    with right_spacer:
+        st.empty()
 
 
 def render_sidebar(ctx) -> None:
