@@ -138,41 +138,44 @@ def render_header(ctx, notifications_df) -> None:
 
     header_container = st.container(key="app_topbar")
     actions_container = header_container.container(key="portal_header_actions")
-    role_col, bell_col, profile_col = actions_container.columns([2.4, 0.8, 2.2], gap="small")
 
-    with role_col:
-        _render_role_selector(ctx.app_role)
+    left_actions_col, right_actions_col = actions_container.columns([5.0, 1.35], gap="small")
 
-    with bell_col:
-        with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
-            render_notification_center(notifications_df)
+    with left_actions_col:
+        left_role_col, left_bell_col = st.columns([2.0, 1.0], gap="small")
+        with left_role_col:
+            _render_role_selector(ctx.app_role)
+        with left_bell_col:
+            with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
+                render_notification_center(notifications_df)
 
-    with profile_col:
-        with st.popover(
-            f"{safe_short_name} ▾",
-            use_container_width=True,
-            key="header_profile_popover",
-        ):
-            st.markdown(
-                dedent(
-                    f"""
-                    <div class="mm-profile-card">
-                        <div class="mm-profile-card-head">
-                            <span class="mm-avatar mm-avatar-lg">{escape(initials)}</span>
-                            <div class="mm-profile-meta">
-                                <div class="mm-profile-fullname">{safe_full_name}</div>
-                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Name</span><span class="mm-profile-detail-value">{safe_full_name}</span></div>
-                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Username</span><span class="mm-profile-detail-value">{safe_username}</span></div>
-                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Role</span><span class="mm-profile-detail-value">{safe_app_role}</span></div>
-                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Snowflake Role</span><span class="mm-profile-detail-value">{safe_sf_role}</span></div>
-                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Email</span><span class="mm-profile-detail-value">{safe_email}</span></div>
+    with right_actions_col:
+        with st.container(key="header_profile_control"):
+            with st.popover(
+                f"{safe_short_name} ▾",
+                use_container_width=False,
+                key="header_profile_popover",
+            ):
+                st.markdown(
+                    dedent(
+                        f"""
+                        <div class="mm-profile-card">
+                            <div class="mm-profile-card-head">
+                                <span class="mm-avatar mm-avatar-lg">{escape(initials)}</span>
+                                <div class="mm-profile-meta">
+                                    <div class="mm-profile-fullname">{safe_full_name}</div>
+                                    <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Name</span><span class="mm-profile-detail-value">{safe_full_name}</span></div>
+                                    <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Username</span><span class="mm-profile-detail-value">{safe_username}</span></div>
+                                    <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Role</span><span class="mm-profile-detail-value">{safe_app_role}</span></div>
+                                    <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Snowflake Role</span><span class="mm-profile-detail-value">{safe_sf_role}</span></div>
+                                    <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Email</span><span class="mm-profile-detail-value">{safe_email}</span></div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                    """
-                ).strip(),
-                unsafe_allow_html=True,
-            )
+                        """
+                    ).strip(),
+                    unsafe_allow_html=True,
+                )
 
 
 

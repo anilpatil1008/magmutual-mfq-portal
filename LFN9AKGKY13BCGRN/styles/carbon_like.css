@@ -2057,3 +2057,56 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-size: .88rem;
   padding: .6rem .7rem;
 }
+
+/* MFQ topbar alignment: role+notification left group, profile right group */
+.st-key-portal_header_actions,
+.st-key-portal_header_actions > div,
+.st-key-header_profile_control,
+.st-key-header_profile_control > div,
+.st-key-portal_header_actions [data-testid="stHorizontalBlock"],
+.st-key-portal_header_actions [data-testid="column"] {
+  overflow: visible !important;
+}
+
+.st-key-portal_header_actions > div > [data-testid="stHorizontalBlock"] {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: nowrap;
+  padding-right: 90px;
+  box-sizing: border-box;
+}
+
+.st-key-portal_header_actions > div > [data-testid="stHorizontalBlock"] > [data-testid="column"]:first-child [data-testid="stHorizontalBlock"] {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.st-key-portal_header_actions > div > [data-testid="stHorizontalBlock"] > [data-testid="column"]:last-child {
+  margin-left: auto;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.st-key-header_profile_control {
+  width: 140px;
+  min-width: 140px;
+  position: relative;
+}
+
+.st-key-header_profile_popover > div > button {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+div[data-testid="stPopoverContent"][data-popover-origin="header_profile_popover"] {
+  right: 0 !important;
+  left: auto !important;
+  top: calc(100% + 8px) !important;
+  width: 340px;
+  max-width: min(340px, calc(100vw - 120px));
+  z-index: 9999;
+}
