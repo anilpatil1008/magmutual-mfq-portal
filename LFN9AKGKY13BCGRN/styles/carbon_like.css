@@ -37,29 +37,17 @@ section[data-testid="stSidebar"] > div:first-child {
   padding-top: .35rem !important;
 }
 
-section[data-testid="stSidebar"] .mm-sidebar-brand {
-  padding: .25rem .3rem .65rem;
-}
-
-section[data-testid="stSidebar"] .mm-sidebar-brand-eyebrow {
-  font-size: .7rem;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: #525252;
-  margin-bottom: .2rem;
+section[data-testid="stSidebar"] .mm-sidebar-brand-text {
+  font-size: 1.2rem;
   font-weight: 600;
-}
-
-section[data-testid="stSidebar"] .mm-sidebar-brand-title {
-  font-size: 1.5rem;
-  font-weight: 700;
   color: #161616;
+  line-height: 32px;
   letter-spacing: -0.01em;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-divider {
   border-top: 1px solid #dde1e6;
-  margin: .2rem 0 .8rem;
+  margin: .55rem 0 .8rem;
 }
 
 section[data-testid="stSidebar"] .stButton {

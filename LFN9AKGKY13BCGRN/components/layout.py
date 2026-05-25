@@ -186,15 +186,12 @@ def render_sidebar(ctx) -> None:
     }
 
     with st.sidebar:
-        st.markdown(
-            """
-            <div class="mm-sidebar-brand">
-                <div class="mm-sidebar-brand-eyebrow">INSURANCE OPERATIONS</div>
-                <div class="mm-sidebar-brand-title">MagMutual</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        brand_col_logo, brand_col_text = st.columns([1, 4], gap="small")
+        with brand_col_logo:
+            st.image("assets/magmutual_logo.png", width=32)
+        with brand_col_text:
+            st.markdown('<div class="mm-sidebar-brand-text">MagMutual</div>', unsafe_allow_html=True)
+
         st.markdown('<div class="mm-sidebar-divider"></div>', unsafe_allow_html=True)
 
         pages = [page for page in allowed_pages(ctx.app_role) if page in {"Dashboard", "Claims", "Reports"}]
