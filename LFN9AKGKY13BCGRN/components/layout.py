@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from html import escape, unescape
 from textwrap import dedent
 from pathlib import Path
@@ -186,11 +187,20 @@ def render_sidebar(ctx) -> None:
     }
 
     with st.sidebar:
+        logo_path = Path(__file__).resolve().parents[1] / "assets" / "magmutual_logo.png"
+        logo_src = ""
+        if logo_path.exists():
+            logo_bytes = logo_path.read_bytes()
+            logo_src = f"data:image/png;base64,{base64.b64encode(logo_bytes).decode('utf-8')}"
+
         st.markdown(
-            """
+            f"""
             <div class="mm-sidebar-brand">
                 <div class="mm-sidebar-brand-eyebrow">INSURANCE OPERATIONS</div>
-                <div class="mm-sidebar-brand-title">MagMutual</div>
+                <div class="mm-sidebar-brand-row">
+                    {f'<img class="brand-logo" src="{logo_src}" alt="MagMutual logo" />' if logo_src else ''}
+                    <div class="mm-sidebar-brand-title">MagMutual</div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
