@@ -190,7 +190,13 @@ def render_sidebar(ctx) -> None:
             """
             <div class="mm-sidebar-brand">
                 <div class="mm-sidebar-brand-eyebrow">INSURANCE OPERATIONS</div>
-                <div class="mm-sidebar-brand-title">MagMutual</div>
+                <div class="mm-sidebar-brand-main">
+                    <svg class="mm-sidebar-brand-logo" viewBox="0 0 46 46" aria-hidden="true" focusable="false">
+                        <rect width="46" height="46" rx="10" fill="#0f62fe"></rect>
+                        <path d="M9 31V14h5.6l4.5 7.3 4.5-7.3H29v17h-5.1V22.7l-4.3 6.9h-.7l-4.3-6.9V31H9Zm22.3 0V14h5.2v6.4h5.9V14h5.2v17h-5.2v-6.1h-5.9V31h-5.2Z" fill="#ffffff"></path>
+                    </svg>
+                    <div class="mm-sidebar-brand-title">MagMutual</div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
