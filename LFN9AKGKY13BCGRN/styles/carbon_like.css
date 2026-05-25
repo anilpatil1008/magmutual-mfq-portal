@@ -38,7 +38,8 @@ section[data-testid="stSidebar"] > div:first-child {
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-brand {
-  padding: .25rem .3rem .65rem;
+  --mm-sidebar-content-pad: 16px;
+  padding: .4rem 0 .7rem;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-brand-eyebrow {
@@ -46,26 +47,30 @@ section[data-testid="stSidebar"] .mm-sidebar-brand-eyebrow {
   letter-spacing: .1em;
   text-transform: uppercase;
   color: #525252;
-  margin-bottom: .2rem;
+  margin-bottom: .4rem;
   font-weight: 600;
+  padding-left: var(--mm-sidebar-content-pad);
+  line-height: 1.2;
 }
 
 
 section[data-testid="stSidebar"] .mm-sidebar-brand-row {
   display: flex;
   align-items: center;
-  gap: .6rem;
+  gap: .55rem;
+  padding-left: var(--mm-sidebar-content-pad);
 }
 
 section[data-testid="stSidebar"] .brand-logo {
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
   display: block;
+  flex: 0 0 40px;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-brand-title {
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: #161616;
   letter-spacing: -0.01em;
@@ -89,7 +94,7 @@ section[data-testid="stSidebar"] .stButton button {
   width: 100%;
   min-height: 48px;
   height: 48px;
-  padding: 0 16px;
+  padding: 0 var(--mm-sidebar-content-pad, 16px);
   border-radius: 8px;
   box-sizing: border-box;
   border: 1px solid transparent;
