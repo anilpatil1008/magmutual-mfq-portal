@@ -189,8 +189,11 @@ def render_sidebar(ctx) -> None:
         st.markdown(
             """
             <div class="mm-sidebar-brand">
+                <div class="mm-sidebar-brand-main">
+                    <div class="mm-sidebar-brand-logo" aria-hidden="true">MM</div>
+                    <div class="mm-sidebar-brand-title">MagMutual</div>
+                </div>
                 <div class="mm-sidebar-brand-eyebrow">INSURANCE OPERATIONS</div>
-                <div class="mm-sidebar-brand-title">MagMutual</div>
             </div>
             """,
             unsafe_allow_html=True,
