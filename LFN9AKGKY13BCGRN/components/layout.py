@@ -186,6 +186,10 @@ def render_sidebar(ctx) -> None:
     }
 
     with st.sidebar:
+        logo_path = Path(__file__).resolve().parent.parent / "assets" / "magmutual_logo.png"
+        if logo_path.exists():
+            st.image(str(logo_path), width=130)
+        st.markdown('<div style="height: 0.35rem;"></div>', unsafe_allow_html=True)
         st.markdown(
             """
             <div class="mm-sidebar-brand">
