@@ -39,6 +39,22 @@ section[data-testid="stSidebar"] > div:first-child {
 
 section[data-testid="stSidebar"] .mm-sidebar-brand {
   padding: .25rem .3rem .65rem;
+  display: flex;
+  align-items: center;
+  gap: .7rem;
+}
+
+section[data-testid="stSidebar"] .mm-sidebar-brand-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  flex: 0 0 auto;
+}
+
+section[data-testid="stSidebar"] .mm-sidebar-brand-meta {
+  display: flex;
+  flex-direction: column;
+  gap: .15rem;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-brand-eyebrow {
@@ -46,15 +62,17 @@ section[data-testid="stSidebar"] .mm-sidebar-brand-eyebrow {
   letter-spacing: .1em;
   text-transform: uppercase;
   color: #525252;
-  margin-bottom: .2rem;
+  margin-bottom: 0;
   font-weight: 600;
+  order: 2;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-brand-title {
-  font-size: 1.5rem;
+  font-size: 1.9rem;
   font-weight: 700;
   color: #161616;
   letter-spacing: -0.01em;
+  line-height: 1;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-divider {

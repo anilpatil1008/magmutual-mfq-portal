@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 from html import escape, unescape
 from textwrap import dedent
 from pathlib import Path
@@ -31,6 +32,15 @@ def load_css() -> None:
     if css_file.exists():
         st.markdown(f"<style>{css_file.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
     st.markdown(_HIDE_DEFAULT_STREAMLIT_NAV_CSS, unsafe_allow_html=True)
+
+
+@st.cache_data(show_spinner=False)
+def _sidebar_logo_data_uri() -> str:
+    logo_path = Path(__file__).resolve().parent.parent / "assets" / "magmutual-logo.svg"
+    if not logo_path.exists():
+        return ""
+    encoded = base64.b64encode(logo_path.read_bytes()).decode("ascii")
+    return f"data:image/svg+xml;base64,{encoded}"
 
 
 def _render_role_selector(current_role: str) -> None:
@@ -186,11 +196,20 @@ def render_sidebar(ctx) -> None:
     }
 
     with st.sidebar:
+        logo_uri = _sidebar_logo_data_uri()
+        logo_html = (
+            f'<img class="mm-sidebar-brand-logo" src="{logo_uri}" alt="MagMutual logo"/>'
+            if logo_uri
+            else ""
+        )
         st.markdown(
-            """
+            f"""
             <div class="mm-sidebar-brand">
-                <div class="mm-sidebar-brand-eyebrow">INSURANCE OPERATIONS</div>
-                <div class="mm-sidebar-brand-title">MagMutual</div>
+                {logo_html}
+                <div class="mm-sidebar-brand-meta">
+                    <div class="mm-sidebar-brand-title">MagMutual</div>
+                    <div class="mm-sidebar-brand-eyebrow">INSURANCE OPERATIONS</div>
+                </div>
             </div>
             """,
             unsafe_allow_html=True,
