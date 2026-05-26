@@ -1038,6 +1038,21 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   line-height: 1.5;
 }
 
+.mm-dashboard-title {
+  margin: 0 0 0.45rem;
+  color: #111827;
+  font-size: clamp(1.75rem, 2.2vw, 2rem);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .mm-dashboard-title {
+    font-size: 1.75rem;
+    margin-bottom: 0.4rem;
+  }
+}
+
 /* Final enterprise topbar overrides for consistent fixed header behavior. */
 .mm-fixed-topbar {
   position: sticky;
