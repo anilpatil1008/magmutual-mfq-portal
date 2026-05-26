@@ -46,7 +46,7 @@ RECENT_CLAIMS_HEADERS = [
     "Actions",
 ]
 
-RECENT_CLAIMS_COLUMN_WIDTHS = [110, 280, 180, 200, 130, 200, 150, 160, 130, 130]
+RECENT_CLAIMS_COLUMN_WIDTHS = [110, 260, 170, 180, 120, 180, 140, 150, 120, 130]
 RECENT_CLAIMS_SORT_COLUMNS = [
     ("CLAIM_ID", "Claim ID"),
     ("PATIENT_NAME", "Patient / Defendant"),
@@ -366,9 +366,8 @@ def render_recent_claims_table(
                 f"<div class='priority-cell'>{_priority_badge_html(row.get('PRIORITY'))}</div>",
                 unsafe_allow_html=True,
             )
-            display_claim_status = _display_status_label(claim_status)
             row_cols[5].markdown(
-                f"<div class='requested-cell claimed-text-cell' title='{escape(claim_status)}'>{escape(display_claim_status)}</div>",
+                f"<div class='status-cell'>{_status_badge_html(claim_status)}</div>",
                 unsafe_allow_html=True,
             )
             display_claim_type = _display_status_label(claim_type)
