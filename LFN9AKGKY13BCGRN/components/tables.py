@@ -24,10 +24,14 @@ ENTERPRISE_COLUMNS = [
     "CLAIM_ID",
     "PATIENT_NAME",
     "DEFENDANT_NAME",
-    "STATUS",
+    "MFQ_STATUS",
+    "WORKFLOW_STATUS",
     "PRIORITY",
+    "CLAIM_STATUS",
+    "CLAIM_TYPE",
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
+    "STATUS",
 ]
 RECENT_CLAIMS_HEADERS = [
     "Claim ID",
@@ -149,14 +153,18 @@ def _toggle_sort_direction(current_column: str, selected_column: str, current_di
 
 
 def _claim_id_sort_series(series: pd.Series) -> pd.Series:
-    numeric = pd.to_numeric(series, errors="coerce")
-    return numeric.where(~numeric.isna(), series.astype(str).str.lower())
+    as_text = series.fillna("").astype(str).str.strip()
+    numeric = pd.to_numeric(as_text, errors="coerce")
+    numeric_order = numeric.fillna(float("inf"))
+    text_order = as_text.str.lower()
+    return pd.DataFrame({"numeric_order": numeric_order, "text_order": text_order})
 
 
 def _confidence_sort_series(series: pd.Series) -> pd.Series:
-    numeric = pd.to_numeric(series, errors="coerce")
+    cleaned = series.fillna("").astype(str).str.replace("%", "", regex=False).str.strip()
+    numeric = pd.to_numeric(cleaned, errors="coerce")
     numeric = numeric.where((numeric > 1) | numeric.isna(), numeric * 100)
-    return numeric
+    return numeric.fillna(-1)
 
 
 def _priority_sort_series(series: pd.Series) -> pd.Series:
@@ -164,7 +172,7 @@ def _priority_sort_series(series: pd.Series) -> pd.Series:
     return normalized.map(PRIORITY_ORDER).fillna(PRIORITY_ORDER["unknown"])
 
 
-def _recent_claim_sort_series(df: pd.DataFrame, sort_column: str) -> pd.Series:
+def _recent_claim_sort_series(df: pd.DataFrame, sort_column: str) -> pd.Series | pd.DataFrame:
     if sort_column == "CLAIM_ID":
         return _claim_id_sort_series(df.get("CLAIM_ID", pd.Series(index=df.index, dtype="object")))
     if sort_column == "PATIENT_NAME":
@@ -185,12 +193,27 @@ def _recent_claim_sort_series(df: pd.DataFrame, sort_column: str) -> pd.Series:
 def _sort_recent_claims(df: pd.DataFrame, sort_column: str | None, sort_direction: str) -> pd.DataFrame:
     if not sort_column:
         return df
-    sort_series = _recent_claim_sort_series(df, sort_column)
+
     ascending = sort_direction == "asc"
+    sort_value = _recent_claim_sort_series(df, sort_column)
+    claim_ids = df.get("CLAIM_ID", pd.Series(index=df.index, dtype="object")).fillna("").astype(str)
+
+    if isinstance(sort_value, pd.DataFrame):
+        sortable = df.assign(
+            _sort_key_numeric=sort_value["numeric_order"],
+            _sort_key_text=sort_value["text_order"],
+            _claim_id_tiebreaker=claim_ids,
+        )
+        return sortable.sort_values(
+            by=["_sort_key_numeric", "_sort_key_text", "_claim_id_tiebreaker"],
+            ascending=[ascending, ascending, True],
+            na_position="first",
+        ).drop(columns=["_sort_key_numeric", "_sort_key_text", "_claim_id_tiebreaker"], errors="ignore")
+
     return (
-        df.assign(_sort_key=sort_series)
-        .sort_values(by=["_sort_key", "CLAIM_ID"], ascending=[ascending, True], na_position="last")
-        .drop(columns=["_sort_key"], errors="ignore")
+        df.assign(_sort_key=sort_value, _claim_id_tiebreaker=claim_ids)
+        .sort_values(by=["_sort_key", "_claim_id_tiebreaker"], ascending=[ascending, True], na_position="first")
+        .drop(columns=["_sort_key", "_claim_id_tiebreaker"], errors="ignore")
     )
 
 
