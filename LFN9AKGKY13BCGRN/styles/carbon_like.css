@@ -1247,7 +1247,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   box-sizing: border-box;
   overflow-x: auto;
   overflow-y: auto;
-  max-height: min(60vh, 560px);
+  max-height: 520px;
   border-radius: 10px;
   padding-bottom: 0;
   border: 1px solid #e0e0e0;
@@ -1256,7 +1256,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-dash_recent_claims_table .recent-claims-table-shell {
   width: 100%;
-  min-width: 1400px;
+  min-width: 1340px;
   max-width: 100%;
   box-sizing: border-box;
   border: none;
@@ -1317,13 +1317,13 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) { min-width: 240px; width: 240px; flex: 0 0 240px; padding-right: 6px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3) { min-width: 140px; width: 140px; flex: 0 0 140px; padding-left: 6px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3) { min-width: 150px; width: 150px; flex: 0 0 150px; padding-left: 6px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4) { min-width: 160px; width: 160px; flex: 0 0 160px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4) { min-width: 170px; width: 170px; flex: 0 0 170px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5) { min-width: 120px; width: 120px; flex: 0 0 120px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6) { min-width: 140px; width: 140px; flex: 0 0 140px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6) { min-width: 170px; width: 170px; flex: 0 0 170px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(7),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(7) {
   min-width: 130px;
@@ -1333,7 +1333,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(8),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(8) { min-width: 150px; width: 150px; flex: 0 0 150px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(9),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(9) { min-width: 120px; width: 120px; flex: 0 0 120px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(9) { min-width: 110px; width: 110px; flex: 0 0 110px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10) {
   min-width: 110px;
@@ -1359,6 +1359,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
+  white-space: nowrap;
   text-align: left;
   letter-spacing: 0.01em;
 }
@@ -2286,4 +2287,65 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   left: auto !important;
   top: calc(100% + 8px) !important;
   z-index: 9999 !important;
+}
+
+
+.st-key-dash_recent_claims_table .recent-claims-table-head button[kind="tertiary"]:focus-visible,
+.st-key-dash_recent_claims_table [data-testid="stButton"] button:focus-visible {
+  outline: 2px solid #0f62fe;
+  outline-offset: 2px;
+}
+
+.patient-cell {
+  line-height: 1.25;
+}
+
+.patient-name,
+.defendant-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+}
+
+.requested-cell.claimed-text-cell {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.requested-cell.single-line-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.requested-cell.date-cell {
+  white-space: nowrap;
+}
+
+.status-badge {
+  max-width: 100%;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+}
+
+.priority-badge,
+.confidence-badge {
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10),
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10) {
+  z-index: 6;
 }
