@@ -1256,7 +1256,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-dash_recent_claims_table .recent-claims-table-shell {
   width: 100%;
-  min-width: 1340px;
+  min-width: 1510px;
   max-width: 100%;
   box-sizing: border-box;
   border: none;
@@ -1313,32 +1313,32 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1) { min-width: 90px; width: 90px; flex: 0 0 90px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1) { min-width: 100px; width: 100px; flex: 0 0 100px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) { min-width: 240px; width: 240px; flex: 0 0 240px; padding-right: 6px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) { min-width: 260px; width: 260px; flex: 0 0 260px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3) { min-width: 150px; width: 150px; flex: 0 0 150px; padding-left: 6px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3) { min-width: 160px; width: 160px; flex: 0 0 160px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4) { min-width: 170px; width: 170px; flex: 0 0 170px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4) { min-width: 180px; width: 180px; flex: 0 0 180px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5) { min-width: 120px; width: 120px; flex: 0 0 120px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6) { min-width: 170px; width: 170px; flex: 0 0 170px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6) { min-width: 180px; width: 180px; flex: 0 0 180px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(7),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(7) {
-  min-width: 130px;
-  width: 130px;
-  flex: 0 0 130px;
+  min-width: 140px;
+  width: 140px;
+  flex: 0 0 140px;
 }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(8),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(8) { min-width: 150px; width: 150px; flex: 0 0 150px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(9),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(9) { min-width: 110px; width: 110px; flex: 0 0 110px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(9) { min-width: 120px; width: 120px; flex: 0 0 120px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10) {
-  min-width: 110px;
-  width: 110px;
-  flex: 0 0 110px;
+  min-width: 120px;
+  width: 120px;
+  flex: 0 0 120px;
   position: sticky;
   right: 0;
   z-index: 4;
@@ -1348,10 +1348,12 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10) {
   background: #ffffff;
+  z-index: 2;
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10) {
   background: #f4f4f4;
+  z-index: 3;
 }
 
 .recent-claims-col-header {
@@ -2348,4 +2350,53 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10) {
   z-index: 6;
+}
+
+
+.st-key-dash_recent_claims_table .recent-claims-table-head button[kind="tertiary"] p {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  white-space: nowrap;
+}
+
+.st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="column"]:has(button[kind="tertiary"]):hover {
+  background: #e8eef5;
+}
+
+.patient-name,
+.defendant-name,
+.claimed-text-cell {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.patient-name,
+.defendant-name {
+  white-space: nowrap;
+}
+
+.patient-cell {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.claimed-text-cell {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  white-space: normal;
+  line-height: 1.2;
+}
+
+.status-badge,
+.priority-badge,
+.confidence-badge {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }

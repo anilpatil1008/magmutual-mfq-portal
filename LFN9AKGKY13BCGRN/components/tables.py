@@ -46,7 +46,7 @@ RECENT_CLAIMS_HEADERS = [
     "Actions",
 ]
 
-RECENT_CLAIMS_COLUMN_WIDTHS = [90, 240, 150, 170, 120, 170, 130, 150, 110, 110]
+RECENT_CLAIMS_COLUMN_WIDTHS = [100, 260, 160, 180, 120, 180, 140, 150, 120, 120]
 RECENT_CLAIMS_SORT_COLUMNS = [
     ("CLAIM_ID", "Claim ID"),
     ("PATIENT_NAME", "Patient / Defendant"),
@@ -301,8 +301,9 @@ def render_recent_claims_table(
                     is_active = sort_column == selected_column
                     arrow = "↑" if is_active and sort_direction == "asc" else "↓" if is_active else ""
                     aria_sort = "ascending" if is_active and sort_direction == "asc" else "descending" if is_active else "none"
+                    header_label = f"{header} {arrow}" if arrow else header
                     if st.button(
-                        f"{header}{f' {arrow}' if arrow else ''}",
+                        header_label,
                         key=f"{sort_key_base}_header_{selected_column}",
                         type="tertiary",
                         help=f"Sort {header}. Current sort: {aria_sort}.",
@@ -352,12 +353,14 @@ def render_recent_claims_table(
                 f"<div class='priority-cell'>{_priority_badge_html(row.get('PRIORITY'))}</div>",
                 unsafe_allow_html=True,
             )
+            display_claim_status = _display_status_label(claim_status)
             row_cols[5].markdown(
-                f"<div class='requested-cell claimed-text-cell' title='{escape(claim_status)}'>{escape(claim_status)}</div>",
+                f"<div class='requested-cell claimed-text-cell' title='{escape(claim_status)}'>{escape(display_claim_status)}</div>",
                 unsafe_allow_html=True,
             )
+            display_claim_type = _display_status_label(claim_type)
             row_cols[6].markdown(
-                f"<div class='requested-cell single-line-ellipsis' title='{escape(claim_type)}'>{escape(claim_type)}</div>",
+                f"<div class='requested-cell single-line-ellipsis' title='{escape(claim_type)}'>{escape(display_claim_type)}</div>",
                 unsafe_allow_html=True,
             )
             row_cols[7].markdown(f"<div class='requested-cell date-cell' title='{escape(requested)}'>{escape(requested)}</div>", unsafe_allow_html=True)
