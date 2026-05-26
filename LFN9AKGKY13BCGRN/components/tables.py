@@ -43,6 +43,18 @@ RECENT_CLAIMS_HEADERS = [
 ]
 
 RECENT_CLAIMS_COLUMN_WIDTHS = [120, 230, 130, 130, 100, 120, 120, 130, 100, 110]
+RECENT_CLAIMS_SORT_COLUMNS = [
+    ("CLAIM_ID", "Claim ID"),
+    ("PATIENT_NAME", "Patient / Defendant"),
+    ("MFQ_STATUS", "MFQ Status"),
+    ("WORKFLOW_STATUS", "Workflow Status"),
+    ("PRIORITY", "Priority"),
+    ("DATE_REQUESTED", "Date Requested"),
+    ("AI_CONFIDENCE", "AI Confidence"),
+    ("CLAIM_TYPE", "Claim Type"),
+    ("CLAIM_STATUS", "Claim Status"),
+]
+PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2, "unknown": 3}
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -130,17 +142,56 @@ def _run_regeneration(claim_id: str, row: pd.Series) -> tuple[bool, str]:
     return True, "MFQ regenerated successfully."
 
 
-def _sort_recent_claims(df: pd.DataFrame) -> pd.DataFrame:
-    if "DATE_REQUESTED" not in df.columns:
+def _toggle_sort_direction(current_column: str, selected_column: str, current_direction: str) -> str:
+    if current_column != selected_column:
+        return "asc"
+    return "desc" if current_direction == "asc" else "asc"
+
+
+def _claim_id_sort_series(series: pd.Series) -> pd.Series:
+    numeric = pd.to_numeric(series, errors="coerce")
+    return numeric.where(~numeric.isna(), series.astype(str).str.lower())
+
+
+def _confidence_sort_series(series: pd.Series) -> pd.Series:
+    numeric = pd.to_numeric(series, errors="coerce")
+    numeric = numeric.where((numeric > 1) | numeric.isna(), numeric * 100)
+    return numeric
+
+
+def _priority_sort_series(series: pd.Series) -> pd.Series:
+    normalized = series.astype(str).str.strip().str.lower()
+    return normalized.map(PRIORITY_ORDER).fillna(PRIORITY_ORDER["unknown"])
+
+
+def _recent_claim_sort_series(df: pd.DataFrame, sort_column: str) -> pd.Series:
+    if sort_column == "CLAIM_ID":
+        return _claim_id_sort_series(df.get("CLAIM_ID", pd.Series(index=df.index, dtype="object")))
+    if sort_column == "PATIENT_NAME":
+        patient = df.get("PATIENT_NAME", pd.Series(index=df.index, dtype="object")).fillna("").astype(str)
+        defendant = df.get("DEFENDANT_NAME", pd.Series(index=df.index, dtype="object")).fillna("").astype(str)
+        return (patient + " " + defendant).str.lower().str.strip()
+    if sort_column in {"MFQ_STATUS", "WORKFLOW_STATUS", "CLAIM_TYPE", "CLAIM_STATUS"}:
+        return df.get(sort_column, pd.Series(index=df.index, dtype="object")).fillna("").astype(str).str.lower()
+    if sort_column == "PRIORITY":
+        return _priority_sort_series(df.get("PRIORITY", pd.Series(index=df.index, dtype="object")))
+    if sort_column == "DATE_REQUESTED":
+        return pd.to_datetime(df.get("DATE_REQUESTED", pd.Series(index=df.index, dtype="object")), errors="coerce")
+    if sort_column == "AI_CONFIDENCE":
+        return _confidence_sort_series(df.get("AI_CONFIDENCE", pd.Series(index=df.index, dtype="object")))
+    return pd.Series(index=df.index, dtype="object")
+
+
+def _sort_recent_claims(df: pd.DataFrame, sort_column: str | None, sort_direction: str) -> pd.DataFrame:
+    if not sort_column:
         return df
-
-    sort_values = pd.to_datetime(df["DATE_REQUESTED"], errors="coerce")
-
-    return df.assign(_sort_value=sort_values).sort_values(
-        by=["_sort_value", "CLAIM_ID"],
-        ascending=[False, True],
-        na_position="last",
-    ).drop(columns=["_sort_value"], errors="ignore")
+    sort_series = _recent_claim_sort_series(df, sort_column)
+    ascending = sort_direction == "asc"
+    return (
+        df.assign(_sort_key=sort_series)
+        .sort_values(by=["_sort_key", "CLAIM_ID"], ascending=[ascending, True], na_position="last")
+        .drop(columns=["_sort_key"], errors="ignore")
+    )
 
 
 def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.DataFrame:
@@ -192,16 +243,46 @@ def render_recent_claims_table(
         st.info(empty_message)
         return
 
+    sort_key_base = f"{key_prefix}_recent_claims_sort"
+    if f"{sort_key_base}_column" not in st.session_state:
+        st.session_state[f"{sort_key_base}_column"] = None
+    if f"{sort_key_base}_direction" not in st.session_state:
+        st.session_state[f"{sort_key_base}_direction"] = "asc"
+
     show_df = df.copy()
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
-    show_df = _sort_recent_claims(show_df)
+    sort_column = st.session_state.get(f"{sort_key_base}_column")
+    sort_direction = st.session_state.get(f"{sort_key_base}_direction", "asc")
+    show_df = _sort_recent_claims(show_df, sort_column=sort_column, sort_direction=sort_direction)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
         st.markdown("<div class='recent-claims-table-wrapper'><div class='recent-claims-table-shell'>", unsafe_allow_html=True)
         st.markdown("<div class='recent-claims-table-head'>", unsafe_allow_html=True)
         header_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
+        sort_headers = {label: key for key, label in RECENT_CLAIMS_SORT_COLUMNS}
         for idx, header in enumerate(RECENT_CLAIMS_HEADERS):
-            header_cols[idx].markdown(f"<div class='recent-claims-col-header'>{escape(header)}</div>", unsafe_allow_html=True)
+            with header_cols[idx]:
+                if header in sort_headers:
+                    selected_column = sort_headers[header]
+                    is_active = sort_column == selected_column
+                    arrow = "↑" if is_active and sort_direction == "asc" else "↓" if is_active else "↕"
+                    aria_sort = "ascending" if is_active and sort_direction == "asc" else "descending" if is_active else "none"
+                    if st.button(
+                        f"{header} {arrow}",
+                        key=f"{sort_key_base}_header_{selected_column}",
+                        type="tertiary",
+                        help=f"Sort {header}. Current sort: {aria_sort}.",
+                        use_container_width=True,
+                    ):
+                        st.session_state[f"{sort_key_base}_direction"] = _toggle_sort_direction(
+                            current_column=sort_column or "",
+                            selected_column=selected_column,
+                            current_direction=sort_direction,
+                        )
+                        st.session_state[f"{sort_key_base}_column"] = selected_column
+                        st.rerun()
+                else:
+                    header_cols[idx].markdown(f"<div class='recent-claims-col-header'>{escape(header)}</div>", unsafe_allow_html=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
         for _, row in show_df.iterrows():
