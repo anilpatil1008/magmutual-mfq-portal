@@ -1217,6 +1217,24 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   margin: 0;
 }
 
+.st-key-recent_claims_card [data-testid="stRadio"] [role="radiogroup"] {
+  gap: 20px;
+  margin-bottom: 12px;
+}
+
+.st-key-recent_claims_card [data-testid="stRadio"] label {
+  color: #8d8d8d;
+  font-size: 0.875rem;
+  border-bottom: 2px solid transparent;
+  padding-bottom: 6px;
+}
+
+.st-key-recent_claims_card [data-testid="stRadio"] label:has(input:checked) {
+  color: #0f62fe;
+  border-bottom-color: #0f62fe;
+  font-weight: 600;
+}
+
 .st-key-dash_recent_claims_table {
   width: 100%;
   max-width: 100%;
