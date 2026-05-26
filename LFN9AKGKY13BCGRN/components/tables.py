@@ -46,7 +46,7 @@ RECENT_CLAIMS_HEADERS = [
     "Actions",
 ]
 
-RECENT_CLAIMS_COLUMN_WIDTHS = [90, 240, 140, 160, 120, 140, 130, 150, 120, 110]
+RECENT_CLAIMS_COLUMN_WIDTHS = [90, 240, 150, 170, 120, 170, 130, 150, 110, 110]
 RECENT_CLAIMS_SORT_COLUMNS = [
     ("CLAIM_ID", "Claim ID"),
     ("PATIENT_NAME", "Patient / Defendant"),
@@ -81,16 +81,27 @@ def _format_date(value: Any) -> str:
     return as_text
 
 
+def _display_status_label(status: Any) -> str:
+    label = str(status or "Unknown").strip()
+    if not label:
+        return "Unknown"
+    if "_" in label:
+        return label.replace("_", " ").title()
+    return label
+
+
 def _status_badge_html(status: Any) -> str:
-    label = str(status or "Unknown")
-    tone = _normalize_slug(label)
-    return f"<span class='status-badge status-{tone}'>{escape(label)}</span>"
+    raw_label = str(status or "Unknown").strip() or "Unknown"
+    label = _display_status_label(raw_label)
+    tone = _normalize_slug(raw_label)
+    return f"<span class='status-badge status-{tone}' title='{escape(raw_label)}'>{escape(label)}</span>"
 
 
 def _priority_badge_html(priority: Any) -> str:
-    label = str(priority or "Unknown")
-    tone = _normalize_slug(label)
-    return f"<span class='priority-badge priority-{tone}'>{escape(label)}</span>"
+    raw_label = str(priority or "Unknown").strip() or "Unknown"
+    label = _display_status_label(raw_label)
+    tone = _normalize_slug(raw_label)
+    return f"<span class='priority-badge priority-{tone}' title='{escape(raw_label)}'>{escape(label)}</span>"
 
 
 def _confidence_badge_html(confidence: Any) -> str:
@@ -315,13 +326,14 @@ def render_recent_claims_table(
             defendant_name = str(row.get("DEFENDANT_NAME", "")).strip()
             requested = _format_date(row.get("DATE_REQUESTED"))
 
-            patient_html = f"<span class='patient-name'>{escape(patient_name)}</span>"
+            patient_title = patient_name if not defendant_name else f"{patient_name} — {defendant_name}"
+            patient_html = f"<span class='patient-name' title='{escape(patient_title)}'>{escape(patient_name)}</span>"
             if defendant_name:
-                patient_html += f"<span class='defendant-name'>{escape(defendant_name)}</span>"
+                patient_html += f"<span class='defendant-name' title='{escape(patient_title)}'>{escape(defendant_name)}</span>"
 
             st.markdown("<div class='recent-claims-table-row'>", unsafe_allow_html=True)
             row_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
-            row_cols[0].markdown(f"<div class='claim-id-cell'>{escape(claim_id)}</div>", unsafe_allow_html=True)
+            row_cols[0].markdown(f"<div class='claim-id-cell' title='{escape(claim_id)}'>{escape(claim_id)}</div>", unsafe_allow_html=True)
             row_cols[1].markdown(f"<div class='patient-cell'>{patient_html}</div>", unsafe_allow_html=True)
             mfq_status = str(row.get("MFQ_STATUS", row.get("STATUS", ""))).strip()
             workflow_status = str(row.get("WORKFLOW_STATUS", row.get("STATUS", ""))).strip()
@@ -341,11 +353,14 @@ def render_recent_claims_table(
                 unsafe_allow_html=True,
             )
             row_cols[5].markdown(
-                f"<div class='requested-cell'>{escape(claim_status)}</div>",
+                f"<div class='requested-cell claimed-text-cell' title='{escape(claim_status)}'>{escape(claim_status)}</div>",
                 unsafe_allow_html=True,
             )
-            row_cols[6].markdown(f"<div class='requested-cell'>{escape(claim_type)}</div>", unsafe_allow_html=True)
-            row_cols[7].markdown(f"<div class='requested-cell'>{escape(requested)}</div>", unsafe_allow_html=True)
+            row_cols[6].markdown(
+                f"<div class='requested-cell single-line-ellipsis' title='{escape(claim_type)}'>{escape(claim_type)}</div>",
+                unsafe_allow_html=True,
+            )
+            row_cols[7].markdown(f"<div class='requested-cell date-cell' title='{escape(requested)}'>{escape(requested)}</div>", unsafe_allow_html=True)
             row_cols[8].markdown(
                 f"<div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div>",
                 unsafe_allow_html=True,
