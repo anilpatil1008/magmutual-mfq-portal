@@ -1256,7 +1256,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-dash_recent_claims_table .recent-claims-table-shell {
   width: 100%;
-  min-width: 1230px;
+  min-width: 1300px;
   max-width: 100%;
   box-sizing: border-box;
   border: none;
@@ -1313,23 +1313,29 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1) { min-width: 120px; width: 120px; flex: 0 0 120px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1) { min-width: 90px; width: 90px; flex: 0 0 90px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) { min-width: 230px; width: 230px; flex: 0 0 230px; padding-right: 6px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) { min-width: 220px; width: 220px; flex: 0 0 220px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3) { min-width: 130px; width: 130px; flex: 0 0 130px; padding-left: 6px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3) { min-width: 130px; width: 130px; flex: 0 0 130px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4) { min-width: 100px; width: 100px; flex: 0 0 100px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4) { min-width: 150px; width: 150px; flex: 0 0 150px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5) { min-width: 130px; width: 130px; flex: 0 0 130px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5) { min-width: 110px; width: 110px; flex: 0 0 110px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6),
-.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6) { min-width: 100px; width: 100px; flex: 0 0 100px; }
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(6) { min-width: 130px; width: 130px; flex: 0 0 130px; }
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(7),
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(7) {
-  min-width: 110px;
-  width: 110px;
-  flex: 0 0 110px;
+  min-width: 120px;
+  width: 120px;
+  flex: 0 0 120px;
 }
+.st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(8),
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(8) { min-width: 140px; width: 140px; flex: 0 0 140px; }
+.st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(9),
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(9) { min-width: 110px; width: 110px; flex: 0 0 110px; }
+.st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10),
+.st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(10) { min-width: 100px; width: 100px; flex: 0 0 100px; }
 
 .recent-claims-col-header {
   color: #525252;
@@ -1341,14 +1347,30 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-head button[kind="tertiary"] {
-  justify-content: flex-start;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   color: #525252;
   font-size: 0.78rem;
   font-weight: 600;
   text-align: left;
   letter-spacing: 0.01em;
-  min-height: 1.8rem;
+  min-height: 2rem;
+  width: 100%;
+  gap: 0.4rem;
+  white-space: nowrap;
   padding: 0 0.1rem;
+}
+
+.st-key-dash_recent_claims_table .recent-claims-table-head button[kind="tertiary"] p {
+  margin: 0;
+  width: 100%;
+  text-align: left;
+}
+
+.st-key-dash_recent_claims_table .recent-claims-table-head button[kind="tertiary"]:focus-visible {
+  outline: 2px solid #0f62fe;
+  outline-offset: 2px;
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-head button[kind="tertiary"]:hover {

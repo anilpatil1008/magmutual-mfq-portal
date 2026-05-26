@@ -46,7 +46,7 @@ RECENT_CLAIMS_HEADERS = [
     "Actions",
 ]
 
-RECENT_CLAIMS_COLUMN_WIDTHS = [120, 230, 130, 130, 100, 120, 120, 130, 100, 110]
+RECENT_CLAIMS_COLUMN_WIDTHS = [90, 220, 130, 150, 110, 130, 120, 140, 110, 100]
 RECENT_CLAIMS_SORT_COLUMNS = [
     ("CLAIM_ID", "Claim ID"),
     ("PATIENT_NAME", "Patient / Defendant"),
@@ -288,10 +288,10 @@ def render_recent_claims_table(
                 if header in sort_headers:
                     selected_column = sort_headers[header]
                     is_active = sort_column == selected_column
-                    arrow = "↑" if is_active and sort_direction == "asc" else "↓" if is_active else "↕"
+                    arrow = "↑" if is_active and sort_direction == "asc" else "↓" if is_active else ""
                     aria_sort = "ascending" if is_active and sort_direction == "asc" else "descending" if is_active else "none"
                     if st.button(
-                        f"{header} {arrow}",
+                        f"{header}{f' {arrow}' if arrow else ''}",
                         key=f"{sort_key_base}_header_{selected_column}",
                         type="tertiary",
                         help=f"Sort {header}. Current sort: {aria_sort}.",
