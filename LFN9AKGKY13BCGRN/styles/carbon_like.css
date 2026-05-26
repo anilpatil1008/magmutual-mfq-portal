@@ -1329,6 +1329,21 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   letter-spacing: 0.01em;
 }
 
+.st-key-dash_recent_claims_table .recent-claims-table-head button[kind="tertiary"] {
+  justify-content: flex-start;
+  color: #525252;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  letter-spacing: 0.01em;
+  min-height: 1.8rem;
+  padding: 0 0.1rem;
+}
+
+.st-key-dash_recent_claims_table .recent-claims-table-head button[kind="tertiary"]:hover {
+  background-color: #e8eef5;
+}
+
 .claim-id-cell,
 .requested-cell,
 .patient-cell,
