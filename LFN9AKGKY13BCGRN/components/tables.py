@@ -32,14 +32,17 @@ ENTERPRISE_COLUMNS = [
 RECENT_CLAIMS_HEADERS = [
     "Claim ID",
     "Patient / Defendant",
-    "Status",
+    "MFQ Status",
+    "Workflow Status",
     "Priority",
-    "Requested",
+    "Claim Status",
+    "Claim Type",
+    "Date Requested",
     "AI Conf.",
     "Actions",
 ]
 
-RECENT_CLAIMS_COLUMN_WIDTHS = [120, 230, 130, 100, 130, 100, 110]
+RECENT_CLAIMS_COLUMN_WIDTHS = [120, 230, 130, 130, 100, 120, 120, 130, 100, 110]
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -145,6 +148,18 @@ def _sort_recent_claims(df: pd.DataFrame, sort_column: str, sort_ascending: bool
     ).drop(columns=["_sort_value"], errors="ignore")
 
 
+def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.DataFrame:
+    needle = str(search_text or "").strip().lower()
+    if not needle:
+        return df
+    search_columns = ["CLAIM_ID", "PATIENT_NAME", "DEFENDANT_NAME", "STATUS", "PRIORITY", "FILE_NUMBER"]
+    mask = pd.Series(False, index=df.index)
+    for column in search_columns:
+        if column in df.columns:
+            mask = mask | df[column].astype(str).str.lower().str.contains(needle)
+    return df[mask]
+
+
 def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
     if df.empty:
         st.info("No claims found for this filter context.")
@@ -175,9 +190,11 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
     st.markdown(table_html, unsafe_allow_html=True)
 
 
-def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claims") -> None:
+def render_recent_claims_table(
+    df: pd.DataFrame, key_prefix: str = "recent_claims", *, empty_message: str = "No claims found for this filter context."
+) -> None:
     if df.empty:
-        st.info("No claims found for this filter context.")
+        st.info(empty_message)
         return
 
     show_df = df.copy()
@@ -207,21 +224,35 @@ def render_recent_claims_table(df: pd.DataFrame, key_prefix: str = "recent_claim
             row_cols = st.columns(RECENT_CLAIMS_COLUMN_WIDTHS, vertical_alignment="center")
             row_cols[0].markdown(f"<div class='claim-id-cell'>{escape(claim_id)}</div>", unsafe_allow_html=True)
             row_cols[1].markdown(f"<div class='patient-cell'>{patient_html}</div>", unsafe_allow_html=True)
+            mfq_status = str(row.get("MFQ_STATUS", row.get("STATUS", ""))).strip()
+            workflow_status = str(row.get("WORKFLOW_STATUS", row.get("STATUS", ""))).strip()
+            claim_status = str(row.get("CLAIM_STATUS", row.get("STATUS", ""))).strip()
+            claim_type = str(row.get("CLAIM_TYPE", "—")).strip() or "—"
+
             row_cols[2].markdown(
-                f"<div class='status-cell'>{_status_badge_html(status)}</div>",
+                f"<div class='status-cell'>{_status_badge_html(mfq_status)}</div>",
                 unsafe_allow_html=True,
             )
             row_cols[3].markdown(
+                f"<div class='status-cell'>{_status_badge_html(workflow_status)}</div>",
+                unsafe_allow_html=True,
+            )
+            row_cols[4].markdown(
                 f"<div class='priority-cell'>{_priority_badge_html(row.get('PRIORITY'))}</div>",
                 unsafe_allow_html=True,
             )
-            row_cols[4].markdown(f"<div class='requested-cell'>{escape(requested)}</div>", unsafe_allow_html=True)
             row_cols[5].markdown(
+                f"<div class='requested-cell'>{escape(claim_status)}</div>",
+                unsafe_allow_html=True,
+            )
+            row_cols[6].markdown(f"<div class='requested-cell'>{escape(claim_type)}</div>", unsafe_allow_html=True)
+            row_cols[7].markdown(f"<div class='requested-cell'>{escape(requested)}</div>", unsafe_allow_html=True)
+            row_cols[8].markdown(
                 f"<div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div>",
                 unsafe_allow_html=True,
             )
 
-            with row_cols[6]:
+            with row_cols[9]:
                 review_key = f"{key_prefix}_review_{claim_id}"
                 has_regen = status == "MFQ Generated"
                 action_cell_class = "actions-cell actions-cell-stacked" if has_regen else "actions-cell actions-cell-single"

@@ -8,10 +8,11 @@ import streamlit as st
 
 from components.badges import render_legend
 from components.cards import render_kpi_cards
-from components.tables import render_recent_claims_table
+from components.tables import filter_recent_claims_by_search, render_recent_claims_table
 from pages import claim_details
 from services.claim_service import get_claims_queue
 from services.dashboard_service import get_dashboard_metrics
+from utils.claim_lifecycle import classify_claim_bucket
 
 logger = logging.getLogger(__name__)
 
@@ -95,11 +96,42 @@ def _render_dashboard_view(session, ctx) -> None:
                         key=f"{card_key}_search",
                     )
 
+        sort_order = st.selectbox(
+            "Sort",
+            ["Newest", "Oldest"],
+            key=f"{card_key}_sort_order",
+            label_visibility="collapsed",
+        )
+
         t1 = perf_counter()
-        queue = get_claims_queue(session, ctx.app_role, ctx.username, search_text=search)
+        queue = get_claims_queue(session, ctx.app_role, ctx.username)
         logger.info("dashboard_recent_claims_ms=%d rows=%d", int((perf_counter() - t1) * 1000), len(queue))
-        logger.info("render_recent_claims called")
-        render_recent_claims_table(queue.head(20), key_prefix="dash")
+        if queue.empty:
+            render_recent_claims_table(queue, key_prefix="dash")
+            return
+
+        queue = queue.copy()
+        queue["CLAIM_BUCKET"] = queue.apply(classify_claim_bucket, axis=1)
+        ongoing_df = queue[queue["CLAIM_BUCKET"] == "ongoing"]
+        history_df = queue[queue["CLAIM_BUCKET"] == "history"]
+
+        selected_tab = st.radio(
+            "Recent Claims Tabs",
+            [f"Ongoing Claims ({len(ongoing_df)})", f"History Claims ({len(history_df)})"],
+            horizontal=True,
+            key=f"{card_key}_tab",
+            label_visibility="collapsed",
+        )
+        tab_df = ongoing_df if selected_tab.startswith("Ongoing") else history_df
+        tab_df = filter_recent_claims_by_search(tab_df, search)
+        tab_df = tab_df.sort_values("DATE_REQUESTED", ascending=(sort_order == "Oldest")) if "DATE_REQUESTED" in tab_df.columns else tab_df
+
+        logger.info("render_recent_claims called tab=%s rows=%d", selected_tab, len(tab_df))
+        render_recent_claims_table(
+            tab_df.head(20),
+            key_prefix="dash",
+            empty_message="No ongoing claims found." if selected_tab.startswith("Ongoing") else "No history claims found.",
+        )
 
 
 def render(session, ctx) -> None:
