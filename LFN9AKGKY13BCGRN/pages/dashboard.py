@@ -116,6 +116,13 @@ def _render_dashboard_view(session, ctx) -> None:
             key=f"{card_key}_tab",
             label_visibility="collapsed",
         )
+        previous_tab = st.session_state.get(f"{card_key}_prev_tab")
+        previous_search = st.session_state.get(f"{card_key}_prev_search", "")
+        if previous_tab != selected_tab or str(previous_search) != str(search):
+            st.session_state["dash_recent_claims_pagination_page"] = 1
+        st.session_state[f"{card_key}_prev_tab"] = selected_tab
+        st.session_state[f"{card_key}_prev_search"] = search
+
         tab_df = ongoing_df if selected_tab.startswith("Ongoing") else history_df
         tab_df = filter_recent_claims_by_search(tab_df, search)
 

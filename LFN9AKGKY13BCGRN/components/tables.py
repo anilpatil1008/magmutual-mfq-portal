@@ -46,7 +46,7 @@ RECENT_CLAIMS_HEADERS = [
     "Actions",
 ]
 
-RECENT_CLAIMS_COLUMN_WIDTHS = [100, 260, 160, 180, 120, 180, 140, 150, 120, 120]
+RECENT_CLAIMS_COLUMN_WIDTHS = [110, 280, 180, 200, 130, 200, 150, 160, 130, 130]
 RECENT_CLAIMS_SORT_COLUMNS = [
     ("CLAIM_ID", "Claim ID"),
     ("PATIENT_NAME", "Patient / Defendant"),
@@ -282,12 +282,25 @@ def render_recent_claims_table(
         st.session_state[f"{sort_key_base}_column"] = None
     if f"{sort_key_base}_direction" not in st.session_state:
         st.session_state[f"{sort_key_base}_direction"] = "asc"
+    pagination_key_base = f"{key_prefix}_recent_claims_pagination"
+    page_size = 10
+    if f"{pagination_key_base}_page" not in st.session_state:
+        st.session_state[f"{pagination_key_base}_page"] = 1
 
     show_df = df.copy()
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
+    total_claims = len(show_df)
+    total_pages = max(1, (total_claims + page_size - 1) // page_size)
+    current_page = int(st.session_state.get(f"{pagination_key_base}_page", 1))
+    current_page = max(1, min(current_page, total_pages))
+    st.session_state[f"{pagination_key_base}_page"] = current_page
+    start_idx = (current_page - 1) * page_size
+    end_idx = min(start_idx + page_size, total_claims)
+    page_df = show_df.iloc[start_idx:end_idx].copy()
+
     sort_column = st.session_state.get(f"{sort_key_base}_column")
     sort_direction = st.session_state.get(f"{sort_key_base}_direction", "asc")
-    show_df = _sort_recent_claims(show_df, sort_column=sort_column, sort_direction=sort_direction)
+    show_df = _sort_recent_claims(page_df, sort_column=sort_column, sort_direction=sort_direction)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
         st.markdown("<div class='recent-claims-table-wrapper'><div class='recent-claims-table-shell'>", unsafe_allow_html=True)
@@ -390,4 +403,18 @@ def render_recent_claims_table(
                             st.error(message)
                 st.markdown("</div>", unsafe_allow_html=True)
             st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+        summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
+        pager_cols = st.columns([3, 1], vertical_alignment="center")
+        pager_cols[0].markdown(f"<div class='recent-claims-pagination-summary'>{summary_text}</div>", unsafe_allow_html=True)
+        with pager_cols[1]:
+            prev_col, next_col = st.columns(2)
+            with prev_col:
+                if st.button("Previous", key=f"{pagination_key_base}_prev", disabled=current_page <= 1, use_container_width=True):
+                    st.session_state[f"{pagination_key_base}_page"] = max(1, current_page - 1)
+                    st.rerun()
+            with next_col:
+                if st.button("Next", key=f"{pagination_key_base}_next", disabled=current_page >= total_pages, use_container_width=True):
+                    st.session_state[f"{pagination_key_base}_page"] = min(total_pages, current_page + 1)
+                    st.rerun()
         st.markdown("</div></div>", unsafe_allow_html=True)
