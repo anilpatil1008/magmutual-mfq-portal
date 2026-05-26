@@ -121,7 +121,7 @@ def _render_dashboard_view(session, ctx) -> None:
 
         logger.info("render_recent_claims called tab=%s rows=%d", selected_tab, len(tab_df))
         render_recent_claims_table(
-            tab_df.head(20),
+            tab_df,
             key_prefix="dash",
             empty_message="No ongoing claims found." if selected_tab.startswith("Ongoing") else "No history claims found.",
         )
