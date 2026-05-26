@@ -96,12 +96,6 @@ def _render_dashboard_view(session, ctx) -> None:
                         key=f"{card_key}_search",
                     )
 
-        sort_order = st.selectbox(
-            "Sort",
-            ["Newest", "Oldest"],
-            key=f"{card_key}_sort_order",
-            label_visibility="collapsed",
-        )
 
         t1 = perf_counter()
         queue = get_claims_queue(session, ctx.app_role, ctx.username)
@@ -124,7 +118,6 @@ def _render_dashboard_view(session, ctx) -> None:
         )
         tab_df = ongoing_df if selected_tab.startswith("Ongoing") else history_df
         tab_df = filter_recent_claims_by_search(tab_df, search)
-        tab_df = tab_df.sort_values("DATE_REQUESTED", ascending=(sort_order == "Oldest")) if "DATE_REQUESTED" in tab_df.columns else tab_df
 
         logger.info("render_recent_claims called tab=%s rows=%d", selected_tab, len(tab_df))
         render_recent_claims_table(
