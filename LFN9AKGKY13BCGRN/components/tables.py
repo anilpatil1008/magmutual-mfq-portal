@@ -130,20 +130,15 @@ def _run_regeneration(claim_id: str, row: pd.Series) -> tuple[bool, str]:
     return True, "MFQ regenerated successfully."
 
 
-def _sort_recent_claims(df: pd.DataFrame, sort_column: str, sort_ascending: bool) -> pd.DataFrame:
-    if sort_column not in df.columns:
+def _sort_recent_claims(df: pd.DataFrame) -> pd.DataFrame:
+    if "DATE_REQUESTED" not in df.columns:
         return df
 
-    if sort_column == "DATE_REQUESTED":
-        sort_values = pd.to_datetime(df[sort_column], errors="coerce")
-    elif sort_column == "AI_CONFIDENCE":
-        sort_values = pd.to_numeric(df[sort_column], errors="coerce")
-    else:
-        sort_values = df[sort_column].astype(str).str.lower()
+    sort_values = pd.to_datetime(df["DATE_REQUESTED"], errors="coerce")
 
     return df.assign(_sort_value=sort_values).sort_values(
         by=["_sort_value", "CLAIM_ID"],
-        ascending=[sort_ascending, True],
+        ascending=[False, True],
         na_position="last",
     ).drop(columns=["_sort_value"], errors="ignore")
 
@@ -199,7 +194,7 @@ def render_recent_claims_table(
 
     show_df = df.copy()
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
-    show_df = _sort_recent_claims(show_df, "DATE_REQUESTED", False)
+    show_df = _sort_recent_claims(show_df)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
         st.markdown("<div class='recent-claims-table-wrapper'><div class='recent-claims-table-shell'>", unsafe_allow_html=True)
