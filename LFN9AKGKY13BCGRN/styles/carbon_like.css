@@ -1246,17 +1246,20 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto;
+  max-height: min(60vh, 560px);
   border-radius: 10px;
   padding-bottom: 0;
+  border: 1px solid #e0e0e0;
+  background: #ffffff;
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-shell {
   width: 100%;
-  min-width: 920px;
+  min-width: 1230px;
   max-width: 100%;
   box-sizing: border-box;
-  border: 1px solid #dde1e6;
+  border: none;
   border-radius: 10px;
   background: #ffffff;
   overflow: hidden;
@@ -1279,14 +1282,19 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] {
   background: #f4f4f4;
-  border-bottom: 1px solid #dde1e6;
+  border-bottom: 1px solid #e0e0e0;
+  position: sticky;
+  top: 0;
+  z-index: 3;
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] {
   background: #ffffff;
-  border-bottom: 1px solid #edf1f4;
-  min-height: 56px;
+  border-bottom: 1px solid #e0e0e0;
+  min-height: 58px;
   align-items: center;
+  transition: background-color 140ms ease, box-shadow 140ms ease, border-left-color 140ms ease;
+  border-left: 3px solid transparent;
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-row:last-child [data-testid="stHorizontalBlock"] {
@@ -1294,12 +1302,14 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"]:hover {
-  background: #f9fbff;
+  background: #edf5ff;
+  box-shadow: inset 0 0 0 1px #d0e2ff;
+  border-left-color: #0f62fe;
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"],
 .st-key-dash_recent_claims_table .recent-claims-table-row [data-testid="stHorizontalBlock"] > [data-testid="column"] {
-  padding: 10px 12px;
+  padding: 12px 14px;
 }
 
 .st-key-dash_recent_claims_table .recent-claims-table-head [data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1),
@@ -1323,8 +1333,9 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .recent-claims-col-header {
   color: #525252;
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
   text-align: left;
   letter-spacing: 0.01em;
 }
@@ -1346,12 +1357,15 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .claim-id-cell,
 .requested-cell,
-.patient-cell,
+.patient-cell {
+  text-align: left;
+}
+
 .status-cell,
 .priority-cell,
 .confidence-cell,
 .actions-cell {
-  text-align: left;
+  text-align: center;
 }
 
 .claim-id-cell {
@@ -1378,7 +1392,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .requested-cell {
-  color: #393939;
+  color: #525252;
   font-size: 0.8rem;
   white-space: nowrap;
 }
@@ -1398,17 +1412,26 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   white-space: nowrap;
 }
 
-.status-badge { background: #edf5ff; color: #0043ce; border-color: #a6c8ff; }
-.priority-badge { background: #f4f4f4; color: #393939; border-color: #dde1e6; }
-.confidence-badge { background: #defbe6; color: #0e6027; border-color: #6fdc8c; }
-.confidence-low { background: #fff1f1; color: #a2191f; border-color: #ffb3b8; }
-.confidence-medium { background: #fff8e1; color: #8a5d00; border-color: #ffd57a; }
-.confidence-na { background: #f4f4f4; color: #6f6f6f; border-color: #dde1e6; }
+.status-badge { background: #edf5ff; color: #0f62fe; border-color: #a6c8ff; }
+.status-open, .status-approved { background: #defbe6; color: #24a148; border-color: #a7f0ba; }
+.status-rejected, .status-failed { background: #fff1f1; color: #da1e28; border-color: #ffb3b8; }
+.status-pending, .status-review { background: #f6f2ff; color: #6929c4; border-color: #d4bbff; }
+.status-na, .status-unassigned { background: #f4f4f4; color: #525252; border-color: #e0e0e0; }
+
+.priority-badge { background: #f4f4f4; color: #525252; border-color: #e0e0e0; }
+.priority-high { background: #fff1f1; color: #da1e28; border-color: #ffb3b8; }
+.priority-medium { background: #fff8e1; color: #8a5d00; border-color: #ffd57a; }
+.priority-low { background: #defbe6; color: #24a148; border-color: #a7f0ba; }
+
+.confidence-badge { background: #defbe6; color: #24a148; border-color: #a7f0ba; }
+.confidence-low { background: #fff1f1; color: #da1e28; border-color: #ffb3b8; }
+.confidence-medium { background: #f6f2ff; color: #6929c4; border-color: #d4bbff; }
+.confidence-na { background: #f4f4f4; color: #525252; border-color: #e0e0e0; }
 
 .actions-cell {
   display: flex;
   align-items: flex-start;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .actions-cell-stacked {
@@ -1426,15 +1449,30 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-dash_recent_claims_table [data-testid="stButton"] button {
   width: auto;
-  min-width: 72px;
-  height: 28px;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 6px;
+  min-width: 78px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 8px;
   white-space: nowrap;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   line-height: 1;
+  border-color: #8ab6ff;
+  color: #0f62fe;
+  background: #ffffff;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.st-key-dash_recent_claims_table [data-testid="stButton"] button:hover {
+  background: #edf5ff;
+  border-color: #0f62fe;
+}
+
+.st-key-dash_recent_claims_table [data-testid="stButton"] button:focus-visible {
+  outline: 2px solid #0f62fe;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 1px #ffffff, 0 0 0 4px rgba(15, 98, 254, 0.28);
 }
 /* Portal header card layout: title + actions in one card */
 .st-key-app_topbar {
