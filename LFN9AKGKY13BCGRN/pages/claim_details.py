@@ -808,12 +808,11 @@ def render(session, ctx) -> None:
 
     with tabs[0]:
         can_edit = can_edit_claim(
-            ctx.sf_role,
             str(claim.get("STATUS", "")),
             claim.get("ASSIGNED_TO"),
             ctx.username,
         )
-        editable_section_ids = get_editable_section_ids_for_user(session, str(claim_id), ctx.sf_role, ctx.username)
+        editable_section_ids = get_editable_section_ids_for_user(session, str(claim_id), ctx.username)
         save_clicked = False
         with st.container(key="mfq_header_card"):
             title_col, edit_col = st.columns([7.4, 1.4], vertical_alignment="center")

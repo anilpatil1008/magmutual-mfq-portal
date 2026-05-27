@@ -28,16 +28,6 @@ LLM_EVAL_TABLE = obj.LLM_EVALUATION_TABLE
 logger = logging.getLogger(__name__)
 
 
-def _apply_rbac(df: pd.DataFrame, app_role: str, username: str) -> pd.DataFrame:
-    if df.empty or app_role in {"Admin", "Executive"}:
-        return df
-    if app_role in {"Claims Analyst", "Advice Team"}:
-        return df
-    if app_role == "Medical Faculty":
-        return df[df["ASSIGNED_TO"].fillna("").str.upper() == username.upper()].copy()
-    return df.head(0)
-
-
 def _object_exists(session, object_name: str) -> bool:
     object_q = quote_sql(object_name.upper())
     sql = f"""
@@ -80,14 +70,14 @@ def _safe_read(session, object_name: str, sql: str, missing_objects: list[str]) 
     return safe_collect_df(session, sql)
 
 
-def get_claims_queue(session, app_role: str, username: str, search_text: str = "", status_filter: str = "All") -> pd.DataFrame:
+def get_claims_queue(session, username: str, search_text: str = "", status_filter: str = "All") -> pd.DataFrame:
     started = perf_counter()
     df = claims_repository.get_claims_queue(session)
     if df.empty:
         logger.info("get_claims_queue_ms=%d rows=0", int((perf_counter() - started) * 1000))
         return df
 
-    scoped = _apply_rbac(df, app_role, username)
+    scoped = df.copy()
     if search_text.strip():
         needle = search_text.strip().lower()
         scoped = scoped[
@@ -787,12 +777,8 @@ def save_mfq_answer(
     ).collect()
 
 
-def get_editable_section_ids_for_user(session, claim_id: str, app_role: str, username: str) -> set[str] | None:
-    if app_role in {"Claims Analyst", "Advice Team", "Admin", "Executive"}:
-        return None
-    if app_role != "Medical Faculty":
-        return set()
-
+def get_editable_section_ids_for_user(session, claim_id: str, username: str) -> set[str] | None:
+    # Keep all sections editable when no assignment section table exists.
     claim_q = quote_sql(claim_id)
     user_q = quote_sql(username)
     if not (_object_exists(session, obj.MFQ_ASSIGNMENT_SECTIONS_TABLE) and _object_exists(session, obj.MFQ_USERS_TABLE)):

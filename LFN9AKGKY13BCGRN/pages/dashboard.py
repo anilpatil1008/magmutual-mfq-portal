@@ -11,6 +11,7 @@ from components.tables import filter_recent_claims_by_search, render_recent_clai
 from pages import claim_details
 from services.claim_service import get_claims_queue
 from services.dashboard_service import get_dashboard_metrics
+from services.rbac_service import get_session_context_snapshot
 from utils.claim_lifecycle import classify_claim_bucket
 
 logger = logging.getLogger(__name__)
@@ -64,7 +65,10 @@ def _render_dashboard_view(session, ctx) -> None:
         )
 
     t0 = perf_counter()
-    metrics = get_dashboard_metrics(session, app_role=ctx.sf_role, username=ctx.username)
+    session_ctx = get_session_context_snapshot(session)
+    session_ctx["selected_sf_role"] = str(st.session_state.get("selected_sf_role") or "")
+    logger.info("dashboard_session_context=%s", session_ctx)
+    metrics = get_dashboard_metrics(session, username=ctx.username)
     logger.info("dashboard_metrics_ms=%d", int((perf_counter() - t0) * 1000))
     render_kpi_cards(metrics)
 
@@ -96,7 +100,7 @@ def _render_dashboard_view(session, ctx) -> None:
 
 
         t1 = perf_counter()
-        queue = get_claims_queue(session, ctx.sf_role, ctx.username)
+        queue = get_claims_queue(session, ctx.username)
         logger.info("dashboard_recent_claims_ms=%d rows=%d", int((perf_counter() - t1) * 1000), len(queue))
         if queue.empty:
             render_recent_claims_table(queue, key_prefix="dash")

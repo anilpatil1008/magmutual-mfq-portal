@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 
 import streamlit as st
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -71,8 +74,6 @@ def get_available_roles(session) -> tuple[list[str], str]:
     return available_roles, current_role
 
 
-
-
 def get_selected_sf_role(session) -> str:
     available_roles, current_role = get_available_roles(session)
     selected_role = str(st.session_state.get("selected_sf_role") or "").strip()
@@ -81,15 +82,10 @@ def get_selected_sf_role(session) -> str:
     return current_role
 
 
-def set_active_sf_role(session, new_role: str) -> str:
+def set_selected_sf_role(new_role: str) -> str:
     selected_role = str(new_role or "").strip()
-    if not selected_role:
-        return get_current_role(session)
-
-    session.sql(f"USE ROLE {quote_identifier(selected_role)}").collect()
     st.session_state["selected_sf_role"] = selected_role
-    st.session_state["selected_role"] = selected_role
-    st.session_state["sf_role"] = selected_role
+    logger.info("selected_sf_role_updated selected_sf_role=%s", selected_role)
     return selected_role
 
 
@@ -99,7 +95,18 @@ def get_current_user_context(session) -> UserContext:
     return UserContext(username=username, sf_role=sf_role)
 
 
-def can_edit_claim(sf_role: str, claim_status: str, assigned_to: str | None, username: str) -> bool:
-    _ = sf_role
+def get_session_context_snapshot(session) -> dict[str, str]:
+    row = session.sql("""
+        SELECT
+            CURRENT_USER() AS CURRENT_USER,
+            CURRENT_ROLE() AS CURRENT_ROLE,
+            CURRENT_WAREHOUSE() AS CURRENT_WAREHOUSE,
+            CURRENT_DATABASE() AS CURRENT_DATABASE,
+            CURRENT_SCHEMA() AS CURRENT_SCHEMA
+    """).to_pandas().iloc[0]
+    return {k: str(v or "").strip() for k, v in row.to_dict().items()}
+
+
+def can_edit_claim(claim_status: str, assigned_to: str | None, username: str) -> bool:
     is_assigned_user = (assigned_to or "").upper() == username.upper()
     return claim_status in {"MFQ Generated", "Assigned", "Rejected"} or (claim_status == "Assigned" and is_assigned_user)

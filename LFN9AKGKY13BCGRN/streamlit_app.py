@@ -21,8 +21,6 @@ available_roles, current_sf_role = get_available_roles(session)
 st.session_state["available_roles"] = available_roles
 selected_sf_role = get_selected_sf_role(session)
 st.session_state["selected_sf_role"] = selected_sf_role
-st.session_state["selected_role"] = selected_sf_role
-st.session_state["sf_role"] = selected_sf_role
 
 ctx = get_current_user_context(session)
 
