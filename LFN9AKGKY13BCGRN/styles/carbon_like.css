@@ -2631,6 +2631,27 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-weight: 600;
   white-space: nowrap;
 }
+.st-key-dash_recent_claims_table .recent-claims-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #161616;
+  font-size: .78rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+.st-key-dash_recent_claims_table .recent-claims-sort-button .sort-arrow {
+  min-width: 10px;
+  color: #525252;
+}
+.st-key-dash_recent_claims_table .recent-claims-sort-button:focus-visible {
+  outline: 2px solid #0f62fe;
+  outline-offset: 2px;
+}
 .st-key-dash_recent_claims_table .recent-claims-td {
   padding: 12px 14px;
   border-bottom: 1px solid #e0e0e0;
