@@ -25,11 +25,11 @@ def get_current_role(session) -> str:
 
 
 @st.cache_data(show_spinner=False, ttl=300)
-def get_available_roles_for_current_user(session) -> list[str]:
-    current_role = get_current_role(session)
+def get_available_roles_for_current_user(_session) -> list[str]:
+    current_role = get_current_role(_session)
 
     try:
-        roles_df = session.sql("""
+        roles_df = _session.sql("""
             SELECT VALUE::STRING AS ROLE_NAME
             FROM TABLE(
                 FLATTEN(INPUT => PARSE_JSON(CURRENT_AVAILABLE_ROLES()))
@@ -60,7 +60,7 @@ def get_available_roles_for_current_user(session) -> list[str]:
 
 def get_available_roles(session) -> tuple[list[str], str]:
     current_role = get_current_role(session)
-    available_roles = get_available_roles_for_current_user(session)
+    available_roles = get_available_roles_for_current_user(_session=session)
     if current_role and current_role not in available_roles:
         available_roles = sorted({*available_roles, current_role})
     if not available_roles:
