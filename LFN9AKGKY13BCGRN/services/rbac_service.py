@@ -29,51 +29,70 @@ ROLE_NAV = {
 }
 
 
+def get_current_user(session) -> str:
+    row = session.sql("SELECT CURRENT_USER() AS CURRENT_USER").to_pandas().iloc[0]
+    return str(row["CURRENT_USER"]).strip()
+
+
+def get_current_role(session) -> str:
+    row = session.sql("SELECT CURRENT_ROLE() AS CURRENT_ROLE").to_pandas().iloc[0]
+    return str(row["CURRENT_ROLE"]).strip()
+
+
 @st.cache_data(show_spinner=False, ttl=300)
 def _fetch_assigned_roles_for_user(session, username: str) -> list[str]:
     grants_df = session.sql(f"SHOW GRANTS TO USER {username}").to_pandas()
     if grants_df.empty:
         return []
 
-    column_candidates = ["GRANTED_ROLE", "ROLE", "NAME"]
-    role_column = next((column for column in column_candidates if column in grants_df.columns), None)
-    if not role_column:
-        return []
+    role_values: list[str] = []
+    for column in grants_df.columns:
+        if str(column).strip().upper() in {"ROLE", "GRANTED_ROLE"}:
+            role_values.extend(grants_df[column].tolist())
 
-    roles: list[str] = []
-    for value in grants_df[role_column].tolist():
-        role = str(value or "").strip()
-        if role and role not in roles:
-            roles.append(role)
-    return roles
+    deduped_roles = sorted({str(value or "").strip() for value in role_values if str(value or "").strip()})
+    return deduped_roles
 
 
-def get_available_roles(session) -> tuple[list[str], str]:
-    current = session.sql("SELECT CURRENT_USER() AS USERNAME, CURRENT_ROLE() AS SF_ROLE").to_pandas().iloc[0]
-    username = str(current["USERNAME"])
-    current_role = str(current["SF_ROLE"])
+def get_available_roles_for_current_user(session) -> list[str]:
+    username = get_current_user(session)
+    current_role = get_current_role(session)
 
     try:
         assigned_roles = _fetch_assigned_roles_for_user(session, username)
-        if not assigned_roles:
-            return [current_role], current_role
-        if current_role not in assigned_roles:
-            assigned_roles = [current_role, *assigned_roles]
-        return assigned_roles, current_role
     except Exception:
-        return [current_role], current_role
+        return [current_role] if current_role else []
+
+    if not assigned_roles:
+        return [current_role] if current_role else []
+
+    if current_role and current_role not in assigned_roles:
+        assigned_roles.append(current_role)
+        assigned_roles = sorted(set(assigned_roles))
+    return assigned_roles
+
+
+def get_available_roles(session) -> tuple[list[str], str]:
+    current_role = get_current_role(session)
+    available_roles = get_available_roles_for_current_user(session)
+    if current_role and current_role not in available_roles:
+        available_roles = sorted({*available_roles, current_role})
+    if not available_roles:
+        available_roles = [current_role] if current_role else []
+    return available_roles, current_role
 
 
 def get_current_user_context(session) -> UserContext:
-    row = session.sql("SELECT CURRENT_USER() AS USERNAME, CURRENT_ROLE() AS SF_ROLE").to_pandas().iloc[0]
+    username = get_current_user(session)
+    sf_role = get_current_role(session)
 
     if "app_role" not in st.session_state:
         st.session_state.app_role = "Claims Analyst"
 
     return UserContext(
-        username=str(row["USERNAME"]),
+        username=username,
         app_role=st.session_state.app_role,
-        sf_role=str(row["SF_ROLE"]),
+        sf_role=sf_role,
     )
 
 
