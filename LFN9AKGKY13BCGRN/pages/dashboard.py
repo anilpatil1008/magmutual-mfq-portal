@@ -6,7 +6,6 @@ from time import perf_counter
 
 import streamlit as st
 
-from components.badges import render_legend
 from components.cards import render_kpi_cards
 from components.tables import filter_recent_claims_by_search, render_recent_claims_table
 from pages import claim_details
@@ -68,7 +67,6 @@ def _render_dashboard_view(session, ctx) -> None:
     metrics = get_dashboard_metrics(session, app_role=ctx.app_role, username=ctx.username)
     logger.info("dashboard_metrics_ms=%d", int((perf_counter() - t0) * 1000))
     render_kpi_cards(metrics)
-    render_legend()
 
     card_key = "dash_recent_claims"
     search = st.session_state.get(f"{card_key}_search", "")

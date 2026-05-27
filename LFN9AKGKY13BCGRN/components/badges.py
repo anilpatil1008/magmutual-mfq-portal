@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-import streamlit as st
-
 
 STATUS_TO_TONE = {
     "MFQ Generated": "info",
@@ -107,17 +105,3 @@ def role_badge(role: str) -> str:
     value = str(role or "Unknown")
     tone = ROLE_TO_TONE.get(value, "muted")
     return badge_html(value, tone, "role")
-
-
-def render_legend() -> None:
-    status_pills = ["MFQ Generated", "Assigned", "On Hold", "Approved", "Rejected"]
-    st.markdown(
-        (
-            "<div class='mm-dashboard-status-pills'>"
-            + "".join(
-                [f"<span class='mm-dashboard-status-pill'>{status}</span>" for status in status_pills]
-            )
-            + "</div>"
-        ),
-        unsafe_allow_html=True,
-    )
