@@ -2990,9 +2990,28 @@ h1 {
 /* KPI grid spacing */
 .mm-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(165px, 1fr));
-  gap: 12px !important;
+  grid-template-columns: repeat(6, minmax(130px, 1fr));
+  gap: 10px !important;
   margin-bottom: 16px !important;
+  align-items: stretch;
+}
+
+@media (max-width: 1200px) {
+  .mm-kpi-grid {
+    grid-template-columns: repeat(3, minmax(160px, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .mm-kpi-grid {
+    grid-template-columns: repeat(2, minmax(150px, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .mm-kpi-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* KPI card polish */
