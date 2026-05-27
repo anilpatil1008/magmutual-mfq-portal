@@ -8,6 +8,7 @@ CARD_ICONS = {
     "Total Active Claims": "📁",
     "MFQ Generated": "🧠",
     "Assigned": "👥",
+    "On Hold": "⏸️",
     "Approved": "✅",
     "Rejected": "⛔",
 }

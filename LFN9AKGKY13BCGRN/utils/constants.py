@@ -2,7 +2,7 @@ APP_NAME = "MagMutual MFQ Portal"
 DEFAULT_ROLE = "Claim Analyst"
 ROLES = ["Claim Analyst", "Advice Team", "Medical Faculty", "Admin", "Executive"]
 
-CLAIM_STATUSES = ["MFQ Generated", "Assigned", "Approved", "Rejected"]
+CLAIM_STATUSES = ["MFQ Generated", "Assigned", "On Hold", "Approved", "Rejected"]
 PRIORITIES = ["Critical", "High", "Medium", "Low"]
 
 NAV_ITEMS = [
@@ -17,6 +17,7 @@ STATUS_COLORS = {
     "Approved": "badge-success",
     "Assigned": "badge-info",
     "MFQ Generated": "badge-mfq",
+    "On Hold": "badge-muted",
     "Rejected": "badge-danger",
 }
 

@@ -8,6 +8,7 @@ import streamlit as st
 STATUS_TO_TONE = {
     "MFQ Generated": "info",
     "Assigned": "warning",
+    "On Hold": "muted",
     "Approved": "success",
     "Rejected": "danger",
 }
@@ -109,14 +110,14 @@ def role_badge(role: str) -> str:
 
 
 def render_legend() -> None:
+    status_pills = ["MFQ Generated", "Assigned", "On Hold", "Approved", "Rejected"]
     st.markdown(
-        " ".join(
-            [
-                status_badge("MFQ Generated"),
-                status_badge("Assigned"),
-                status_badge("Approved"),
-                status_badge("Rejected"),
-            ]
+        (
+            "<div class='mm-dashboard-status-pills'>"
+            + "".join(
+                [f"<span class='mm-dashboard-status-pill'>{status}</span>" for status in status_pills]
+            )
+            + "</div>"
         ),
         unsafe_allow_html=True,
     )

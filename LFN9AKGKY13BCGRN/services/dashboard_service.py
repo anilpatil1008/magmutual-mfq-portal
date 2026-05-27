@@ -12,6 +12,7 @@ def get_dashboard_metrics(session, app_role: str, username: str) -> dict[str, in
             "Total Active Claims": 0,
             "MFQ Generated": 0,
             "Assigned": 0,
+            "On Hold": 0,
             "Approved": 0,
             "Rejected": 0,
         }
@@ -21,6 +22,7 @@ def get_dashboard_metrics(session, app_role: str, username: str) -> dict[str, in
         "Total Active Claims": int(len(claims)),
         "MFQ Generated": int((status == "MFQ Generated").sum()),
         "Assigned": int((status == "Assigned").sum()),
+        "On Hold": int((status == "On Hold").sum()),
         "Approved": int((status == "Approved").sum()),
         "Rejected": int((status == "Rejected").sum()),
     }
