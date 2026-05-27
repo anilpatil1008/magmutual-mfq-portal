@@ -19,11 +19,13 @@ load_css()
 session = get_session()
 available_roles, current_sf_role = get_available_roles(session)
 st.session_state["available_roles"] = available_roles
-if "selected_role" not in st.session_state:
-    st.session_state["selected_role"] = current_sf_role
-elif st.session_state["selected_role"] not in available_roles:
-    st.session_state["selected_role"] = current_sf_role
-st.session_state["sf_role"] = st.session_state["selected_role"]
+if "selected_sf_role" not in st.session_state:
+    st.session_state["selected_sf_role"] = current_sf_role
+elif st.session_state["selected_sf_role"] not in available_roles:
+    st.session_state["selected_sf_role"] = current_sf_role
+
+st.session_state["selected_role"] = st.session_state["selected_sf_role"]
+st.session_state["sf_role"] = st.session_state["selected_sf_role"]
 
 ctx = get_current_user_context(session)
 
