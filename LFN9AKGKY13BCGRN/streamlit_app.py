@@ -3,7 +3,7 @@ import streamlit as st
 from components.layout import load_css, render_header, render_sidebar
 from pages import admin, claim_details, claims, dashboard, reports
 from services.notification_service import get_user_notifications
-from services.rbac_service import get_current_user_context
+from services.rbac_service import get_available_roles, get_current_user_context
 from services.snowflake_service import get_session
 from utils.validate_snowflake_objects import render_missing_objects, validate_required_objects
 from config import snowflake_objects as obj
@@ -17,6 +17,14 @@ st.set_page_config(
 
 load_css()
 session = get_session()
+available_roles, current_sf_role = get_available_roles(session)
+st.session_state["available_roles"] = available_roles
+if "selected_role" not in st.session_state:
+    st.session_state["selected_role"] = current_sf_role
+elif st.session_state["selected_role"] not in available_roles:
+    st.session_state["selected_role"] = current_sf_role
+st.session_state["sf_role"] = st.session_state["selected_role"]
+
 ctx = get_current_user_context(session)
 
 required_objects = (
