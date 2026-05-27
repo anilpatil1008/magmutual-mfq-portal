@@ -2599,12 +2599,37 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-dash_recent_claims_table .recent-claims-table-wrapper {
   overflow-x: auto;
-  overflow-y: auto;
-  max-height: 560px;
+  overflow-y: hidden;
+  width: 100%;
+  max-width: 100%;
 }
 .st-key-dash_recent_claims_table .recent-claims-table {
-  min-width: 1670px;
+  min-width: 1570px;
+  width: max-content;
   border-collapse: collapse;
+}
+.st-key-dash_recent_claims_table .recent-claims-th {
+  padding: 12px 14px;
+  border-bottom: 1px solid #dde1e6;
+  background: #f4f4f4;
+  color: #161616;
+  text-align: left;
+  font-size: .78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.st-key-dash_recent_claims_table .recent-claims-sort-link {
+  color: #525252;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.st-key-dash_recent_claims_table .recent-claims-sort-link:hover {
+  color: #161616;
+}
+.st-key-dash_recent_claims_table .sort-arrow {
+  color: #161616;
 }
 .st-key-dash_recent_claims_table .recent-claims-td {
   padding: 12px 14px;
@@ -2612,10 +2637,41 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   vertical-align: middle;
   background: #fff;
 }
-.st-key-dash_recent_claims_table .sticky-actions {
+.st-key-dash_recent_claims_table .recent-claims-table tbody tr:hover td {
+  background: #edf5ff;
+}
+.st-key-dash_recent_claims_table .sticky-actions-header,
+.st-key-dash_recent_claims_table .sticky-actions-cell {
   position: sticky;
   right: 0;
   z-index: 3;
   border-left: 1px solid #e0e0e0;
   box-shadow: -4px 0 8px rgba(0,0,0,0.04);
+}
+.st-key-dash_recent_claims_table .sticky-actions-header {
+  z-index: 5;
+  background: #f4f4f4;
+}
+.st-key-dash_recent_claims_table .sticky-actions-cell {
+  background: #fff;
+}
+.st-key-dash_recent_claims_table .recent-claims-table tbody tr:hover .sticky-actions-cell {
+  background: #edf5ff;
+}
+.st-key-dash_recent_claims_table .review-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 74px;
+  min-height: 30px;
+  border: 1px solid #0f62fe;
+  border-radius: 6px;
+  color: #0f62fe;
+  background: #fff;
+  font-size: .82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+.st-key-dash_recent_claims_table .review-link:hover {
+  background: #edf5ff;
 }

@@ -58,6 +58,18 @@ RECENT_CLAIMS_SORT_COLUMNS = [
     ("CLAIM_TYPE", "Claim Type"),
     ("CLAIM_STATUS", "Claim Status"),
 ]
+RECENT_CLAIMS_WIDTH_MAP = {
+    "CLAIM_ID": 110,
+    "PATIENT_DEFENDANT": 280,
+    "MFQ_STATUS": 180,
+    "WORKFLOW_STATUS": 200,
+    "PRIORITY": 130,
+    "CLAIM_STATUS": 200,
+    "CLAIM_TYPE": 150,
+    "DATE_REQUESTED": 160,
+    "AI_CONFIDENCE": 130,
+    "ACTIONS": 130,
+}
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2, "unknown": 3}
 
 def _normalize_slug(value: Any) -> str:
@@ -300,28 +312,40 @@ def render_recent_claims_table(
 
     sort_column = st.session_state.get(f"{sort_key_base}_column")
     sort_direction = st.session_state.get(f"{sort_key_base}_direction", "asc")
+    query_sort = st.query_params.get("recent_claims_sort")
+    query_dir = st.query_params.get("recent_claims_dir")
+    if query_sort:
+        selected = str(query_sort).strip()
+        valid_columns = {column for column, _ in RECENT_CLAIMS_SORT_COLUMNS}
+        if selected in valid_columns:
+            sort_column = selected
+            sort_direction = "desc" if str(query_dir).strip().lower() == "desc" else "asc"
+            st.session_state[f"{sort_key_base}_column"] = sort_column
+            st.session_state[f"{sort_key_base}_direction"] = sort_direction
+        st.query_params.pop("recent_claims_sort", None)
+        st.query_params.pop("recent_claims_dir", None)
+
     show_df = _sort_recent_claims(page_df, sort_column=sort_column, sort_direction=sort_direction)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
         sort_headers = {label: key for key, label in RECENT_CLAIMS_SORT_COLUMNS}
-        sort_bar_cols = st.columns(10, vertical_alignment="center")
-        for idx, header in enumerate(RECENT_CLAIMS_HEADERS):
-            with sort_bar_cols[idx]:
-                if header in sort_headers:
-                    selected_column = sort_headers[header]
-                    is_active = sort_column == selected_column
-                    arrow = "↑" if is_active and sort_direction == "asc" else "↓" if is_active else ""
-                    header_label = f"{header} {arrow}" if arrow else header
-                    if st.button(header_label, key=f"{sort_key_base}_header_{selected_column}", type="tertiary", use_container_width=True):
-                        st.session_state[f"{sort_key_base}_direction"] = _toggle_sort_direction(
-                            current_column=sort_column or "",
-                            selected_column=selected_column,
-                            current_direction=sort_direction,
-                        )
-                        st.session_state[f"{sort_key_base}_column"] = selected_column
-                        st.rerun()
-                else:
-                    st.markdown(f"<div class='recent-claims-col-header'>{escape(header)}</div>", unsafe_allow_html=True)
+        header_cells: list[str] = []
+        for header in RECENT_CLAIMS_HEADERS:
+            if header in sort_headers:
+                selected_column = sort_headers[header]
+                is_active = sort_column == selected_column
+                next_direction = _toggle_sort_direction(sort_column or "", selected_column, sort_direction)
+                arrow = "↑" if is_active and sort_direction == "asc" else "↓" if is_active and sort_direction == "desc" else ""
+                label_html = f"{escape(header)} <span class='sort-arrow'>{arrow}</span>" if arrow else escape(header)
+                sort_href = f"?recent_claims_sort={escape(selected_column)}&recent_claims_dir={escape(next_direction)}"
+                header_cells.append(
+                    f"<th class='recent-claims-th' style='width:{RECENT_CLAIMS_WIDTH_MAP[selected_column]}px;'>"
+                    f"<a class='recent-claims-sort-link' href='{sort_href}'>{label_html}</a></th>"
+                )
+            elif header == "Actions":
+                header_cells.append(
+                    f"<th class='recent-claims-th sticky-actions-header' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'>{escape(header)}</th>"
+                )
 
         rows_html: list[str] = []
         for _, row in show_df.iterrows():
@@ -341,50 +365,29 @@ def render_recent_claims_table(
             claim_status = str(row.get("CLAIM_STATUS", row.get("STATUS", ""))).strip()
             claim_type = str(row.get("CLAIM_TYPE", "—")).strip() or "—"
             display_claim_type = _display_status_label(claim_type)
+            review_href = f"?page=Claim+Details&claim_id={escape(claim_id)}"
             rows_html.append(
                 "<tr>"
-                f"<td class='recent-claims-td' style='width:110px'><div class='single-line-ellipsis' title='{escape(claim_id)}'>{escape(claim_id)}</div></td>"
-                f"<td class='recent-claims-td' style='width:280px'><div class='patient-cell'>{patient_html}</div></td>"
-                f"<td class='recent-claims-td' style='width:180px'><div class='status-cell'>{_status_badge_html(mfq_status)}</div></td>"
-                f"<td class='recent-claims-td' style='width:200px'><div class='status-cell'>{_status_badge_html(workflow_status)}</div></td>"
-                f"<td class='recent-claims-td' style='width:130px'><div class='priority-cell'>{_priority_badge_html(row.get('PRIORITY'))}</div></td>"
-                f"<td class='recent-claims-td' style='width:200px'><div class='status-cell'>{_status_badge_html(claim_status)}</div></td>"
-                f"<td class='recent-claims-td' style='width:150px'><div class='single-line-ellipsis' title='{escape(claim_type)}'>{escape(display_claim_type)}</div></td>"
-                f"<td class='recent-claims-td' style='width:160px'><div class='single-line-ellipsis' title='{escape(requested)}'>{escape(requested)}</div></td>"
-                f"<td class='recent-claims-td' style='width:130px'><div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div></td>"
-                "<td class='recent-claims-td sticky-actions' style='width:130px'><div class='actions-slot'>Actions</div></td>"
+                f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_ID']}px'><div class='single-line-ellipsis' title='{escape(claim_id)}'>{escape(claim_id)}</div></td>"
+                f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['PATIENT_DEFENDANT']}px'><div class='patient-cell'>{patient_html}</div></td>"
+                f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['MFQ_STATUS']}px'><div class='status-cell'>{_status_badge_html(mfq_status)}</div></td>"
+                f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['WORKFLOW_STATUS']}px'><div class='status-cell'>{_status_badge_html(workflow_status)}</div></td>"
+                f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['PRIORITY']}px'><div class='priority-cell'>{_priority_badge_html(row.get('PRIORITY'))}</div></td>"
+                f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_STATUS']}px'><div class='status-cell'>{_status_badge_html(claim_status)}</div></td>"
+                f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_TYPE']}px'><div class='single-line-ellipsis' title='{escape(claim_type)}'>{escape(display_claim_type)}</div></td>"
+                f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['DATE_REQUESTED']}px'><div class='single-line-ellipsis' title='{escape(requested)}'>{escape(requested)}</div></td>"
+                f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['AI_CONFIDENCE']}px'><div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div></td>"
+                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{review_href}'>Review</a></td>"
                 "</tr>"
             )
         st.markdown(
-            "<div class='recent-claims-table-wrapper'><table class='recent-claims-table'><tbody>"
+            "<div class='recent-claims-table-wrapper'><table class='recent-claims-table'><thead><tr>"
+            + "".join(header_cells)
+            + "</tr></thead><tbody>"
             + "".join(rows_html)
             + "</tbody></table></div>",
             unsafe_allow_html=True,
         )
-
-        for _, row in show_df.iterrows():
-            claim_id = str(row.get("CLAIM_ID", "")).strip() or "—"
-            status = str(row.get("STATUS", "")).strip()
-            with st.container():
-                review_key = f"{key_prefix}_review_{claim_id}"
-                has_regen = status == "MFQ Generated"
-                action_cell_class = "actions-cell actions-cell-stacked" if has_regen else "actions-cell actions-cell-single"
-                st.markdown(f"<div class='{action_cell_class}'>", unsafe_allow_html=True)
-                if st.button("Review", key=review_key, type="secondary"):
-                    st.session_state["selected_claim_id"] = claim_id
-                    st.session_state["current_view"] = "claim_details"
-                    st.session_state["active_page"] = "Dashboard"
-                    st.rerun()
-
-                if has_regen:
-                    regen_key = f"{key_prefix}_regenerate_{claim_id}"
-                    if st.button("Regenerate", key=regen_key, type="secondary"):
-                        ok, message = _run_regeneration(claim_id=claim_id, row=row)
-                        if ok:
-                            st.success(message)
-                        else:
-                            st.error(message)
-                st.markdown("</div>", unsafe_allow_html=True)
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
         pager_cols = st.columns([3, 1], vertical_alignment="center")
         pager_cols[0].markdown(f"<div class='recent-claims-pagination-summary'>{summary_text}</div>", unsafe_allow_html=True)
