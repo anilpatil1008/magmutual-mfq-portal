@@ -57,23 +57,24 @@ section[data-testid="stSidebar"] .mm-sidebar-brand-eyebrow {
 section[data-testid="stSidebar"] .mm-sidebar-brand-row {
   display: flex;
   align-items: center;
-  gap: .55rem;
+  gap: 0.65rem;
   padding-left: var(--mm-sidebar-content-pad);
 }
 
 section[data-testid="stSidebar"] .brand-logo {
-  width: 40px;
-  height: 40px;
+  width: 52px;
+  height: 52px;
   object-fit: contain;
   display: block;
-  flex: 0 0 40px;
+  flex: 0 0 52px;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-brand-title {
-  font-size: 2rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: #161616;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
 }
 
 section[data-testid="stSidebar"] .mm-sidebar-divider {
