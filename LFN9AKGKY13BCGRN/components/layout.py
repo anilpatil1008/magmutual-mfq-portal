@@ -37,9 +37,9 @@ def load_css() -> None:
 def _render_role_selector(session, current_role: str) -> None:
     role_options = [str(role) for role in st.session_state.get("available_roles", []) if str(role).strip()]
     if not role_options:
-        role_options = [current_role]
-    elif current_role not in role_options:
-        role_options = [current_role, *role_options]
+        return
+    if current_role not in role_options:
+        current_role = role_options[0]
 
     selected_role = st.selectbox(
         "Role",
