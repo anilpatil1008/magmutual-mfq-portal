@@ -6,6 +6,7 @@ from typing import Any
 
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 
 from components.badges import priority_badge, status_badge
 
@@ -350,10 +351,10 @@ def render_recent_claims_table(
                 f"<td class='recent-claims-td' data-sort-value='{escape(display_claim_type.lower())}' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_TYPE']}px'><div class='single-line-ellipsis' title='{escape(claim_type)}'>{escape(display_claim_type)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(requested_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['DATE_REQUESTED']}px'><div class='single-line-ellipsis' title='{escape(requested)}'>{escape(requested)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(ai_confidence_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['AI_CONFIDENCE']}px'><div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div></td>"
-                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{review_href}'>Review</a></td>"
+                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{review_href}' target='_top'>Review</a></td>"
                 "</tr>"
             )
-        st.markdown(
+        table_html = (
             "<div class='recent-claims-table-wrapper'><table class='recent-claims-table'><thead><tr>"
             + "".join(header_cells)
             + "</tr></thead><tbody class='recent-claims-tbody'>"
@@ -399,9 +400,9 @@ def render_recent_claims_table(
                 });
               })();
             </script>
-            """,
-            unsafe_allow_html=True,
+            """
         )
+        components.html(table_html, height=560, scrolling=True)
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
         pager_cols = st.columns([3, 1], vertical_alignment="center")
         pager_cols[0].markdown(f"<div class='recent-claims-pagination-summary'>{summary_text}</div>", unsafe_allow_html=True)
@@ -415,4 +416,3 @@ def render_recent_claims_table(
                 if st.button("Next", key=f"{pagination_key_base}_next", disabled=current_page >= total_pages, use_container_width=True):
                     st.session_state[f"{pagination_key_base}_page"] = min(total_pages, current_page + 1)
                     st.rerun()
-        st.markdown("</div></div>", unsafe_allow_html=True)
