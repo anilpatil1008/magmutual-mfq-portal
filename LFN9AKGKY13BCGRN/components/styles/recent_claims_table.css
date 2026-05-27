@@ -1,0 +1,59 @@
+.recent-claims-table-wrapper {
+  width: 100%;
+  overflow: auto;
+}
+
+.recent-claims-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.recent-claims-th,
+.recent-claims-td {
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.recent-claims-th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #f4f4f4;
+}
+
+.sticky-actions-header,
+.sticky-actions-cell {
+  position: sticky;
+  right: 0;
+}
+
+.sticky-actions-header {
+  z-index: 3;
+  background: #f4f4f4;
+}
+
+.sticky-actions-cell {
+  z-index: 1;
+  background: #ffffff;
+}
+
+.recent-claims-sort-button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+}
+
+.recent-claims-sort-button .sort-arrow {
+  min-width: 0.75rem;
+}
