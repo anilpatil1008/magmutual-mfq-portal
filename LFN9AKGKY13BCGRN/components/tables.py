@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from html import escape
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
@@ -50,6 +51,55 @@ RECENT_CLAIMS_COLUMNS = [
 RECENT_CLAIMS_WIDTH_MAP = {c["key"]: c["width"] for c in RECENT_CLAIMS_COLUMNS}
 RECENT_CLAIMS_SORTABLE_KEYS = {c["key"] for c in RECENT_CLAIMS_COLUMNS if c["sortable"]}
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2, "unknown": 3}
+
+
+def _load_recent_claims_table_css() -> str:
+    css_path = Path(__file__).resolve().parent / "styles" / "recent_claims_table.css"
+    return css_path.read_text(encoding="utf-8")
+
+
+def _recent_claims_sort_script() -> str:
+    return """
+    <script>
+      (() => {
+        const wrappers = window.parent.document.querySelectorAll('.recent-claims-table-wrapper');
+        const wrapper = wrappers[wrappers.length - 1];
+        if (!wrapper) return;
+        const table = wrapper.querySelector('.recent-claims-table');
+        const tbody = table?.querySelector('.recent-claims-tbody');
+        const buttons = table?.querySelectorAll('.recent-claims-sort-button');
+        if (!table || !tbody || !buttons?.length) return;
+        const state = { key: null, direction: 'asc' };
+        const parseValue = (value, type) => {
+          if (type === 'number' || type === 'date' || type === 'priority') return Number(value || -1);
+          return String(value || '').toLowerCase();
+        };
+        buttons.forEach((button, index) => {
+          button.onclick = () => {
+            const key = button.dataset.sortKey;
+            const type = button.dataset.sortType || 'text';
+            state.direction = state.key === key && state.direction === 'asc' ? 'desc' : 'asc';
+            state.key = key;
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            rows.sort((a, b) => {
+              const aVal = parseValue(a.children[index]?.dataset.sortValue, type);
+              const bVal = parseValue(b.children[index]?.dataset.sortValue, type);
+              if (aVal < bVal) return state.direction === 'asc' ? -1 : 1;
+              if (aVal > bVal) return state.direction === 'asc' ? 1 : -1;
+              return 0;
+            });
+            rows.forEach((row) => tbody.appendChild(row));
+            buttons.forEach((btn) => {
+              btn.classList.remove('active-sort', 'sort-asc', 'sort-desc');
+              btn.querySelector('.sort-arrow').textContent = '';
+            });
+            button.classList.add('active-sort', state.direction === 'asc' ? 'sort-asc' : 'sort-desc');
+            button.querySelector('.sort-arrow').textContent = state.direction === 'asc' ? '↑' : '↓';
+          };
+        });
+      })();
+    </script>
+    """
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -355,52 +405,13 @@ def render_recent_claims_table(
                 "</tr>"
             )
         table_html = (
+            f"<style>{_load_recent_claims_table_css()}</style>"
             "<div class='recent-claims-table-wrapper'><table class='recent-claims-table'><thead><tr>"
             + "".join(header_cells)
             + "</tr></thead><tbody class='recent-claims-tbody'>"
             + "".join(rows_html)
             + "</tbody></table></div>"
-            + """
-            <script>
-              (() => {
-                const wrappers = window.parent.document.querySelectorAll('.recent-claims-table-wrapper');
-                const wrapper = wrappers[wrappers.length - 1];
-                if (!wrapper) return;
-                const table = wrapper.querySelector('.recent-claims-table');
-                const tbody = table?.querySelector('.recent-claims-tbody');
-                const buttons = table?.querySelectorAll('.recent-claims-sort-button');
-                if (!table || !tbody || !buttons?.length) return;
-                const state = { key: null, direction: 'asc' };
-                const parseValue = (value, type) => {
-                  if (type === 'number' || type === 'date' || type === 'priority') return Number(value || -1);
-                  return String(value || '').toLowerCase();
-                };
-                buttons.forEach((button, index) => {
-                  button.onclick = () => {
-                    const key = button.dataset.sortKey;
-                    const type = button.dataset.sortType || 'text';
-                    state.direction = state.key === key && state.direction === 'asc' ? 'desc' : 'asc';
-                    state.key = key;
-                    const rows = Array.from(tbody.querySelectorAll('tr'));
-                    rows.sort((a, b) => {
-                      const aVal = parseValue(a.children[index]?.dataset.sortValue, type);
-                      const bVal = parseValue(b.children[index]?.dataset.sortValue, type);
-                      if (aVal < bVal) return state.direction === 'asc' ? -1 : 1;
-                      if (aVal > bVal) return state.direction === 'asc' ? 1 : -1;
-                      return 0;
-                    });
-                    rows.forEach((row) => tbody.appendChild(row));
-                    buttons.forEach((btn) => {
-                      btn.classList.remove('active-sort', 'sort-asc', 'sort-desc');
-                      btn.querySelector('.sort-arrow').textContent = '';
-                    });
-                    button.classList.add('active-sort', state.direction === 'asc' ? 'sort-asc' : 'sort-desc');
-                    button.querySelector('.sort-arrow').textContent = state.direction === 'asc' ? '↑' : '↓';
-                  };
-                });
-              })();
-            </script>
-            """
+            + _recent_claims_sort_script()
         )
         components.html(table_html, height=560, scrolling=True)
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
