@@ -2700,87 +2700,254 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 /* Recent Claims table (component iframe) */
 .recent-claims-table-wrapper {
   width: 100%;
-  overflow: auto;
-  border: 1px solid var(--mm-border);
-  border-radius: 0.5rem;
-  background: var(--mm-surface);
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 560px;
+  border: 1px solid var(--mm-border, #dde1e6);
+  border-radius: 14px;
+  background: var(--mm-surface, #ffffff);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
 }
 
 .recent-claims-table {
-  width: max-content;
-  min-width: 100%;
+  width: 100%;
+  min-width: 1510px;
   border-collapse: separate;
   border-spacing: 0;
   table-layout: fixed;
+  background: var(--mm-surface, #ffffff);
+  font-size: 0.84rem;
   font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
+.recent-claims-table th,
+.recent-claims-table td,
 .recent-claims-th,
 .recent-claims-td {
-  padding: 0.75rem;
-  text-align: left;
-  vertical-align: middle;
-  border-bottom: 1px solid var(--mm-border);
-  color: var(--mm-text);
-  background: var(--mm-surface);
+  text-align: left !important;
 }
 
 .recent-claims-th {
   position: sticky;
   top: 0;
-  z-index: 2;
-  background: var(--mm-bg);
-  font-weight: 600;
+  z-index: 3;
+  background: #f4f4f4;
+  color: #525252;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--mm-border, #dde1e6);
+  white-space: nowrap;
+}
+
+.recent-claims-td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #edf0f2;
+  color: var(--mm-text, #161616);
+  background: #ffffff;
+  vertical-align: middle;
+  line-height: 1.35;
+}
+
+.recent-claims-table tbody tr {
+  transition: background-color 140ms ease, box-shadow 140ms ease;
+}
+
+.recent-claims-table tbody tr:hover td {
+  background: #edf5ff;
+  box-shadow: inset 3px 0 0 var(--mm-blue, #0f62fe);
 }
 
 .recent-claims-sort-button {
-  appearance: none;
-  background: transparent;
+  width: 100%;
   border: 0;
+  background: transparent;
+  color: #525252;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font: inherit;
-  color: inherit;
+  justify-content: flex-start !important;
+  gap: 6px;
   padding: 0;
+  text-align: left !important;
 }
 
-.recent-claims-sort-button.active-sort { color: var(--mm-blue); }
-.sort-arrow { min-width: 0.75rem; color: var(--mm-blue); }
+.recent-claims-sort-button:hover,
+.recent-claims-sort-button.active-sort {
+  color: var(--mm-blue, #0f62fe);
+}
 
-.single-line-ellipsis {
-  white-space: nowrap;
+.sort-arrow {
+  margin-left: 4px;
+  min-width: 14px;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.claim-id-cell,
+.requested-cell,
+.patient-cell,
+.status-cell,
+.priority-cell,
+.confidence-cell,
+.actions-cell {
+  text-align: left !important;
+}
+
+.status-cell,
+.priority-cell,
+.confidence-cell,
+.actions-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start !important;
+}
+
+.patient-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  min-width: 0;
+}
+
+.patient-name {
+  display: block;
+  color: #161616;
+  font-size: 0.86rem;
+  font-weight: 700;
+  line-height: 1.25;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.patient-cell { display: flex; flex-direction: column; gap: 0.2rem; }
-.patient-name { font-weight: 600; }
-.defendant-name { color: var(--mm-subtle); font-size: 0.85rem; }
+.defendant-name {
+  display: block;
+  color: #6f6f6f;
+  font-size: 0.76rem;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.single-line-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .status-badge,
 .priority-badge,
 .confidence-badge {
   display: inline-flex;
   align-items: center;
+  justify-content: flex-start;
+  min-height: 26px;
+  padding: 0 10px;
   border-radius: 999px;
-  padding: 0.2rem 0.5rem;
-  font-size: 0.8rem;
-  font-weight: 600;
+  border: 1px solid transparent;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+}
+
+.status-badge {
+  background: #edf5ff;
+  color: #0f62fe;
+  border-color: #a6c8ff;
+}
+
+.priority-badge {
+  background: #f4f4f4;
+  color: #525252;
+  border-color: #e0e0e0;
+}
+
+.priority-high {
+  background: #fff1f1;
+  color: #da1e28;
+  border-color: #ffb3b8;
+}
+
+.priority-medium {
+  background: #fff8e1;
+  color: #8a5d00;
+  border-color: #ffd57a;
+}
+
+.priority-low {
+  background: #defbe6;
+  color: #24a148;
+  border-color: #a7f0ba;
+}
+
+.confidence-high {
+  background: #defbe6;
+  color: #24a148;
+  border-color: #a7f0ba;
+}
+
+.confidence-medium {
+  background: #f6f2ff;
+  color: #6929c4;
+  border-color: #d4bbff;
+}
+
+.confidence-low,
+.confidence-na {
+  background: #fff1f1;
+  color: #da1e28;
+  border-color: #ffb3b8;
 }
 
 .review-link {
-  color: var(--mm-blue);
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 76px;
+  padding: 7px 13px;
+  border-radius: 8px;
+  border: 1px solid #a6c8ff;
+  background: #ffffff;
+  color: var(--mm-blue, #0f62fe);
+  font-size: 0.78rem;
+  font-weight: 700;
   text-decoration: none;
-  font-weight: 600;
+  transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
-.review-link:hover { color: var(--mm-blue-2); text-decoration: underline; }
+
+.review-link:hover {
+  background: #edf5ff;
+  border-color: var(--mm-blue, #0f62fe);
+  color: var(--mm-blue-2, #0043ce);
+  box-shadow: 0 0 0 2px rgba(15, 98, 254, 0.12);
+}
 
 .sticky-actions-header,
 .sticky-actions-cell {
   position: sticky;
   right: 0;
+  z-index: 4;
+  border-left: 1px solid var(--mm-border, #dde1e6);
+  box-shadow: -6px 0 12px rgba(15, 23, 42, 0.08);
 }
-.sticky-actions-header { z-index: 3; background: var(--mm-bg); }
-.sticky-actions-cell { z-index: 1; background: var(--mm-surface); }
+
+.sticky-actions-header {
+  background: #f4f4f4;
+  z-index: 5;
+}
+
+.sticky-actions-cell {
+  background: #ffffff;
+}
