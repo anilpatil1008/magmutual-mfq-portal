@@ -33,43 +33,21 @@ ENTERPRISE_COLUMNS = [
     "AI_CONFIDENCE",
     "STATUS",
 ]
-RECENT_CLAIMS_HEADERS = [
-    "Claim ID",
-    "Patient / Defendant",
-    "MFQ Status",
-    "Workflow Status",
-    "Priority",
-    "Claim Status",
-    "Claim Type",
-    "Date Requested",
-    "AI Conf.",
-    "Actions",
+RECENT_CLAIMS_COLUMNS = [
+    {"key": "CLAIM_ID", "label": "Claim ID", "width": 110, "sortable": True},
+    {"key": "PATIENT_NAME", "label": "Patient / Defendant", "width": 280, "sortable": True},
+    {"key": "MFQ_STATUS", "label": "MFQ Status", "width": 180, "sortable": True},
+    {"key": "WORKFLOW_STATUS", "label": "Workflow Status", "width": 200, "sortable": True},
+    {"key": "PRIORITY", "label": "Priority", "width": 130, "sortable": True},
+    {"key": "CLAIM_STATUS", "label": "Claim Status", "width": 200, "sortable": True},
+    {"key": "CLAIM_TYPE", "label": "Claim Type", "width": 150, "sortable": True},
+    {"key": "DATE_REQUESTED", "label": "Date Requested", "width": 160, "sortable": True},
+    {"key": "AI_CONFIDENCE", "label": "AI Conf.", "width": 130, "sortable": True},
+    {"key": "ACTIONS", "label": "Actions", "width": 130, "sortable": False},
 ]
 
-RECENT_CLAIMS_COLUMN_WIDTHS = [110, 260, 170, 180, 120, 180, 140, 150, 120, 130]
-RECENT_CLAIMS_SORT_COLUMNS = [
-    ("CLAIM_ID", "Claim ID"),
-    ("PATIENT_NAME", "Patient / Defendant"),
-    ("MFQ_STATUS", "MFQ Status"),
-    ("WORKFLOW_STATUS", "Workflow Status"),
-    ("PRIORITY", "Priority"),
-    ("DATE_REQUESTED", "Date Requested"),
-    ("AI_CONFIDENCE", "AI Confidence"),
-    ("CLAIM_TYPE", "Claim Type"),
-    ("CLAIM_STATUS", "Claim Status"),
-]
-RECENT_CLAIMS_WIDTH_MAP = {
-    "CLAIM_ID": 110,
-    "PATIENT_DEFENDANT": 280,
-    "MFQ_STATUS": 180,
-    "WORKFLOW_STATUS": 200,
-    "PRIORITY": 130,
-    "CLAIM_STATUS": 200,
-    "CLAIM_TYPE": 150,
-    "DATE_REQUESTED": 160,
-    "AI_CONFIDENCE": 130,
-    "ACTIONS": 130,
-}
+RECENT_CLAIMS_WIDTH_MAP = {c["key"]: c["width"] for c in RECENT_CLAIMS_COLUMNS}
+RECENT_CLAIMS_SORTABLE_KEYS = {c["key"] for c in RECENT_CLAIMS_COLUMNS if c["sortable"]}
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2, "unknown": 3}
 
 def _normalize_slug(value: Any) -> str:
@@ -316,7 +294,7 @@ def render_recent_claims_table(
     query_dir = st.query_params.get("recent_claims_dir")
     if query_sort:
         selected = str(query_sort).strip()
-        valid_columns = {column for column, _ in RECENT_CLAIMS_SORT_COLUMNS}
+        valid_columns = set(RECENT_CLAIMS_SORTABLE_KEYS)
         if selected in valid_columns:
             sort_column = selected
             sort_direction = "desc" if str(query_dir).strip().lower() == "desc" else "asc"
@@ -328,25 +306,24 @@ def render_recent_claims_table(
     show_df = _sort_recent_claims(page_df, sort_column=sort_column, sort_direction=sort_direction)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
-        sort_headers = {label: key for key, label in RECENT_CLAIMS_SORT_COLUMNS}
         header_cells: list[str] = []
-        for header in RECENT_CLAIMS_HEADERS:
-            if header in sort_headers:
-                selected_column = sort_headers[header]
-                is_active = sort_column == selected_column
-                next_direction = _toggle_sort_direction(sort_column or "", selected_column, sort_direction)
+        for column in RECENT_CLAIMS_COLUMNS:
+            col_key = column["key"]
+            label = column["label"]
+            width_px = column["width"]
+            if column["sortable"]:
+                is_active = sort_column == col_key
+                next_direction = _toggle_sort_direction(sort_column or "", col_key, sort_direction)
                 arrow = "↑" if is_active and sort_direction == "asc" else "↓" if is_active and sort_direction == "desc" else ""
-                label_html = f"{escape(header)} <span class='sort-arrow'>{arrow}</span>" if arrow else escape(header)
-                sort_href = f"?recent_claims_sort={escape(selected_column)}&recent_claims_dir={escape(next_direction)}"
-                width_key = "PATIENT_DEFENDANT" if selected_column == "PATIENT_NAME" else selected_column
-                width_px = RECENT_CLAIMS_WIDTH_MAP.get(width_key, RECENT_CLAIMS_WIDTH_MAP["CLAIM_ID"])
+                label_html = f"{escape(label)} <span class='sort-arrow'>{arrow}</span>" if arrow else escape(label)
+                sort_href = f"?recent_claims_sort={escape(col_key)}&recent_claims_dir={escape(next_direction)}"
                 header_cells.append(
                     f"<th class='recent-claims-th' style='width:{width_px}px;'>"
-                    f"<a class='recent-claims-sort-link' href='{sort_href}'>{label_html}</a></th>"
+                    f"<a class='recent-claims-sort-link' target='_self' rel='noopener noreferrer' href='{sort_href}'>{label_html}</a></th>"
                 )
-            elif header == "Actions":
+            else:
                 header_cells.append(
-                    f"<th class='recent-claims-th sticky-actions-header' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'>{escape(header)}</th>"
+                    f"<th class='recent-claims-th sticky-actions-header' style='width:{width_px}px'>{escape(label)}</th>"
                 )
 
         rows_html: list[str] = []
@@ -371,7 +348,7 @@ def render_recent_claims_table(
             rows_html.append(
                 "<tr>"
                 f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_ID']}px'><div class='single-line-ellipsis' title='{escape(claim_id)}'>{escape(claim_id)}</div></td>"
-                f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['PATIENT_DEFENDANT']}px'><div class='patient-cell'>{patient_html}</div></td>"
+                f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['PATIENT_NAME']}px'><div class='patient-cell'>{patient_html}</div></td>"
                 f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['MFQ_STATUS']}px'><div class='status-cell'>{_status_badge_html(mfq_status)}</div></td>"
                 f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['WORKFLOW_STATUS']}px'><div class='status-cell'>{_status_badge_html(workflow_status)}</div></td>"
                 f"<td class='recent-claims-td' style='width:{RECENT_CLAIMS_WIDTH_MAP['PRIORITY']}px'><div class='priority-cell'>{_priority_badge_html(row.get('PRIORITY'))}</div></td>"
