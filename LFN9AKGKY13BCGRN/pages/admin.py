@@ -7,7 +7,7 @@ from repositories.admin_repository import get_assignment_queue, get_role_permiss
 
 def render(session, ctx) -> None:
     st.subheader("Administration")
-    if ctx.app_role != "Admin":
+    if ctx.sf_role != "Admin":
         st.error("Admin access is required.")
         return
 

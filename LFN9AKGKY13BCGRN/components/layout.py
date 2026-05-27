@@ -9,7 +9,7 @@ import re
 import streamlit as st
 
 from components.notifications import render_notification_center
-from services.rbac_service import allowed_pages, set_active_sf_role
+from services.rbac_service import set_active_sf_role
 
 _HIDE_DEFAULT_STREAMLIT_NAV_CSS = """
 <style>
@@ -79,7 +79,7 @@ def _first_non_empty(*values: object) -> str:
     return ""
 
 
-def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str, str]:
+def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str]:
     username = _clean_profile_value(getattr(ctx, "username", ""))
 
     full_name_candidates = [
@@ -113,10 +113,6 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str, str]:
     if "@" not in email_value:
         email_value = ""
 
-    app_role = _first_non_empty(
-        getattr(ctx, "app_role", None),
-        st.session_state.get("app_role"),
-    )
     sf_role = _first_non_empty(
         st.session_state.get("selected_sf_role"),
         st.session_state.get("selected_role"),
@@ -125,19 +121,18 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str, str]:
     )
 
     initials = "".join(part[0] for part in short_name.split()[:2]).upper() or "U"
-    return short_name, full_name, username, email_value, app_role, sf_role, initials
+    return short_name, full_name, username, email_value, sf_role, initials
 
 
 
 def render_header(session, ctx, notifications_df) -> None:
     unread = int((~notifications_df["IS_READ"]).sum()) if "IS_READ" in notifications_df.columns else 0
 
-    short_name, full_name, username, email, app_role, sf_role, initials = _resolve_profile_display(ctx)
+    short_name, full_name, username, email, sf_role, initials = _resolve_profile_display(ctx)
     safe_short_name = escape(short_name or "Profile")
     safe_full_name = escape(full_name or "N/A")
     safe_username = escape(username or "N/A")
     safe_email = escape(email or "N/A")
-    safe_app_role = escape(app_role or "N/A")
     safe_sf_role = escape(sf_role or "N/A")
 
     header_container = st.container(key="app_topbar")
@@ -168,7 +163,6 @@ def render_header(session, ctx, notifications_df) -> None:
                                 <div class="mm-profile-fullname">{safe_full_name}</div>
                                 <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Name</span><span class="mm-profile-detail-value">{safe_full_name}</span></div>
                                 <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Username</span><span class="mm-profile-detail-value">{safe_username}</span></div>
-                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Role</span><span class="mm-profile-detail-value">{safe_app_role}</span></div>
                                 <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Snowflake Role</span><span class="mm-profile-detail-value">{safe_sf_role}</span></div>
                                 <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Email</span><span class="mm-profile-detail-value">{safe_email}</span></div>
                             </div>
@@ -211,7 +205,7 @@ def render_sidebar(ctx) -> None:
         )
         st.markdown('<div class="mm-sidebar-divider"></div>', unsafe_allow_html=True)
 
-        pages = [page for page in allowed_pages(ctx.app_role) if page in {"Dashboard", "Claims", "Reports"}]
+        pages = ["Dashboard", "Claims", "Reports"]
         for page in pages:
             active = st.session_state.active_page == page
             icon = page_icons.get(page, ":material/chevron_right:")

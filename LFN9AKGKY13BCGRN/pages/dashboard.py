@@ -64,7 +64,7 @@ def _render_dashboard_view(session, ctx) -> None:
         )
 
     t0 = perf_counter()
-    metrics = get_dashboard_metrics(session, app_role=ctx.app_role, username=ctx.username)
+    metrics = get_dashboard_metrics(session, app_role=ctx.sf_role, username=ctx.username)
     logger.info("dashboard_metrics_ms=%d", int((perf_counter() - t0) * 1000))
     render_kpi_cards(metrics)
 
@@ -96,7 +96,7 @@ def _render_dashboard_view(session, ctx) -> None:
 
 
         t1 = perf_counter()
-        queue = get_claims_queue(session, ctx.app_role, ctx.username)
+        queue = get_claims_queue(session, ctx.sf_role, ctx.username)
         logger.info("dashboard_recent_claims_ms=%d rows=%d", int((perf_counter() - t1) * 1000), len(queue))
         if queue.empty:
             render_recent_claims_table(queue, key_prefix="dash")

@@ -31,7 +31,7 @@ def render(session, ctx) -> None:
     with f3:
         sort_by = st.selectbox("Sort", ["Newest", "Oldest"], key="claims_sort_order")
 
-    df = get_claims_queue(session, ctx.app_role, ctx.username, search, status)
+    df = get_claims_queue(session, ctx.sf_role, ctx.username, search, status)
     if "DATE_REQUESTED" in df.columns and sort_by == "Oldest":
         df = df.sort_values("DATE_REQUESTED", ascending=True)
 

@@ -86,8 +86,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
             if st.button(assign_label, type="primary", use_container_width=True):
                 st.session_state[f"open_assign_modal_{claim_id}"] = True
 
-            if ctx.app_role in {"Claims Analyst", "Advice Team", "Admin", "Executive"}:
-                if st.button("Approve", type="secondary", use_container_width=True):
+            if st.button("Approve", type="secondary", use_container_width=True):
                     update_claim_status(session, claim_id, "Approved")
                     st.success("Claim approved.")
                     st.rerun()
@@ -809,12 +808,12 @@ def render(session, ctx) -> None:
 
     with tabs[0]:
         can_edit = can_edit_claim(
-            ctx.app_role,
+            ctx.sf_role,
             str(claim.get("STATUS", "")),
             claim.get("ASSIGNED_TO"),
             ctx.username,
         )
-        editable_section_ids = get_editable_section_ids_for_user(session, str(claim_id), ctx.app_role, ctx.username)
+        editable_section_ids = get_editable_section_ids_for_user(session, str(claim_id), ctx.sf_role, ctx.username)
         save_clicked = False
         with st.container(key="mfq_header_card"):
             title_col, edit_col = st.columns([7.4, 1.4], vertical_alignment="center")
