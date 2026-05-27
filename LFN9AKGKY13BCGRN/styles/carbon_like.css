@@ -2596,3 +2596,26 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   align-items: center;
   justify-content: flex-start;
 }
+
+.st-key-dash_recent_claims_table .recent-claims-table-wrapper {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 560px;
+}
+.st-key-dash_recent_claims_table .recent-claims-table {
+  min-width: 1670px;
+  border-collapse: collapse;
+}
+.st-key-dash_recent_claims_table .recent-claims-td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #e0e0e0;
+  vertical-align: middle;
+  background: #fff;
+}
+.st-key-dash_recent_claims_table .sticky-actions {
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  border-left: 1px solid #e0e0e0;
+  box-shadow: -4px 0 8px rgba(0,0,0,0.04);
+}
