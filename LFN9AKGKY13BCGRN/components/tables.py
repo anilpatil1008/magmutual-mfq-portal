@@ -338,8 +338,10 @@ def render_recent_claims_table(
                 arrow = "↑" if is_active and sort_direction == "asc" else "↓" if is_active and sort_direction == "desc" else ""
                 label_html = f"{escape(header)} <span class='sort-arrow'>{arrow}</span>" if arrow else escape(header)
                 sort_href = f"?recent_claims_sort={escape(selected_column)}&recent_claims_dir={escape(next_direction)}"
+                width_key = "PATIENT_DEFENDANT" if selected_column == "PATIENT_NAME" else selected_column
+                width_px = RECENT_CLAIMS_WIDTH_MAP.get(width_key, RECENT_CLAIMS_WIDTH_MAP["CLAIM_ID"])
                 header_cells.append(
-                    f"<th class='recent-claims-th' style='width:{RECENT_CLAIMS_WIDTH_MAP[selected_column]}px;'>"
+                    f"<th class='recent-claims-th' style='width:{width_px}px;'>"
                     f"<a class='recent-claims-sort-link' href='{sort_href}'>{label_html}</a></th>"
                 )
             elif header == "Actions":
