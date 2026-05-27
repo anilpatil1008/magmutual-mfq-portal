@@ -9,7 +9,7 @@ import re
 import streamlit as st
 
 from components.notifications import render_notification_center
-from services.rbac_service import allowed_pages
+from services.rbac_service import allowed_pages, set_active_sf_role
 
 _HIDE_DEFAULT_STREAMLIT_NAV_CSS = """
 <style>
@@ -34,7 +34,7 @@ def load_css() -> None:
     st.markdown(_HIDE_DEFAULT_STREAMLIT_NAV_CSS, unsafe_allow_html=True)
 
 
-def _render_role_selector(current_role: str) -> None:
+def _render_role_selector(session, current_role: str) -> None:
     role_options = [str(role) for role in st.session_state.get("available_roles", []) if str(role).strip()]
     if not role_options:
         role_options = [current_role]
@@ -50,9 +50,7 @@ def _render_role_selector(current_role: str) -> None:
     )
 
     if selected_role != current_role:
-        st.session_state["selected_sf_role"] = selected_role
-        st.session_state["selected_role"] = selected_role
-        st.session_state["sf_role"] = selected_role
+        set_active_sf_role(session, selected_role)
         st.rerun()
 
 
@@ -131,7 +129,7 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str, str]:
 
 
 
-def render_header(ctx, notifications_df) -> None:
+def render_header(session, ctx, notifications_df) -> None:
     unread = int((~notifications_df["IS_READ"]).sum()) if "IS_READ" in notifications_df.columns else 0
 
     short_name, full_name, username, email, app_role, sf_role, initials = _resolve_profile_display(ctx)
@@ -148,7 +146,7 @@ def render_header(ctx, notifications_df) -> None:
 
     active_sf_role = st.session_state.get("selected_sf_role") or sf_role or ctx.sf_role
     with role_col:
-        _render_role_selector(active_sf_role)
+        _render_role_selector(session, active_sf_role)
 
     with bell_col:
         with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):

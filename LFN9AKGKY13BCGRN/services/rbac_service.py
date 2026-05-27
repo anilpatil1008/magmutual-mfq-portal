@@ -39,15 +39,21 @@ def get_current_role(session) -> str:
     return str(row["CURRENT_ROLE"]).strip()
 
 
+def quote_identifier(value: str) -> str:
+    escaped = str(value or "").replace('"', '""')
+    return f'"{escaped}"'
+
+
 @st.cache_data(show_spinner=False, ttl=300)
-def _fetch_assigned_roles_for_user(session, username: str) -> list[str]:
-    grants_df = session.sql(f'SHOW GRANTS TO USER "{username}"').to_pandas()
+def _fetch_assigned_roles_for_user(_session, username: str) -> list[str]:
+    grants_df = _session.sql(f"SHOW GRANTS TO USER {quote_identifier(username)}").to_pandas()
     if grants_df.empty:
         return []
 
     role_values: list[str] = []
+    candidate_columns = {"ROLE", "GRANTED_ROLE", "NAME"}
     for column in grants_df.columns:
-        if str(column).strip().upper() in {"ROLE", "GRANTED_ROLE"}:
+        if str(column).strip().upper() in candidate_columns:
             role_values.extend(grants_df[column].tolist())
 
     deduped_roles = sorted({str(value or "").strip() for value in role_values if str(value or "").strip()})
@@ -60,7 +66,8 @@ def get_available_roles_for_current_user(session) -> list[str]:
 
     try:
         assigned_roles = _fetch_assigned_roles_for_user(session, username)
-    except Exception:
+    except Exception as ex:
+        st.warning(f"Unable to fetch Snowflake roles. Showing current role only. Error: {ex}")
         return [current_role] if current_role else []
 
     if not assigned_roles:
@@ -80,6 +87,28 @@ def get_available_roles(session) -> tuple[list[str], str]:
     if not available_roles:
         available_roles = [current_role] if current_role else []
     return available_roles, current_role
+
+
+
+
+def get_selected_sf_role(session) -> str:
+    available_roles, current_role = get_available_roles(session)
+    selected_role = str(st.session_state.get("selected_sf_role") or "").strip()
+    if selected_role and selected_role in available_roles:
+        return selected_role
+    return current_role
+
+
+def set_active_sf_role(session, new_role: str) -> str:
+    selected_role = str(new_role or "").strip()
+    if not selected_role:
+        return get_current_role(session)
+
+    session.sql(f"USE ROLE {quote_identifier(selected_role)}").collect()
+    st.session_state["selected_sf_role"] = selected_role
+    st.session_state["selected_role"] = selected_role
+    st.session_state["sf_role"] = selected_role
+    return selected_role
 
 
 def get_current_user_context(session) -> UserContext:
