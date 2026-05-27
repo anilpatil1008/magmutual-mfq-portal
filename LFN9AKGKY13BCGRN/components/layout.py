@@ -9,7 +9,7 @@ import re
 import streamlit as st
 
 from components.notifications import render_notification_center
-from services.rbac_service import allowed_pages, set_active_role
+from services.rbac_service import allowed_pages
 
 _HIDE_DEFAULT_STREAMLIT_NAV_CSS = """
 <style>
@@ -50,9 +50,9 @@ def _render_role_selector(current_role: str) -> None:
     )
 
     if selected_role != current_role:
+        st.session_state["selected_sf_role"] = selected_role
         st.session_state["selected_role"] = selected_role
         st.session_state["sf_role"] = selected_role
-        set_active_role(selected_role)
         st.rerun()
 
 
@@ -119,7 +119,12 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str, str]:
         getattr(ctx, "app_role", None),
         st.session_state.get("app_role"),
     )
-    sf_role = _first_non_empty(st.session_state.get("selected_role"), getattr(ctx, "sf_role", None), st.session_state.get("sf_role"))
+    sf_role = _first_non_empty(
+        st.session_state.get("selected_sf_role"),
+        st.session_state.get("selected_role"),
+        getattr(ctx, "sf_role", None),
+        st.session_state.get("sf_role"),
+    )
 
     initials = "".join(part[0] for part in short_name.split()[:2]).upper() or "U"
     return short_name, full_name, username, email_value, app_role, sf_role, initials
@@ -141,7 +146,7 @@ def render_header(ctx, notifications_df) -> None:
     actions_container = header_container.container(key="portal_header_actions")
     role_col, bell_col, profile_col = actions_container.columns([380, 120, 330], gap="small")
 
-    active_sf_role = st.session_state.get("selected_role") or sf_role or ctx.sf_role
+    active_sf_role = st.session_state.get("selected_sf_role") or sf_role or ctx.sf_role
     with role_col:
         _render_role_selector(active_sf_role)
 

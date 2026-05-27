@@ -41,7 +41,7 @@ def get_current_role(session) -> str:
 
 @st.cache_data(show_spinner=False, ttl=300)
 def _fetch_assigned_roles_for_user(session, username: str) -> list[str]:
-    grants_df = session.sql(f"SHOW GRANTS TO USER {username}").to_pandas()
+    grants_df = session.sql(f'SHOW GRANTS TO USER "{username}"').to_pandas()
     if grants_df.empty:
         return []
 
