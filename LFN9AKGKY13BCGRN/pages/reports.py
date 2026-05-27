@@ -8,7 +8,7 @@ from services.report_service import get_report_frame
 
 def render(session, ctx) -> None:
     st.subheader("Reports & Analytics")
-    df = get_report_frame(session, app_role=ctx.app_role, username=ctx.username)
+    df = get_report_frame(session, app_role=ctx.sf_role, username=ctx.username)
 
     if df.empty:
         st.info("No report data available.")
