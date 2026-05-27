@@ -157,22 +157,14 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 
 
-/* top navigation container */
+/* topbar visibility fix */
 .st-key-app_topbar {
-  width: 100%;
-  margin: 0 0 18px !important;
-  padding: 0 !important;
-}
-
-/* Topbar card */
-.st-key-app_topbar [data-testid="stHorizontalBlock"] {
-  min-height: 56px !important;
-  padding: 9px 14px !important;
-  border: 1px solid #dde1e6 !important;
-  border-radius: 12px !important;
-  background: linear-gradient(135deg, #ffffff 0%, #f7faff 100%) !important;
-  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06) !important;
-  align-items: center !important;
+  min-height: 72px;
+  padding-top: 18px;
+  padding-bottom: 12px;
+  overflow: visible !important;
+  box-sizing: border-box;
+  margin-bottom: .85rem;
 }
 
 .st-key-app_topbar > div,
@@ -184,17 +176,12 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   overflow: visible !important;
 }
 
-/* Right aligned controls */
-.st-key-portal_header_actions {
-  width: 100%;
-}
-
 .st-key-portal_header_actions [data-testid="stHorizontalBlock"] {
-  display: flex !important;
-  justify-content: flex-end !important;
-  align-items: center !important;
-  gap: 10px !important;
-  flex-wrap: nowrap !important;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: nowrap;
   overflow: visible !important;
 }
 
@@ -204,95 +191,57 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   overflow: visible !important;
 }
 
-/* Control column widths */
-.st-key-portal_header_actions [data-testid="column"]:nth-child(1) {
-  width: clamp(260px, 28vw, 380px) !important;
-  flex: 0 0 auto !important;
-}
-
-.st-key-portal_header_actions [data-testid="column"]:nth-child(2) {
-  width: 118px !important;
-  flex: 0 0 118px !important;
-}
-
-.st-key-portal_header_actions [data-testid="column"]:nth-child(3) {
-  width: clamp(240px, 25vw, 330px) !important;
-  flex: 0 0 auto !important;
-}
-
-/* Common control style */
 .st-key-portal_header_actions .stSelectbox > div[data-baseweb="select"] > div,
 .st-key-header_notifications_popover > div > button,
 .st-key-header_profile_popover > div > button {
-  height: 40px !important;
-  min-height: 40px !important;
-  border-radius: 8px !important;
-  border: 1px solid #cfd6de !important;
-  background: #ffffff !important;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04) !important;
-  color: #161616 !important;
-  font-size: 0.88rem !important;
+  height: 40px;
+  min-height: 40px;
   display: flex;
   align-items: center;
   box-sizing: border-box;
 }
-
-/* Role dropdown */
-.st-key-header_role_select .stSelectbox [data-baseweb="select"] > div {
-  min-width: 260px !important;
+/* top bar redesign */
+.mm-topbar-shell {
+  background: linear-gradient(135deg, #ffffff 0%, #f4f8ff 100%);
+  border: 1px solid #d8e2f0;
+  border-radius: 14px;
+  padding: .7rem .95rem .6rem;
+  margin-bottom: .55rem;
+  box-shadow: 0 2px 8px rgba(15, 35, 95, 0.06);
 }
 
-.st-key-header_role_select .stSelectbox [data-baseweb="select"] span {
-  font-size: 0.88rem !important;
-  color: #161616 !important;
+.mm-topbar-eyebrow {
+  font-size: .68rem;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #5d6b82;
+  font-weight: 700;
 }
 
-/* Notification button */
-.st-key-header_notifications_popover > div > button {
-  justify-content: center !important;
-  font-weight: 600 !important;
-  padding: 0 12px !important;
+.mm-topbar-title {
+  font-size: 1.06rem;
+  font-weight: 700;
+  color: #102a43;
+  margin-top: .1rem;
 }
 
-.st-key-header_notifications_popover > div > button:hover {
-  background: #edf5ff !important;
-  border-color: #a6c8ff !important;
+.st-key-app_topbar [data-testid="column"] {
+  display: flex;
+  align-items: center;
 }
 
-/* Profile button */
+.st-key-app_topbar [data-testid="column"] .stMarkdown p {
+  margin: 0;
+}
+
+.st-key-app_topbar .stSelectbox > div[data-baseweb="select"] > div,
+.st-key-header_notifications_popover > div > button,
 .st-key-header_profile_popover > div > button {
-  justify-content: center !important;
-  gap: 8px !important;
-  padding: 0 14px !important;
-  font-weight: 500 !important;
-}
-
-.st-key-header_profile_popover > div > button p {
-  margin: 0 !important;
-  white-space: nowrap !important;
-  overflow: hidden !important;
-  text-overflow: ellipsis !important;
-}
-
-/* Hover state for all topbar controls */
-.st-key-portal_header_actions .stSelectbox > div[data-baseweb="select"] > div:hover,
-.st-key-header_notifications_popover > div > button:hover,
-.st-key-header_profile_popover > div > button:hover {
-  border-color: #0f62fe !important;
-  box-shadow: 0 0 0 2px rgba(15, 98, 254, 0.08) !important;
-}
-
-/* Responsive behavior */
-@media (max-width: 900px) {
-  .st-key-portal_header_actions [data-testid="stHorizontalBlock"] {
-    justify-content: flex-start !important;
-    flex-wrap: wrap !important;
-  }
-
-  .st-key-portal_header_actions [data-testid="column"] {
-    width: 100% !important;
-    flex: 1 1 100% !important;
-  }
+  min-height: 42px;
+  border-radius: 10px;
+  border: 1px solid #ccd7e6;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
 }
 
 .st-key-mm_header_controls {
