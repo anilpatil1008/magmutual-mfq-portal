@@ -274,6 +274,19 @@ def render_recent_claims_table(
 
     show_df = df.copy()
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
+
+    sort_key_base = f"{key_prefix}_recent_claims_sort"
+    sort_column_key = f"{sort_key_base}_column"
+    sort_direction_key = f"{sort_key_base}_direction"
+    if sort_column_key not in st.session_state:
+        st.session_state[sort_column_key] = None
+    if sort_direction_key not in st.session_state:
+        st.session_state[sort_direction_key] = "asc"
+
+    sort_column = st.session_state.get(sort_column_key)
+    sort_direction = st.session_state.get(sort_direction_key, "asc")
+    show_df = _sort_recent_claims(show_df, sort_column, sort_direction)
+
     total_claims = len(show_df)
     total_pages = max(1, (total_claims + page_size - 1) // page_size)
     current_page = int(st.session_state.get(f"{pagination_key_base}_page", 1))
@@ -286,48 +299,43 @@ def render_recent_claims_table(
     show_df = page_df
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
-        header_cells: list[str] = []
-        for column in RECENT_CLAIMS_COLUMNS:
+        column_widths = [c["width"] for c in RECENT_CLAIMS_COLUMNS]
+        total_width = float(sum(column_widths))
+        normalized_widths = [w / total_width for w in column_widths]
+
+        header_cols = st.columns(normalized_widths, vertical_alignment="center")
+        for idx, column in enumerate(RECENT_CLAIMS_COLUMNS):
             col_key = column["key"]
             label = column["label"]
-            width_px = column["width"]
-            th_classes = "recent-claims-th sticky-actions-header" if col_key == "ACTIONS" else "recent-claims-th"
-            if column["sortable"]:
-                sort_type = "text"
-                if col_key in {"CLAIM_ID", "AI_CONFIDENCE"}:
-                    sort_type = "number"
-                elif col_key == "DATE_REQUESTED":
-                    sort_type = "date"
-                elif col_key == "PRIORITY":
-                    sort_type = "priority"
-                header_label = (
-                    f"<button type='button' class='recent-claims-sort-button' data-sort-key='{escape(col_key)}' "
-                    f"data-sort-type='{sort_type}'><span>{escape(label)}</span><span class='sort-arrow'></span></button>"
-                )
-            else:
-                header_label = escape(label)
-            header_cells.append(f"<th class='{th_classes}' style='width:{width_px}px'>{header_label}</th>")
+            with header_cols[idx]:
+                if column["sortable"]:
+                    arrow = ""
+                    if sort_column == col_key:
+                        arrow = " ↑" if sort_direction == "asc" else " ↓"
+                    if st.button(
+                        f"{label}{arrow}",
+                        key=f"{sort_key_base}_{col_key}_header_button",
+                        use_container_width=True,
+                    ):
+                        current_column = st.session_state.get(sort_column_key)
+                        current_direction = st.session_state.get(sort_direction_key, "asc")
+                        st.session_state[sort_column_key] = col_key
+                        st.session_state[sort_direction_key] = _toggle_sort_direction(
+                            current_column=current_column,
+                            selected_column=col_key,
+                            current_direction=current_direction,
+                        )
+                        st.rerun()
+                else:
+                    st.markdown(f"**{label}**")
 
-        rows_html: list[str] = []
+        st.markdown("<div style='height:0.35rem'></div>", unsafe_allow_html=True)
+
         for _, row in show_df.iterrows():
             claim_id = str(row.get("CLAIM_ID", "")).strip() or "—"
-            status = str(row.get("STATUS", "")).strip()
             patient_name = str(row.get("PATIENT_NAME", "")).strip() or "Unknown Patient"
             defendant_name = str(row.get("DEFENDANT_NAME", "")).strip()
             requested = _format_date(row.get("DATE_REQUESTED"))
-            requested_ts = pd.to_datetime(row.get("DATE_REQUESTED"), errors="coerce")
-            requested_sort = str(int(requested_ts.timestamp())) if not pd.isna(requested_ts) else "-1"
-            claim_id_sort_value = str(pd.to_numeric(str(claim_id), errors="coerce"))
-            if claim_id_sort_value == "nan":
-                claim_id_sort_value = "-1"
-            patient_sort_value = f"{patient_name} {defendant_name}".strip().lower()
-            mfq_sort_value = _display_status_label(str(row.get("MFQ_STATUS", row.get("STATUS", ""))).strip()).lower()
-            workflow_sort_value = _display_status_label(str(row.get("WORKFLOW_STATUS", row.get("STATUS", ""))).strip()).lower()
-            priority_sort_value = str(row.get("PRIORITY", "unknown")).strip().lower()
-            priority_sort_rank = str(PRIORITY_ORDER.get(priority_sort_value, PRIORITY_ORDER["unknown"]))
-            claim_status_sort_value = _display_status_label(str(row.get("CLAIM_STATUS", row.get("STATUS", ""))).strip()).lower()
-            ai_confidence_sort = str(_confidence_sort_series(pd.Series([row.get("AI_CONFIDENCE")])).iloc[0])
-
             patient_title = patient_name if not defendant_name else f"{patient_name} — {defendant_name}"
             patient_html = f"<span class='patient-name' title='{escape(patient_title)}'>{escape(patient_name)}</span>"
             if defendant_name:
@@ -338,70 +346,42 @@ def render_recent_claims_table(
             claim_status = str(row.get("CLAIM_STATUS", row.get("STATUS", ""))).strip()
             claim_type = str(row.get("CLAIM_TYPE", "—")).strip() or "—"
             display_claim_type = _display_status_label(claim_type)
-            review_href = f"?page=Claim+Details&claim_id={escape(claim_id)}"
-            rows_html.append(
-                "<tr>"
-                f"<td class='recent-claims-td' data-sort-value='{escape(claim_id_sort_value)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_ID']}px'><div class='single-line-ellipsis' title='{escape(claim_id)}'>{escape(claim_id)}</div></td>"
-                f"<td class='recent-claims-td' data-sort-value='{escape(patient_sort_value)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['PATIENT_NAME']}px'><div class='patient-cell'>{patient_html}</div></td>"
-                f"<td class='recent-claims-td' data-sort-value='{escape(mfq_sort_value)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['MFQ_STATUS']}px'><div class='status-cell'>{_status_badge_html(mfq_status)}</div></td>"
-                f"<td class='recent-claims-td' data-sort-value='{escape(workflow_sort_value)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['WORKFLOW_STATUS']}px'><div class='status-cell'>{_status_badge_html(workflow_status)}</div></td>"
-                f"<td class='recent-claims-td' data-sort-value='{escape(priority_sort_rank)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['PRIORITY']}px'><div class='priority-cell'>{_priority_badge_html(row.get('PRIORITY'))}</div></td>"
-                f"<td class='recent-claims-td' data-sort-value='{escape(claim_status_sort_value)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_STATUS']}px'><div class='status-cell'>{_status_badge_html(claim_status)}</div></td>"
-                f"<td class='recent-claims-td' data-sort-value='{escape(display_claim_type.lower())}' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_TYPE']}px'><div class='single-line-ellipsis' title='{escape(claim_type)}'>{escape(display_claim_type)}</div></td>"
-                f"<td class='recent-claims-td' data-sort-value='{escape(requested_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['DATE_REQUESTED']}px'><div class='single-line-ellipsis' title='{escape(requested)}'>{escape(requested)}</div></td>"
-                f"<td class='recent-claims-td' data-sort-value='{escape(ai_confidence_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['AI_CONFIDENCE']}px'><div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div></td>"
-                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{review_href}'>Review</a></td>"
-                "</tr>"
+            row_cols = st.columns(normalized_widths, vertical_alignment="center")
+            row_cols[0].markdown(
+                f"<div class='single-line-ellipsis' title='{escape(claim_id)}'>{escape(claim_id)}</div>",
+                unsafe_allow_html=True,
             )
-        st.markdown(
-            "<div class='recent-claims-table-wrapper'><table class='recent-claims-table'><thead><tr>"
-            + "".join(header_cells)
-            + "</tr></thead><tbody class='recent-claims-tbody'>"
-            + "".join(rows_html)
-            + "</tbody></table></div>"
-            + """
-            <script>
-              (() => {
-                const wrappers = window.parent.document.querySelectorAll('.recent-claims-table-wrapper');
-                const wrapper = wrappers[wrappers.length - 1];
-                if (!wrapper) return;
-                const table = wrapper.querySelector('.recent-claims-table');
-                const tbody = table?.querySelector('.recent-claims-tbody');
-                const buttons = table?.querySelectorAll('.recent-claims-sort-button');
-                if (!table || !tbody || !buttons?.length) return;
-                const state = { key: null, direction: 'asc' };
-                const parseValue = (value, type) => {
-                  if (type === 'number' || type === 'date' || type === 'priority') return Number(value || -1);
-                  return String(value || '').toLowerCase();
-                };
-                buttons.forEach((button, index) => {
-                  button.onclick = () => {
-                    const key = button.dataset.sortKey;
-                    const type = button.dataset.sortType || 'text';
-                    state.direction = state.key === key && state.direction === 'asc' ? 'desc' : 'asc';
-                    state.key = key;
-                    const rows = Array.from(tbody.querySelectorAll('tr'));
-                    rows.sort((a, b) => {
-                      const aVal = parseValue(a.children[index]?.dataset.sortValue, type);
-                      const bVal = parseValue(b.children[index]?.dataset.sortValue, type);
-                      if (aVal < bVal) return state.direction === 'asc' ? -1 : 1;
-                      if (aVal > bVal) return state.direction === 'asc' ? 1 : -1;
-                      return 0;
-                    });
-                    rows.forEach((row) => tbody.appendChild(row));
-                    buttons.forEach((btn) => {
-                      btn.classList.remove('active-sort', 'sort-asc', 'sort-desc');
-                      btn.querySelector('.sort-arrow').textContent = '';
-                    });
-                    button.classList.add('active-sort', state.direction === 'asc' ? 'sort-asc' : 'sort-desc');
-                    button.querySelector('.sort-arrow').textContent = state.direction === 'asc' ? '↑' : '↓';
-                  };
-                });
-              })();
-            </script>
-            """,
-            unsafe_allow_html=True,
-        )
+            row_cols[1].markdown(f"<div class='patient-cell'>{patient_html}</div>", unsafe_allow_html=True)
+            row_cols[2].markdown(f"<div class='status-cell'>{_status_badge_html(mfq_status)}</div>", unsafe_allow_html=True)
+            row_cols[3].markdown(
+                f"<div class='status-cell'>{_status_badge_html(workflow_status)}</div>",
+                unsafe_allow_html=True,
+            )
+            row_cols[4].markdown(
+                f"<div class='priority-cell'>{_priority_badge_html(row.get('PRIORITY'))}</div>",
+                unsafe_allow_html=True,
+            )
+            row_cols[5].markdown(
+                f"<div class='status-cell'>{_status_badge_html(claim_status)}</div>",
+                unsafe_allow_html=True,
+            )
+            row_cols[6].markdown(
+                f"<div class='single-line-ellipsis' title='{escape(claim_type)}'>{escape(display_claim_type)}</div>",
+                unsafe_allow_html=True,
+            )
+            row_cols[7].markdown(
+                f"<div class='single-line-ellipsis' title='{escape(requested)}'>{escape(requested)}</div>",
+                unsafe_allow_html=True,
+            )
+            row_cols[8].markdown(
+                f"<div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div>",
+                unsafe_allow_html=True,
+            )
+            with row_cols[9]:
+                if st.button("Review", key=f"{key_prefix}_review_{claim_id}", use_container_width=True):
+                    st.session_state.selected_claim_id = claim_id
+                    st.session_state.active_page = "Claim Details"
+                    st.rerun()
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
         pager_cols = st.columns([3, 1], vertical_alignment="center")
         pager_cols[0].markdown(f"<div class='recent-claims-pagination-summary'>{summary_text}</div>", unsafe_allow_html=True)
