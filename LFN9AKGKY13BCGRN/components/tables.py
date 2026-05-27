@@ -54,50 +54,86 @@ PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2, "unknown": 3}
 
 
 def _load_recent_claims_table_css() -> str:
-    css_path = Path(__file__).resolve().parent / "styles" / "recent_claims_table.css"
-    return css_path.read_text(encoding="utf-8")
+    css_candidates = [
+        Path(__file__).resolve().parent / "styles" / "carbonstyle.css",
+        Path(__file__).resolve().parent / "styles" / "carbon_like.css",
+        Path(__file__).resolve().parents[1] / "styles" / "carbonstyle.css",
+        Path(__file__).resolve().parents[1] / "styles" / "carbon_like.css",
+    ]
+
+    for css_path in css_candidates:
+        if css_path.exists():
+            return css_path.read_text(encoding="utf-8")
+
+    return ""
 
 
 def _recent_claims_sort_script() -> str:
     return """
     <script>
-      (() => {
-        const wrappers = window.parent.document.querySelectorAll('.recent-claims-table-wrapper');
-        const wrapper = wrappers[wrappers.length - 1];
-        if (!wrapper) return;
-        const table = wrapper.querySelector('.recent-claims-table');
-        const tbody = table?.querySelector('.recent-claims-tbody');
-        const buttons = table?.querySelectorAll('.recent-claims-sort-button');
-        if (!table || !tbody || !buttons?.length) return;
-        const state = { key: null, direction: 'asc' };
-        const parseValue = (value, type) => {
-          if (type === 'number' || type === 'date' || type === 'priority') return Number(value || -1);
-          return String(value || '').toLowerCase();
-        };
-        buttons.forEach((button, index) => {
-          button.onclick = () => {
-            const key = button.dataset.sortKey;
-            const type = button.dataset.sortType || 'text';
-            state.direction = state.key === key && state.direction === 'asc' ? 'desc' : 'asc';
-            state.key = key;
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            rows.sort((a, b) => {
-              const aVal = parseValue(a.children[index]?.dataset.sortValue, type);
-              const bVal = parseValue(b.children[index]?.dataset.sortValue, type);
-              if (aVal < bVal) return state.direction === 'asc' ? -1 : 1;
-              if (aVal > bVal) return state.direction === 'asc' ? 1 : -1;
-              return 0;
+        (() => {
+            const wrapper = document.querySelector('.recent-claims-table-wrapper');
+            if (!wrapper) return;
+
+            const table = wrapper.querySelector('.recent-claims-table');
+            const tbody = table?.querySelector('.recent-claims-tbody');
+            const buttons = table?.querySelectorAll('.recent-claims-sort-button');
+
+            if (!table || !tbody || !buttons || buttons.length === 0) return;
+
+            const state = { key: null, direction: 'asc' };
+
+            const parseValue = (value, type) => {
+                if (type === 'number' || type === 'date' || type === 'priority') {
+                    const parsed = Number(value);
+                    return Number.isNaN(parsed) ? -1 : parsed;
+                }
+                return String(value || '').toLowerCase();
+            };
+
+            buttons.forEach((button, index) => {
+                button.addEventListener('click', () => {
+                    const key = button.dataset.sortKey;
+                    const type = button.dataset.sortType || 'text';
+
+                    state.direction =
+                        state.key === key && state.direction === 'asc'
+                            ? 'desc'
+                            : 'asc';
+
+                    state.key = key;
+
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+
+                    rows.sort((a, b) => {
+                        const aValue = parseValue(a.children[index]?.dataset.sortValue, type);
+                        const bValue = parseValue(b.children[index]?.dataset.sortValue, type);
+
+                        if (aValue < bValue) return state.direction === 'asc' ? -1 : 1;
+                        if (aValue > bValue) return state.direction === 'asc' ? 1 : -1;
+                        return 0;
+                    });
+
+                    rows.forEach((row) => tbody.appendChild(row));
+
+                    buttons.forEach((btn) => {
+                        btn.classList.remove('active-sort', 'sort-asc', 'sort-desc');
+                        const arrow = btn.querySelector('.sort-arrow');
+                        if (arrow) arrow.textContent = '';
+                    });
+
+                    button.classList.add(
+                        'active-sort',
+                        state.direction === 'asc' ? 'sort-asc' : 'sort-desc'
+                    );
+
+                    const arrow = button.querySelector('.sort-arrow');
+                    if (arrow) {
+                        arrow.textContent = state.direction === 'asc' ? '↑' : '↓';
+                    }
+                });
             });
-            rows.forEach((row) => tbody.appendChild(row));
-            buttons.forEach((btn) => {
-              btn.classList.remove('active-sort', 'sort-asc', 'sort-desc');
-              btn.querySelector('.sort-arrow').textContent = '';
-            });
-            button.classList.add('active-sort', state.direction === 'asc' ? 'sort-asc' : 'sort-desc');
-            button.querySelector('.sort-arrow').textContent = state.direction === 'asc' ? '↑' : '↓';
-          };
-        });
-      })();
+        })();
     </script>
     """
 
@@ -404,8 +440,9 @@ def render_recent_claims_table(
                 f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{review_href}' target='_top'>Review</a></td>"
                 "</tr>"
             )
+        recent_claims_css = _load_recent_claims_table_css()
         table_html = (
-            f"<style>{_load_recent_claims_table_css()}</style>"
+            f"<style>{recent_claims_css}</style>"
             "<div class='recent-claims-table-wrapper'><table class='recent-claims-table'><thead><tr>"
             + "".join(header_cells)
             + "</tr></thead><tbody class='recent-claims-tbody'>"

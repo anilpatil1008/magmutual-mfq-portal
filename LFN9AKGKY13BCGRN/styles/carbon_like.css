@@ -2696,3 +2696,91 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .st-key-dash_recent_claims_table .review-link:hover {
   background: #edf5ff;
 }
+
+/* Recent Claims table (component iframe) */
+.recent-claims-table-wrapper {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid var(--mm-border);
+  border-radius: 0.5rem;
+  background: var(--mm-surface);
+}
+
+.recent-claims-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: fixed;
+  font-family: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.recent-claims-th,
+.recent-claims-td {
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--mm-border);
+  color: var(--mm-text);
+  background: var(--mm-surface);
+}
+
+.recent-claims-th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--mm-bg);
+  font-weight: 600;
+}
+
+.recent-claims-sort-button {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font: inherit;
+  color: inherit;
+  padding: 0;
+}
+
+.recent-claims-sort-button.active-sort { color: var(--mm-blue); }
+.sort-arrow { min-width: 0.75rem; color: var(--mm-blue); }
+
+.single-line-ellipsis {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.patient-cell { display: flex; flex-direction: column; gap: 0.2rem; }
+.patient-name { font-weight: 600; }
+.defendant-name { color: var(--mm-subtle); font-size: 0.85rem; }
+
+.status-badge,
+.priority-badge,
+.confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.review-link {
+  color: var(--mm-blue);
+  text-decoration: none;
+  font-weight: 600;
+}
+.review-link:hover { color: var(--mm-blue-2); text-decoration: underline; }
+
+.sticky-actions-header,
+.sticky-actions-cell {
+  position: sticky;
+  right: 0;
+}
+.sticky-actions-header { z-index: 3; background: var(--mm-bg); }
+.sticky-actions-cell { z-index: 1; background: var(--mm-surface); }
