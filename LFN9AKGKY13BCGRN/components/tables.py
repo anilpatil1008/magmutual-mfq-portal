@@ -288,46 +288,35 @@ def render_recent_claims_table(
     end_idx = min(start_idx + page_size, total_claims)
     page_df = show_df.iloc[start_idx:end_idx].copy()
 
+    qp_sort_column = str(st.query_params.get("recent_claims_sort", "")).strip()
+    qp_sort_direction = str(st.query_params.get("recent_claims_direction", "")).strip().lower()
+    if qp_sort_column in RECENT_CLAIMS_SORTABLE_KEYS:
+        st.session_state[f"{sort_key_base}_column"] = qp_sort_column
+    if qp_sort_direction in {"asc", "desc"}:
+        st.session_state[f"{sort_key_base}_direction"] = qp_sort_direction
+
     sort_column = st.session_state.get(f"{sort_key_base}_column")
     sort_direction = st.session_state.get(f"{sort_key_base}_direction", "asc")
 
     show_df = _sort_recent_claims(page_df, sort_column=sort_column, sort_direction=sort_direction)
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
-        header_button_cols = st.columns([column["width"] for column in RECENT_CLAIMS_COLUMNS], gap="small")
-        for idx, column in enumerate(RECENT_CLAIMS_COLUMNS):
-            col_key = column["key"]
-            label = column["label"]
-            with header_button_cols[idx]:
-                if column["sortable"]:
-                    is_active = sort_column == col_key
-                    arrow = "↑" if is_active and sort_direction == "asc" else "↓" if is_active and sort_direction == "desc" else ""
-                    label_text = f"{label} {arrow}".strip()
-                    if st.button(
-                        label_text,
-                        key=f"{sort_key_base}_header_{col_key}",
-                        use_container_width=True,
-                        type="tertiary",
-                    ):
-                        st.session_state[f"{sort_key_base}_column"] = col_key
-                        st.session_state[f"{sort_key_base}_direction"] = _toggle_sort_direction(
-                            sort_column or "", col_key, sort_direction
-                        )
-                        st.rerun()
-                else:
-                    st.markdown(
-                        "<div class='recent-claims-header-label sticky-actions-header'>"
-                        f"{escape(label)}</div>",
-                        unsafe_allow_html=True,
-                    )
-
         header_cells: list[str] = []
         for column in RECENT_CLAIMS_COLUMNS:
             col_key = column["key"]
             label = column["label"]
             width_px = column["width"]
             th_classes = "recent-claims-th sticky-actions-header" if col_key == "ACTIONS" else "recent-claims-th"
-            header_cells.append(f"<th class='{th_classes}' style='width:{width_px}px'>{escape(label)}</th>")
+            if column["sortable"]:
+                is_active = sort_column == col_key
+                next_direction = _toggle_sort_direction(sort_column or "", col_key, sort_direction)
+                arrow = "↑" if is_active and sort_direction == "asc" else "↓" if is_active and sort_direction == "desc" else ""
+                label_text = f"{escape(label)} {arrow}".strip()
+                sort_href = f"?recent_claims_sort={escape(col_key)}&recent_claims_direction={escape(next_direction)}"
+                header_label = f"<a class='recent-claims-sort-link' href='{sort_href}'>{label_text}</a>"
+            else:
+                header_label = escape(label)
+            header_cells.append(f"<th class='{th_classes}' style='width:{width_px}px'>{header_label}</th>")
 
         rows_html: list[str] = []
         for _, row in show_df.iterrows():
