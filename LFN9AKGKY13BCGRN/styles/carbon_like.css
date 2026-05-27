@@ -2608,6 +2608,19 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   width: max-content;
   border-collapse: collapse;
 }
+.st-key-dash_recent_claims_table .recent-claims-header-label {
+  min-height: 2.25rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #dde1e6;
+  border-radius: 0.25rem;
+  background: #f4f4f4;
+  color: #161616;
+  font-size: .78rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
 .st-key-dash_recent_claims_table .recent-claims-th {
   padding: 12px 14px;
   border-bottom: 1px solid #dde1e6;
@@ -2617,19 +2630,6 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   font-size: .78rem;
   font-weight: 600;
   white-space: nowrap;
-}
-.st-key-dash_recent_claims_table .recent-claims-sort-link {
-  color: #525252;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-.st-key-dash_recent_claims_table .recent-claims-sort-link:hover {
-  color: #161616;
-}
-.st-key-dash_recent_claims_table .sort-arrow {
-  color: #161616;
 }
 .st-key-dash_recent_claims_table .recent-claims-td {
   padding: 12px 14px;
