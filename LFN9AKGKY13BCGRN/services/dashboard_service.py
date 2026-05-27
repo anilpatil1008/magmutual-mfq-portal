@@ -5,8 +5,8 @@ import pandas as pd
 from services.claim_service import get_claims_queue
 
 
-def get_dashboard_metrics(session, app_role: str, username: str) -> dict[str, int]:
-    claims = get_claims_queue(session, app_role=app_role, username=username)
+def get_dashboard_metrics(session, username: str) -> dict[str, int]:
+    claims = get_claims_queue(session, username=username)
     if claims.empty:
         return {
             "Total Active Claims": 0,
@@ -28,8 +28,8 @@ def get_dashboard_metrics(session, app_role: str, username: str) -> dict[str, in
     }
 
 
-def get_dashboard_charts(session, app_role: str, username: str) -> dict[str, pd.DataFrame]:
-    claims = get_claims_queue(session, app_role=app_role, username=username)
+def get_dashboard_charts(session, username: str) -> dict[str, pd.DataFrame]:
+    claims = get_claims_queue(session, username=username)
     if claims.empty:
         return {
             "status": pd.DataFrame(columns=["STATUS", "COUNT"]),
