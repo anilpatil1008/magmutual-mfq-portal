@@ -9,7 +9,6 @@ import re
 import streamlit as st
 
 from components.notifications import render_notification_center
-from services.rbac_service import set_selected_sf_role
 
 _HIDE_DEFAULT_STREAMLIT_NAV_CSS = """
 <style>
@@ -50,7 +49,7 @@ def _render_role_selector(session, current_role: str) -> None:
     )
 
     if selected_role != current_role:
-        set_selected_sf_role(selected_role)
+        st.session_state["selected_sf_role"] = str(selected_role or "").strip()
         st.rerun()
 
 

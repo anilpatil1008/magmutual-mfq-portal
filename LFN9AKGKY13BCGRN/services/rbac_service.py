@@ -24,44 +24,38 @@ def get_current_role(session) -> str:
     return str(row["CURRENT_ROLE"]).strip()
 
 
-def quote_identifier(value: str) -> str:
-    escaped = str(value or "").replace('"', '""')
-    return f'"{escaped}"'
-
-
 @st.cache_data(show_spinner=False, ttl=300)
-def _fetch_assigned_roles_for_user(_session, username: str) -> list[str]:
-    grants_df = _session.sql(f"SHOW GRANTS TO USER {quote_identifier(username)}").to_pandas()
-    if grants_df.empty:
-        return []
-
-    role_values: list[str] = []
-    candidate_columns = {"ROLE", "GRANTED_ROLE", "NAME"}
-    for column in grants_df.columns:
-        if str(column).strip().upper() in candidate_columns:
-            role_values.extend(grants_df[column].tolist())
-
-    deduped_roles = sorted({str(value or "").strip() for value in role_values if str(value or "").strip()})
-    return deduped_roles
-
-
 def get_available_roles_for_current_user(session) -> list[str]:
-    username = get_current_user(session)
     current_role = get_current_role(session)
 
     try:
-        assigned_roles = _fetch_assigned_roles_for_user(session, username)
+        roles_df = session.sql("""
+            SELECT VALUE::STRING AS ROLE_NAME
+            FROM TABLE(
+                FLATTEN(INPUT => PARSE_JSON(CURRENT_AVAILABLE_ROLES()))
+            )
+            ORDER BY ROLE_NAME
+        """).to_pandas()
     except Exception as ex:
         st.warning(f"Unable to fetch Snowflake roles. Showing current role only. Error: {ex}")
         return [current_role] if current_role else []
 
-    if not assigned_roles:
-        return [current_role] if current_role else []
+    if roles_df.empty or "ROLE_NAME" not in roles_df.columns:
+        available_roles: list[str] = []
+    else:
+        available_roles = sorted(
+            {
+                str(role_name or "").strip()
+                for role_name in roles_df["ROLE_NAME"].tolist()
+                if str(role_name or "").strip()
+            }
+        )
 
-    if current_role and current_role not in assigned_roles:
-        assigned_roles.append(current_role)
-        assigned_roles = sorted(set(assigned_roles))
-    return assigned_roles
+    if current_role and current_role not in available_roles:
+        available_roles.append(current_role)
+        available_roles = sorted(set(available_roles))
+
+    return available_roles
 
 
 def get_available_roles(session) -> tuple[list[str], str]:
@@ -80,13 +74,6 @@ def get_selected_sf_role(session) -> str:
     if selected_role and selected_role in available_roles:
         return selected_role
     return current_role
-
-
-def set_selected_sf_role(new_role: str) -> str:
-    selected_role = str(new_role or "").strip()
-    st.session_state["selected_sf_role"] = selected_role
-    logger.info("selected_sf_role_updated selected_sf_role=%s", selected_role)
-    return selected_role
 
 
 def get_current_user_context(session) -> UserContext:
