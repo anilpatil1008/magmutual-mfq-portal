@@ -676,8 +676,9 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   width: 100%;
   max-width: 100%;
   max-height: 520px;
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
+  scrollbar-gutter: stable;
 }
 
 .claims-scroll-table {
@@ -2755,10 +2756,11 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 .recent-claims-table-wrapper {
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
   max-height: 544px;
   background: var(--mm-surface, #ffffff);
+  scrollbar-gutter: stable;
 }
 
 .recent-claims-table {

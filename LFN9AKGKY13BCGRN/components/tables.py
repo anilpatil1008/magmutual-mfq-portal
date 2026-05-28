@@ -73,7 +73,8 @@ def _top_scroll_sync_script(root_selector: str, wrapper_selector: str, table_sel
     <script>
         (() => {{
             const root = document.querySelector('{root_selector}');
-            if (!root) return;
+            if (!root || root.dataset.scrollSyncReady === 'true') return;
+            root.dataset.scrollSyncReady = 'true';
 
             const topScrollbar = root.querySelector('.table-top-scrollbar');
             const topScrollbarSpacer = root.querySelector('.table-top-scrollbar-spacer');
@@ -83,28 +84,34 @@ def _top_scroll_sync_script(root_selector: str, wrapper_selector: str, table_sel
             if (!topScrollbar || !topScrollbarSpacer || !wrapper || !table) return;
 
             let isSyncing = false;
+            let resizeObserver;
 
             const syncSpacerWidth = () => {{
                 topScrollbarSpacer.style.width = `${{table.scrollWidth}}px`;
+                topScrollbar.style.width = `${{wrapper.clientWidth}}px`;
                 topScrollbar.scrollLeft = wrapper.scrollLeft;
             }};
 
-            topScrollbar.addEventListener('scroll', () => {{
+            const syncScrollLeft = (source, target) => {{
                 if (isSyncing) return;
                 isSyncing = true;
-                wrapper.scrollLeft = topScrollbar.scrollLeft;
-                isSyncing = false;
-            }});
+                target.scrollLeft = source.scrollLeft;
+                window.requestAnimationFrame(() => {{
+                    isSyncing = false;
+                }});
+            }};
 
-            wrapper.addEventListener('scroll', () => {{
-                if (isSyncing) return;
-                isSyncing = true;
-                topScrollbar.scrollLeft = wrapper.scrollLeft;
-                isSyncing = false;
-            }});
+            topScrollbar.addEventListener('scroll', () => syncScrollLeft(topScrollbar, wrapper));
+            wrapper.addEventListener('scroll', () => syncScrollLeft(wrapper, topScrollbar));
 
             syncSpacerWidth();
             window.addEventListener('resize', syncSpacerWidth);
+
+            if ('ResizeObserver' in window) {{
+                resizeObserver = new ResizeObserver(syncSpacerWidth);
+                resizeObserver.observe(wrapper);
+                resizeObserver.observe(table);
+            }}
         }})();
     </script>
     """
