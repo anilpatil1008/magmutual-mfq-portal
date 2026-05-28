@@ -68,6 +68,48 @@ def _load_recent_claims_table_css() -> str:
     return ""
 
 
+def _top_scroll_sync_script(root_selector: str, wrapper_selector: str, table_selector: str) -> str:
+    return f"""
+    <script>
+        (() => {{
+            const root = document.querySelector('{root_selector}');
+            if (!root) return;
+
+            const topScrollbar = root.querySelector('.table-top-scrollbar');
+            const topScrollbarSpacer = root.querySelector('.table-top-scrollbar-spacer');
+            const wrapper = root.querySelector('{wrapper_selector}');
+            const table = root.querySelector('{table_selector}');
+
+            if (!topScrollbar || !topScrollbarSpacer || !wrapper || !table) return;
+
+            let isSyncing = false;
+
+            const syncSpacerWidth = () => {{
+                topScrollbarSpacer.style.width = `${{table.scrollWidth}}px`;
+                topScrollbar.scrollLeft = wrapper.scrollLeft;
+            }};
+
+            topScrollbar.addEventListener('scroll', () => {{
+                if (isSyncing) return;
+                isSyncing = true;
+                wrapper.scrollLeft = topScrollbar.scrollLeft;
+                isSyncing = false;
+            }});
+
+            wrapper.addEventListener('scroll', () => {{
+                if (isSyncing) return;
+                isSyncing = true;
+                topScrollbar.scrollLeft = wrapper.scrollLeft;
+                isSyncing = false;
+            }});
+
+            syncSpacerWidth();
+            window.addEventListener('resize', syncSpacerWidth);
+        }})();
+    </script>
+    """
+
+
 def _recent_claims_sort_script() -> str:
     return """
     <script>
@@ -343,8 +385,18 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
         rows.append(f"<tr>{row_html}</tr>")
 
     head_html = "".join([f"<th>{h}</th>" for h in show_df.columns])
-    table_html = f"<table class='mm-table'><thead><tr>{head_html}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
-    st.markdown(table_html, unsafe_allow_html=True)
+    claims_table_css = _load_recent_claims_table_css()
+    table_html = (
+        f"<style>{claims_table_css}</style>"
+        "<div class='claims-table-scroll-frame'>"
+        "<div class='table-top-scrollbar' aria-hidden='true'><div class='table-top-scrollbar-spacer'></div></div>"
+        "<div class='claims-table-wrapper'>"
+        f"<table class='mm-table claims-scroll-table'><thead><tr>{head_html}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
+        "</div>"
+        "</div>"
+        + _top_scroll_sync_script('.claims-table-scroll-frame', '.claims-table-wrapper', '.claims-scroll-table')
+    )
+    components.html(table_html, height=560, scrolling=False)
 
 
 def render_recent_claims_table(
@@ -443,14 +495,20 @@ def render_recent_claims_table(
         recent_claims_css = _load_recent_claims_table_css()
         table_html = (
             f"<style>{recent_claims_css}</style>"
+            "<div class='recent-claims-table-frame'>"
+            "<div class='table-top-scrollbar' aria-hidden='true'><div class='table-top-scrollbar-spacer'></div></div>"
             "<div class='recent-claims-table-wrapper'><table class='recent-claims-table'><thead><tr>"
             + "".join(header_cells)
             + "</tr></thead><tbody class='recent-claims-tbody'>"
             + "".join(rows_html)
             + "</tbody></table></div>"
+            "</div>"
+            + _top_scroll_sync_script(
+                '.recent-claims-table-frame', '.recent-claims-table-wrapper', '.recent-claims-table'
+            )
             + _recent_claims_sort_script()
         )
-        components.html(table_html, height=560, scrolling=True)
+        components.html(table_html, height=600, scrolling=False)
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
         pager_cols = st.columns([3, 1], vertical_alignment="center")
         pager_cols[0].markdown(f"<div class='recent-claims-pagination-summary'>{summary_text}</div>", unsafe_allow_html=True)
