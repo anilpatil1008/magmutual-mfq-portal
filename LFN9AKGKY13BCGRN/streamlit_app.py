@@ -51,10 +51,9 @@ if "selected_claim_id" not in st.session_state:
 query_page = st.query_params.get("page")
 query_claim_id = st.query_params.get("claim_id")
 if query_page == "Claim Details" and query_claim_id:
-    st.session_state.active_page = "Dashboard"
-    st.session_state.current_view = "claim_details"
     st.session_state.selected_claim_id = str(query_claim_id).strip()
-    st.query_params.clear()
+    st.session_state.active_page = "Claim Details"
+    st.session_state.current_view = "claim_details"
 
 
 page_map = {
@@ -65,23 +64,11 @@ page_map = {
     "Admin": admin.render,
 }
 
-if st.session_state.active_page == "Claim Details" and st.session_state.get("selected_claim_id"):
-    st.session_state.active_page = "Dashboard"
-    st.session_state.current_view = "claim_details"
-
 render_fn = page_map.get(st.session_state.active_page, dashboard.render)
 
-# Skip header/sidebar notification fetch work for in-dashboard claim details fast path
-is_dashboard_claim_details = (
-    st.session_state.get("active_page") == "Dashboard"
-    and st.session_state.get("current_view") == "claim_details"
-    and st.session_state.get("selected_claim_id")
-)
-
-if not is_dashboard_claim_details:
-    notifications = get_user_notifications(session, ctx.username, limit=6)
-    render_header(session, ctx, notifications)
-    render_sidebar(ctx)
+notifications = get_user_notifications(session, ctx.username, limit=6)
+render_header(session, ctx, notifications)
+render_sidebar(ctx)
 
 render_fn(session=session, ctx=ctx)
 st.stop()
