@@ -213,6 +213,9 @@ def render_sidebar(ctx) -> None:
 
             if st.button(page, icon=icon, use_container_width=True, key=f"{key_prefix}_{key_slug}"):
                 st.session_state.active_page = page
+                if page == "Dashboard":
+                    st.session_state.current_view = "dashboard"
+                    st.session_state.selected_claim_id = None
                 st.rerun()
 
         if st.session_state.get("selected_claim_id"):

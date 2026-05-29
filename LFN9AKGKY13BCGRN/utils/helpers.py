@@ -27,11 +27,14 @@ def to_df(rows) -> pd.DataFrame:
 
 def set_page(page: str) -> None:
     st.session_state.active_page = page
+    if page == "Dashboard":
+        st.session_state.current_view = "dashboard"
 
 
 def select_claim(claim_id: str) -> None:
-    st.session_state.selected_claim_id = claim_id
-    st.session_state.active_page = "Claim Details"
+    st.session_state.selected_claim_id = str(claim_id).strip()
+    st.session_state.active_page = "Dashboard"
+    st.session_state.current_view = "claim_details"
 
 
 def score_bucket(score: float) -> str:
