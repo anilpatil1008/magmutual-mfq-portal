@@ -7,7 +7,7 @@ from time import perf_counter
 import streamlit as st
 
 from components.cards import render_kpi_cards
-from components.tables import render_recent_claims_table
+from components.tables import filter_recent_claims_by_search, render_recent_claims_table
 from pages import claim_details
 from services.claim_service import get_claims_queue
 from services.dashboard_service import get_dashboard_metrics
@@ -100,13 +100,8 @@ def _render_dashboard_view(session, ctx) -> None:
 
 
         t1 = perf_counter()
-        queue = get_claims_queue(session, ctx.username, search_text=search)
-        logger.info(
-            "dashboard_recent_claims_ms=%d rows=%d search_applied=%s",
-            int((perf_counter() - t1) * 1000),
-            len(queue),
-            bool(str(search or "").strip()),
-        )
+        queue = get_claims_queue(session, ctx.username)
+        logger.info("dashboard_recent_claims_ms=%d rows=%d", int((perf_counter() - t1) * 1000), len(queue))
         if queue.empty:
             render_recent_claims_table(queue, key_prefix="dash")
             return
@@ -131,6 +126,7 @@ def _render_dashboard_view(session, ctx) -> None:
         st.session_state[f"{card_key}_prev_search"] = search
 
         tab_df = ongoing_df if selected_tab.startswith("Ongoing") else history_df
+        tab_df = filter_recent_claims_by_search(tab_df, search)
 
         logger.info("render_recent_claims called tab=%s rows=%d", selected_tab, len(tab_df))
         render_recent_claims_table(
