@@ -188,56 +188,6 @@ def _recent_claims_sort_script() -> str:
     """
 
 
-def _recent_claims_review_click_script() -> str:
-    return """
-    <script>
-        (() => {
-            const getAppHref = () => {
-                const candidates = [
-                    () => window.top.location.href,
-                    () => document.referrer,
-                    () => window.location.href,
-                ];
-
-                for (const getHref of candidates) {
-                    try {
-                        const href = getHref();
-                        if (href) return href;
-                    } catch (error) {
-                        // Keep trying iframe-safe fallbacks.
-                    }
-                }
-
-                return window.location.href;
-            };
-
-            const navigateTop = (claimId) => {
-                const appUrl = new URL(getAppHref(), window.location.href);
-                appUrl.search = `?page=Claim%20Details&claim_id=${encodeURIComponent(claimId)}`;
-                appUrl.hash = '';
-
-                try {
-                    window.top.location.href = appUrl.toString();
-                } catch (error) {
-                    window.open(appUrl.toString(), '_top');
-                }
-            };
-
-            document.addEventListener('click', (event) => {
-                const link = event.target.closest('a.review-link[data-claim-id]');
-                if (!link) return;
-
-                const claimId = link.dataset.claimId;
-                if (!claimId) return;
-
-                event.preventDefault();
-                event.stopPropagation();
-                navigateTop(claimId);
-            }, true);
-        })();
-    </script>
-    """
-
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
     return "".join(ch for ch in text if ch.isalnum() or ch == "-") or "unknown"
@@ -566,7 +516,6 @@ def render_recent_claims_table(
                 '.recent-claims-table-frame', '.recent-claims-table-wrapper', '.recent-claims-table'
             )
             + _recent_claims_sort_script()
-            + _recent_claims_review_click_script()
         )
         components.html(table_html, height=600, scrolling=False)
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
