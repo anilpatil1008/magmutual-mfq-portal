@@ -187,6 +187,39 @@ def _recent_claims_sort_script() -> str:
     </script>
     """
 
+
+def _recent_claims_review_click_script() -> str:
+    return """
+    <script>
+        (() => {
+            const links = document.querySelectorAll('.review-link[data-claim-id]');
+            if (!links || links.length === 0) return;
+
+            links.forEach((link) => {
+                if (link.dataset.reviewClickReady === 'true') return;
+                link.dataset.reviewClickReady = 'true';
+
+                link.addEventListener('click', (event) => {
+                    const claimId = link.dataset.claimId;
+                    if (!claimId) return;
+
+                    try {
+                        const parentWindow = window.parent || window;
+                        const targetUrl = new URL(parentWindow.location.href);
+                        targetUrl.searchParams.set('page', 'Claim Details');
+                        targetUrl.searchParams.set('claim_id', claimId);
+
+                        event.preventDefault();
+                        parentWindow.location.assign(targetUrl.toString());
+                    } catch (error) {
+                        // Fall back to the anchor's target=_parent navigation if parent access is restricted.
+                    }
+                });
+            });
+        })();
+    </script>
+    """
+
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
     return "".join(ch for ch in text if ch.isalnum() or ch == "-") or "unknown"
@@ -497,7 +530,7 @@ def render_recent_claims_table(
                 f"<td class='recent-claims-td' data-sort-value='{escape(display_claim_type.lower())}' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_TYPE']}px'><div class='single-line-ellipsis' title='{escape(claim_type)}'>{escape(display_claim_type)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(requested_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['DATE_REQUESTED']}px'><div class='single-line-ellipsis' title='{escape(requested)}'>{escape(requested)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(ai_confidence_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['AI_CONFIDENCE']}px'><div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div></td>"
-                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{review_href}' target='_parent'>Review</a></td>"
+                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{review_href}' target='_parent' data-claim-id='{escape(claim_id)}'>Review</a></td>"
                 "</tr>"
             )
         recent_claims_css = _load_recent_claims_table_css()
@@ -515,6 +548,7 @@ def render_recent_claims_table(
                 '.recent-claims-table-frame', '.recent-claims-table-wrapper', '.recent-claims-table'
             )
             + _recent_claims_sort_script()
+            + _recent_claims_review_click_script()
         )
         components.html(table_html, height=600, scrolling=False)
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
