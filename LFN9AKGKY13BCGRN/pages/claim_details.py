@@ -732,7 +732,7 @@ def render(session, ctx) -> None:
     claim_id = st.session_state.get("selected_claim_id")
     logger.info("render_claim_details called claim_id=%s", claim_id)
     if not claim_id:
-        st.info("Open a claim from Dashboard or Claims page.")
+        st.warning("No claim is selected. Open a claim from Dashboard or Claims page.")
         return
 
     _render_breadcrumb(str(claim_id))
