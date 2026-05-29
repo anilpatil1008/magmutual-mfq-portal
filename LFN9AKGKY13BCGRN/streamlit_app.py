@@ -59,7 +59,7 @@ def _query_param_value(name: str) -> str:
 def _sync_claim_details_route_from_query_params() -> None:
     query_page = _query_param_value("page")
     query_claim_id = _query_param_value("claim_id")
-    if query_page == "Claim Details" and query_claim_id:
+    if query_page.casefold() == "claim details".casefold() and query_claim_id:
         st.session_state["selected_claim_id"] = query_claim_id
         st.session_state["active_page"] = "Claim Details"
         st.session_state["current_view"] = "claim_details"
@@ -79,6 +79,7 @@ page_map = {
 notifications = get_user_notifications(session, ctx.username, limit=6)
 render_header(session, ctx, notifications)
 render_sidebar(ctx)
+_sync_claim_details_route_from_query_params()
 
 render_fn = page_map.get(st.session_state.active_page, dashboard.render)
 render_fn(session=session, ctx=ctx)
