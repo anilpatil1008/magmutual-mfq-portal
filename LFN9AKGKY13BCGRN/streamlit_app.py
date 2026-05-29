@@ -48,12 +48,24 @@ if "current_view" not in st.session_state:
 if "selected_claim_id" not in st.session_state:
     st.session_state.selected_claim_id = None
 
-query_page = st.query_params.get("page")
-query_claim_id = st.query_params.get("claim_id")
-if query_page == "Claim Details" and query_claim_id:
-    st.session_state.selected_claim_id = str(query_claim_id).strip()
-    st.session_state.active_page = "Claim Details"
-    st.session_state.current_view = "claim_details"
+
+def _query_param_value(name: str) -> str:
+    value = st.query_params.get(name)
+    if isinstance(value, list):
+        value = value[0] if value else ""
+    return str(value or "").strip()
+
+
+def _sync_claim_details_route_from_query_params() -> None:
+    query_page = _query_param_value("page")
+    query_claim_id = _query_param_value("claim_id")
+    if query_page == "Claim Details" and query_claim_id:
+        st.session_state["selected_claim_id"] = query_claim_id
+        st.session_state["active_page"] = "Claim Details"
+        st.session_state["current_view"] = "claim_details"
+
+
+_sync_claim_details_route_from_query_params()
 
 
 page_map = {
@@ -64,11 +76,10 @@ page_map = {
     "Admin": admin.render,
 }
 
-render_fn = page_map.get(st.session_state.active_page, dashboard.render)
-
 notifications = get_user_notifications(session, ctx.username, limit=6)
 render_header(session, ctx, notifications)
 render_sidebar(ctx)
 
+render_fn = page_map.get(st.session_state.active_page, dashboard.render)
 render_fn(session=session, ctx=ctx)
 st.stop()
