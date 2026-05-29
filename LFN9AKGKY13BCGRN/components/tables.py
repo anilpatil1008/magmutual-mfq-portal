@@ -362,7 +362,7 @@ def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.Dat
     mask = pd.Series(False, index=df.index)
     for column in search_columns:
         if column in df.columns:
-            mask = mask | df[column].astype(str).str.contains(needle, case=False, regex=False, na=False)
+            mask = mask | df[column].astype(str).str.lower().str.contains(needle)
     return df[mask]
 
 
