@@ -188,6 +188,57 @@ def _recent_claims_sort_script() -> str:
     """
 
 
+def _recent_claims_review_navigation_script() -> str:
+    return """
+    <script>
+        (() => {
+            const links = document.querySelectorAll('.review-link[data-claim-id]');
+            if (!links || links.length === 0) return;
+
+            const buildReviewUrl = (claimId) => {
+                let baseHref;
+                try {
+                    baseHref = window.parent.location.href;
+                } catch (error) {
+                    baseHref = document.referrer || window.location.href;
+                }
+
+                const baseUrl = new URL(baseHref);
+                baseUrl.searchParams.set('page', 'Claim Details');
+                baseUrl.searchParams.set('claim_id', claimId);
+                return baseUrl.toString();
+            };
+
+            links.forEach((link) => {
+                if (link.dataset.reviewNavReady === 'true') return;
+                link.dataset.reviewNavReady = 'true';
+
+                const claimId = link.dataset.claimId || '';
+                if (!claimId) return;
+
+                link.href = buildReviewUrl(claimId);
+                link.target = '_top';
+
+                link.addEventListener('click', (event) => {
+                    event.preventDefault();
+                    const reviewUrl = buildReviewUrl(claimId);
+                    link.href = reviewUrl;
+
+                    try {
+                        window.parent.location.assign(reviewUrl);
+                    } catch (parentError) {
+                        try {
+                            window.top.location.assign(reviewUrl);
+                        } catch (topError) {
+                            window.location.assign(reviewUrl);
+                        }
+                    }
+                });
+            });
+        })();
+    </script>
+    """
+
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
     return "".join(ch for ch in text if ch.isalnum() or ch == "-") or "unknown"
@@ -386,8 +437,10 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
         claim_id = row.get("CLAIM_ID", "")
         btn_key = f"{key_prefix}_open_{claim_id}"
         if st.button(f"Review {claim_id}", key=btn_key):
-            st.session_state.selected_claim_id = claim_id
+            st.session_state.selected_claim_id = str(claim_id)
             st.session_state.active_page = "Claim Details"
+            st.session_state.current_view = "claim_details"
+            st.query_params.update(page="Claim Details", claim_id=str(claim_id))
             st.rerun()
 
         row_html = "".join([f"<td>{value}</td>" for value in row.values])
@@ -516,6 +569,7 @@ def render_recent_claims_table(
                 '.recent-claims-table-frame', '.recent-claims-table-wrapper', '.recent-claims-table'
             )
             + _recent_claims_sort_script()
+            + _recent_claims_review_navigation_script()
         )
         components.html(table_html, height=600, scrolling=False)
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
