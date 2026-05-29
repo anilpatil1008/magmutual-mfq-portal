@@ -36,12 +36,59 @@ def table_columns(session, table_name: str) -> set[str]:
     return {str(v).upper() for v in df.get("COLUMN_NAME", pd.Series(dtype=str)).dropna().tolist()}
 
 
-def get_claims_queue(session) -> pd.DataFrame:
+CLAIMS_QUEUE_COLUMNS = [
+    "CLAIM_ID",
+    "PATIENT_NAME",
+    "DEFENDANT_NAME",
+    "FILE_NUMBER",
+    "STATUS",
+    "PRIORITY",
+    "ASSIGNED_TO",
+    "LAST_UPDATED_TS",
+    "DATE_REQUESTED",
+]
+
+CLAIMS_QUEUE_SEARCH_COLUMNS = [
+    "CLAIM_ID",
+    "PATIENT_NAME",
+    "DEFENDANT_NAME",
+    "FILE_NUMBER",
+    "STATUS",
+    "PRIORITY",
+]
+
+
+def _escape_like_pattern(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
+def get_claims_queue(session, search_text: str = "", status_filter: str = "All") -> pd.DataFrame:
+    where_clauses: list[str] = []
+    search_value = str(search_text or "").strip()
+    if search_value:
+        search_q = quote_sql(_escape_like_pattern(search_value))
+        where_clauses.append(
+            "("
+            + " OR ".join(
+                f"COALESCE(TO_VARCHAR({column}), '') ILIKE '%' || '{search_q}' || '%' ESCAPE '\\'"
+                for column in CLAIMS_QUEUE_SEARCH_COLUMNS
+            )
+            + ")"
+        )
+
+    status_value = str(status_filter or "All").strip()
+    if status_value and status_value != "All":
+        status_q = quote_sql(status_value)
+        where_clauses.append(f"STATUS = '{status_q}'")
+
+    where_sql = f" WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+    columns_sql = ",".join(CLAIMS_QUEUE_COLUMNS)
     return execute_query_df(
         session,
-        f"""SELECT CLAIM_ID,PATIENT_NAME,DEFENDANT_NAME,FILE_NUMBER,STATUS,PRIORITY,ASSIGNED_TO,LAST_UPDATED_TS,DATE_REQUESTED FROM {obj.MFQ_RECENT_CLAIMS_VIEW}""",
+        f"""SELECT {columns_sql} FROM {obj.MFQ_RECENT_CLAIMS_VIEW}{where_sql} ORDER BY LAST_UPDATED_TS DESC""",
         query_name="claims.get_claims_queue",
     )
+
 
 def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
     claim_q = quote_sql(claim_id)

@@ -9,7 +9,6 @@ import pandas as pd
 
 import streamlit as st
 
-from config import column_mappings as col
 from config import snowflake_objects as obj
 from repositories import assignment_repository, claims_repository, faculty_repository, mfq_repository, user_repository
 from services.snowflake_service import quote_sql, safe_collect_df
@@ -72,28 +71,14 @@ def _safe_read(session, object_name: str, sql: str, missing_objects: list[str]) 
 
 def get_claims_queue(session, username: str, search_text: str = "", status_filter: str = "All") -> pd.DataFrame:
     started = perf_counter()
-    df = claims_repository.get_claims_queue(session)
-    if df.empty:
-        logger.info("get_claims_queue_ms=%d rows=0", int((perf_counter() - started) * 1000))
-        return df
-
-    scoped = df.copy()
-    if search_text.strip():
-        needle = search_text.strip().lower()
-        scoped = scoped[
-            scoped[col.CLAIM_ID].astype(str).str.lower().str.contains(needle)
-            | scoped[col.PATIENT_NAME].astype(str).str.lower().str.contains(needle)
-            | scoped[col.DEFENDANT_NAME].astype(str).str.lower().str.contains(needle)
-            | scoped[col.FILE_NUMBER].astype(str).str.lower().str.contains(needle)
-            | scoped[col.STATUS].astype(str).str.lower().str.contains(needle)
-            | scoped[col.PRIORITY].astype(str).str.lower().str.contains(needle)
-        ]
-
-    if status_filter != "All":
-        scoped = scoped[scoped[col.STATUS] == status_filter]
-
-    result = scoped.sort_values(col.LAST_UPDATED_TS, ascending=False)
-    logger.info("get_claims_queue_ms=%d rows=%d", int((perf_counter() - started) * 1000), len(result))
+    result = claims_repository.get_claims_queue(search_text=search_text, session=session, status_filter=status_filter)
+    logger.info(
+        "get_claims_queue_ms=%d rows=%d search_applied=%s status_filter=%s",
+        int((perf_counter() - started) * 1000),
+        len(result),
+        bool(str(search_text or "").strip()),
+        status_filter,
+    )
     return result
 
 
