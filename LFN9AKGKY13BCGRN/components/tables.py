@@ -195,7 +195,6 @@ def _recent_claims_review_click_script() -> str:
             const getAppHref = () => {
                 const candidates = [
                     () => window.top.location.href,
-                    () => window.parent.location.href,
                     () => document.referrer,
                     () => window.location.href,
                 ];
@@ -219,15 +218,8 @@ def _recent_claims_review_click_script() -> str:
 
                 try {
                     window.top.location.href = appUrl.toString();
-                    return;
                 } catch (error) {
-                    // Fall through to parent/current-window navigation if top is inaccessible.
-                }
-
-                try {
-                    window.parent.location.href = appUrl.toString();
-                } catch (error) {
-                    window.location.href = appUrl.toString();
+                    window.open(appUrl.toString(), '_top');
                 }
             };
 
@@ -556,7 +548,7 @@ def render_recent_claims_table(
                 f"<td class='recent-claims-td' data-sort-value='{escape(display_claim_type.lower())}' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_TYPE']}px'><div class='single-line-ellipsis' title='{escape(claim_type)}'>{escape(display_claim_type)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(requested_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['DATE_REQUESTED']}px'><div class='single-line-ellipsis' title='{escape(requested)}'>{escape(requested)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(ai_confidence_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['AI_CONFIDENCE']}px'><div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div></td>"
-                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{review_href}' target='_parent' data-claim-id='{escape(claim_id)}'>Review</a></td>"
+                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{review_href}' target='_top' data-claim-id='{escape(claim_id)}'>Review</a></td>"
                 "</tr>"
             )
         recent_claims_css = _load_recent_claims_table_css()
