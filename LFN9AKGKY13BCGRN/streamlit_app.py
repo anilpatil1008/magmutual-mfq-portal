@@ -48,13 +48,14 @@ if "current_view" not in st.session_state:
 if "selected_claim_id" not in st.session_state:
     st.session_state.selected_claim_id = None
 
-query_page = st.query_params.get("page")
+query_page = str(st.query_params.get("page") or "").strip().lower().replace(" ", "_")
 query_claim_id = st.query_params.get("claim_id")
-if query_page == "Claim Details" and query_claim_id:
+if query_page in {"claim_details", "claim_detail"} and query_claim_id:
     st.session_state.active_page = "Dashboard"
     st.session_state.current_view = "claim_details"
     st.session_state.selected_claim_id = str(query_claim_id).strip()
     st.query_params.clear()
+    st.rerun()
 
 
 page_map = {
