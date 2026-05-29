@@ -732,10 +732,7 @@ def render(session, ctx) -> None:
     claim_id = st.session_state.get("selected_claim_id")
     logger.info("render_claim_details called claim_id=%s", claim_id)
     if not claim_id:
-        st.info("Please select a claim from the Dashboard.")
-        if st.button("Back to Dashboard", key="missing_claim_back_to_dashboard", type="primary"):
-            _go_back_to_dashboard()
-            st.rerun()
+        st.info("Open a claim from Dashboard or Claims page.")
         return
 
     _render_breadcrumb(str(claim_id))
