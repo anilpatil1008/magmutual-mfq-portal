@@ -192,30 +192,56 @@ def _recent_claims_review_click_script() -> str:
     return """
     <script>
         (() => {
-            const links = document.querySelectorAll('.review-link[data-claim-id]');
-            if (!links || links.length === 0) return;
+            const getAppHref = () => {
+                const candidates = [
+                    () => window.top.location.href,
+                    () => window.parent.location.href,
+                    () => document.referrer,
+                    () => window.location.href,
+                ];
 
-            links.forEach((link) => {
-                if (link.dataset.reviewClickReady === 'true') return;
-                link.dataset.reviewClickReady = 'true';
-
-                link.addEventListener('click', (event) => {
-                    const claimId = link.dataset.claimId;
-                    if (!claimId) return;
-
+                for (const getHref of candidates) {
                     try {
-                        const parentWindow = window.parent || window;
-                        const targetUrl = new URL(parentWindow.location.href);
-                        targetUrl.searchParams.set('page', 'Claim Details');
-                        targetUrl.searchParams.set('claim_id', claimId);
-
-                        event.preventDefault();
-                        parentWindow.location.assign(targetUrl.toString());
+                        const href = getHref();
+                        if (href) return href;
                     } catch (error) {
-                        // Fall back to the anchor's target=_parent navigation if parent access is restricted.
+                        // Keep trying iframe-safe fallbacks.
                     }
-                });
-            });
+                }
+
+                return window.location.href;
+            };
+
+            const navigateTop = (claimId) => {
+                const appUrl = new URL(getAppHref(), window.location.href);
+                appUrl.search = `?page=Claim%20Details&claim_id=${encodeURIComponent(claimId)}`;
+                appUrl.hash = '';
+
+                try {
+                    window.top.location.href = appUrl.toString();
+                    return;
+                } catch (error) {
+                    // Fall through to parent/current-window navigation if top is inaccessible.
+                }
+
+                try {
+                    window.parent.location.href = appUrl.toString();
+                } catch (error) {
+                    window.location.href = appUrl.toString();
+                }
+            };
+
+            document.addEventListener('click', (event) => {
+                const link = event.target.closest('a.review-link[data-claim-id]');
+                if (!link) return;
+
+                const claimId = link.dataset.claimId;
+                if (!claimId) return;
+
+                event.preventDefault();
+                event.stopPropagation();
+                navigateTop(claimId);
+            }, true);
         })();
     </script>
     """
