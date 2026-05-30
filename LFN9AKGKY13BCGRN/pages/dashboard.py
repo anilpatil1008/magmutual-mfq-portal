@@ -48,7 +48,7 @@ def _resolve_user_display_name(ctx) -> str:
 
 def _render_dashboard_view(session, ctx) -> None:
     logger.info("render_dashboard called")
-    st.title("Dashboard")
+    st.markdown("<h1 class='mm-dashboard-title'>Dashboard</h1>", unsafe_allow_html=True)
     display_name = _resolve_user_display_name(ctx)
     if display_name:
         st.markdown(
