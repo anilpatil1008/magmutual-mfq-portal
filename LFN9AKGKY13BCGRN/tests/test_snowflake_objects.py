@@ -28,15 +28,15 @@ def test_snowflake_object_registry_defines_referenced_obj_constants() -> None:
     assert references <= constants
 
 
-def test_claims_list_view_uses_fully_qualified_vw_mfq_claims() -> None:
+def test_claims_list_view_uses_unqualified_vw_mfq_claims() -> None:
     from config import snowflake_objects as obj
 
-    assert obj.VW_MFQ_CLAIMS == "MFQ_DEV_DWH.APP.VW_MFQ_CLAIMS"
+    assert obj.VW_MFQ_CLAIMS == "VW_MFQ_CLAIMS"
     assert obj.MFQ_CLAIMS_LIST_VIEW == obj.VW_MFQ_CLAIMS
     assert obj.MFQ_RECENT_CLAIMS_VIEW == obj.VW_MFQ_CLAIMS
 
 
-def test_dashboard_summary_view_uses_fully_qualified_summary_view() -> None:
+def test_dashboard_summary_view_uses_unqualified_summary_view() -> None:
     from config import snowflake_objects as obj
 
-    assert obj.MFQ_DASHBOARD_SUMMARY_VIEW == "MFQ_DEV_DWH.APP.MFQ_DASHBOARD_SUMMARY_VW"
+    assert obj.MFQ_DASHBOARD_SUMMARY_VIEW == "MFQ_DASHBOARD_SUMMARY_VW"
