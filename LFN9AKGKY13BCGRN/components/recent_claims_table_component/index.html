@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    const STREAMLIT_READY = 'streamlit:componentReady';
+    const STREAMLIT_RENDER = 'streamlit:render';
+    const STREAMLIT_SET_COMPONENT_VALUE = 'streamlit:setComponentValue';
+    const STREAMLIT_SET_FRAME_HEIGHT = 'streamlit:setFrameHeight';
+
+    const root = document.getElementById('root');
+    let lastHtml = null;
+    let configuredHeight = 600;
+
+    function sendMessage(type, data) {
+      window.parent.postMessage({ isStreamlitMessage: true, type, ...data }, '*');
+    }
+
+    function setFrameHeight(height) {
+      sendMessage(STREAMLIT_SET_FRAME_HEIGHT, { height });
+    }
+
+    function setComponentValue(value) {
+      sendMessage(STREAMLIT_SET_COMPONENT_VALUE, { value, dataType: 'json' });
+    }
+
+    function runEmbeddedScripts(container) {
+      const scripts = Array.from(container.querySelectorAll('script'));
+      scripts.forEach((oldScript) => {
+        const script = document.createElement('script');
+        Array.from(oldScript.attributes).forEach((attr) => {
+          script.setAttribute(attr.name, attr.value);
+        });
+        script.text = oldScript.textContent || '';
+        oldScript.replaceWith(script);
+      });
+    }
+
+    function wireReviewLinks() {
+      const links = root.querySelectorAll('.review-link[data-claim-id]');
+      links.forEach((link) => {
+        if (link.dataset.nativeReviewReady === 'true') return;
+        link.dataset.nativeReviewReady = 'true';
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          const claimId = String(link.dataset.claimId || '').trim();
+          if (claimId) {
+            setComponentValue({ claim_id: claimId, event_id: `${Date.now()}-${Math.random().toString(36).slice(2)}` });
+          }
+        });
+      });
+    }
+
+    function render(args) {
+      const html = args.html || '';
+      configuredHeight = Number(args.height || configuredHeight || 600);
+
+      if (html !== lastHtml) {
+        root.innerHTML = html;
+        runEmbeddedScripts(root);
+        wireReviewLinks();
+        lastHtml = html;
+      } else {
+        wireReviewLinks();
+      }
+
+      setFrameHeight(configuredHeight);
+    }
+
+    window.addEventListener('message', (event) => {
+      const data = event.data || {};
+      if (data.type === STREAMLIT_RENDER) {
+        render(data.args || {});
+      }
+    });
+
+    sendMessage(STREAMLIT_READY, { apiVersion: 1 });
+  </script>
+</body>
+</html>

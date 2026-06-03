@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from html import escape
-from urllib.parse import quote
 from pathlib import Path
 from typing import Any
 
@@ -11,6 +10,12 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from components.badges import priority_badge, status_badge
+
+
+_RECENT_CLAIMS_TABLE_COMPONENT = components.declare_component(
+    "recent_claims_table",
+    path=str(Path(__file__).resolve().parent / "recent_claims_table_component"),
+)
 
 
 VISIBLE_COLUMNS = [
@@ -187,57 +192,6 @@ def _recent_claims_sort_script() -> str:
     </script>
     """
 
-
-def _recent_claims_review_navigation_script() -> str:
-    return """
-    <script>
-        (() => {
-            const links = document.querySelectorAll('.review-link[data-claim-id]');
-            if (!links || links.length === 0) return;
-
-            const buildReviewUrl = (claimId) => {
-                let baseHref;
-                try {
-                    baseHref = window.parent.location.href;
-                } catch (error) {
-                    baseHref = document.referrer || window.location.href;
-                }
-
-                const baseUrl = new URL(baseHref);
-                baseUrl.searchParams.set('page', 'Claim Details');
-                baseUrl.searchParams.set('claim_id', claimId);
-                return baseUrl.toString();
-            };
-
-            links.forEach((link) => {
-                if (link.dataset.reviewNavReady === 'true') return;
-                link.dataset.reviewNavReady = 'true';
-
-                const claimId = link.dataset.claimId || '';
-                if (!claimId) return;
-
-                link.href = buildReviewUrl(claimId);
-                link.target = '_top';
-
-                link.addEventListener('click', (event) => {
-                    event.preventDefault();
-                    const reviewUrl = buildReviewUrl(claimId);
-                    link.href = reviewUrl;
-
-                    try {
-                        window.parent.location.assign(reviewUrl);
-                    } catch (parentError) {
-                        try {
-                            window.top.location.assign(reviewUrl);
-                        } catch (topError) {
-                            window.location.assign(reviewUrl);
-                        }
-                    }
-                });
-            });
-        })();
-    </script>
-    """
 
 def _normalize_slug(value: Any) -> str:
     text = str(value or "unknown").strip().lower().replace(" ", "-")
@@ -539,7 +493,6 @@ def render_recent_claims_table(
             claim_status = str(row.get("CLAIM_STATUS", row.get("STATUS", ""))).strip()
             claim_type = str(row.get("CLAIM_TYPE", "—")).strip() or "—"
             display_claim_type = _display_status_label(claim_type)
-            review_href = f"?page=Claim%20Details&claim_id={quote(claim_id, safe='')}"
             rows_html.append(
                 "<tr>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(claim_id_sort_value)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_ID']}px'><div class='single-line-ellipsis' title='{escape(claim_id)}'>{escape(claim_id)}</div></td>"
@@ -551,7 +504,7 @@ def render_recent_claims_table(
                 f"<td class='recent-claims-td' data-sort-value='{escape(display_claim_type.lower())}' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_TYPE']}px'><div class='single-line-ellipsis' title='{escape(claim_type)}'>{escape(display_claim_type)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(requested_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['DATE_REQUESTED']}px'><div class='single-line-ellipsis' title='{escape(requested)}'>{escape(requested)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(ai_confidence_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['AI_CONFIDENCE']}px'><div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div></td>"
-                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{review_href}' target='_top' data-claim-id='{escape(claim_id)}'>Review</a></td>"
+                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='#' role='button' data-claim-id='{escape(claim_id)}'>Review</a></td>"
                 "</tr>"
             )
         recent_claims_css = _load_recent_claims_table_css()
@@ -569,9 +522,23 @@ def render_recent_claims_table(
                 '.recent-claims-table-frame', '.recent-claims-table-wrapper', '.recent-claims-table'
             )
             + _recent_claims_sort_script()
-            + _recent_claims_review_navigation_script()
         )
-        components.html(table_html, height=600, scrolling=False)
+        review_event = _RECENT_CLAIMS_TABLE_COMPONENT(
+            html=table_html,
+            height=600,
+            key=f"{key_prefix}_recent_claims_table_component",
+            default=None,
+        )
+        if isinstance(review_event, dict):
+            claim_id = str(review_event.get("claim_id", "")).strip()
+            event_id = str(review_event.get("event_id", "")).strip()
+            last_event_key = f"{key_prefix}_recent_claims_last_review_event_id"
+            if claim_id and event_id and st.session_state.get(last_event_key) != event_id:
+                st.session_state[last_event_key] = event_id
+                st.session_state["selected_claim_id"] = claim_id
+                st.session_state["active_page"] = "Claim Details"
+                st.session_state["current_view"] = "claim_details"
+                st.rerun()
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
         pager_cols = st.columns([3, 1], vertical_alignment="center")
         pager_cols[0].markdown(f"<div class='recent-claims-pagination-summary'>{summary_text}</div>", unsafe_allow_html=True)
