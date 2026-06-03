@@ -1,0 +1,30 @@
+from __future__ import annotations
+
+import re
+from pathlib import Path
+
+
+def _snowflake_object_constants() -> set[str]:
+    registry_path = Path(__file__).parents[1] / "config" / "snowflake_objects.py"
+    registry_text = registry_path.read_text(encoding="utf-8")
+    return set(re.findall(r"^([A-Z0-9_]+)\s*=", registry_text, re.MULTILINE))
+
+
+def test_snowflake_object_registry_defines_referenced_obj_constants() -> None:
+    app_root = Path(__file__).parents[1]
+    constants = _snowflake_object_constants()
+    references: set[str] = set()
+
+    for path in app_root.rglob("*.py"):
+        if any(part in {".venv", "__pycache__"} for part in path.parts):
+            continue
+        references.update(re.findall(r"obj\.([A-Z0-9_]+)", path.read_text(encoding="utf-8")))
+
+    assert references <= constants
+
+
+def test_dashboard_summary_view_aliases_deployed_kpi_view() -> None:
+    from config import snowflake_objects as obj
+
+    assert obj.MFQ_DASHBOARD_SUMMARY_VIEW == "MFQ_DASHBOARD_KPI_VW"
+    assert obj.MFQ_DASHBOARD_KPI_VIEW == obj.MFQ_DASHBOARD_SUMMARY_VIEW
