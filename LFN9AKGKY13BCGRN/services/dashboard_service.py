@@ -31,8 +31,14 @@ def _show_dashboard_summary_error() -> None:
     st.error(message)
 
 
+@st.cache_data(ttl=120, show_spinner=False)
+def _get_cached_dashboard_summary(_session, session_cache_key: int) -> pd.DataFrame:
+    _ = session_cache_key
+    return get_dashboard_summary(_session)
+
+
 def get_dashboard_metrics(session, username: str) -> dict[str, int]:
-    summary = get_dashboard_summary(session)
+    summary = _get_cached_dashboard_summary(session, id(session))
     if summary.empty:
         _show_dashboard_summary_error()
         return _empty_dashboard_metrics()
