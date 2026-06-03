@@ -719,7 +719,7 @@ def _render_missing_objects(missing_objects: list[str]) -> None:
     if not missing_objects:
         return
     st.warning("Some Snowflake objects were not found. Showing partial data.")
-    st.markdown("\n".join([f"- `{obj}`" for obj in missing_objects]))
+    st.markdown("\n".join([f"- {escape(str(obj))}" for obj in missing_objects]))
 
 
 def _is_debug_mode_enabled() -> bool:
@@ -750,7 +750,7 @@ def render(session, ctx) -> None:
         logger.info("claim_details.workspace_load_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
     claim = workspace.get("claim")
     if not claim:
-        st.error(f"Claim {claim_id} not found in claim detail view.")
+        st.error(f"Claim id {claim_id} was not found in MFQ_CLAIM_DETAIL_VW")
         _render_missing_objects(workspace.get("missing_objects", []))
         return
 
@@ -793,6 +793,8 @@ def render(session, ctx) -> None:
             st.json(
                 {
                     "selected_claim_id": str(claim_id),
+                    "resolved_claim_id": workspace.get("resolved_claim_id"),
+                    "identifier_candidates": workspace.get("identifier_candidates", []),
                     "selected_file_number": claim.get("FILE_NUMBER"),
                     "answer_table": "MFQ_ANSWERS",
                     "answer_rows_returned": int(non_empty_mask.sum()) if not non_empty_mask.empty else 0,

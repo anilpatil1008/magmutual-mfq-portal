@@ -18,8 +18,8 @@ def get_mfq_form_workspace(session, claim_id: str, answer_value_expr: str, gener
     a.CONFIDENCE_SCORE,a.STATUS AS ANSWER_STATUS,a.IS_CURRENT,{qc_level_expr} AS CONFIDENCE_LEVEL,{qc_reason_expr} AS CONFIDENCE_REASON
     FROM {obj.MFQ_SECTIONS_TABLE} s
     JOIN {obj.MFQ_QUESTIONS_TABLE} q ON q.SECTION_ID=s.SECTION_ID AND q.FORM_KEY=s.FORM_KEY
-    LEFT JOIN {obj.MFQ_ANSWERS_TABLE} a ON a.QUESTION_ID=q.QUESTION_ID AND a.CLAIM_ID='{claim_q}' AND a.IS_CURRENT=TRUE
-    LEFT JOIN {obj.MFQ_QUESTION_CONFIDENCE_TABLE} qc ON qc.QUESTION_ID=q.QUESTION_ID AND qc.CLAIM_ID='{claim_q}'
+    LEFT JOIN {obj.MFQ_ANSWERS_TABLE} a ON a.QUESTION_ID=q.QUESTION_ID AND TRIM(TO_VARCHAR(a.CLAIM_ID)) = TRIM(TO_VARCHAR('{claim_q}')) AND a.IS_CURRENT=TRUE
+    LEFT JOIN {obj.MFQ_QUESTION_CONFIDENCE_TABLE} qc ON qc.QUESTION_ID=q.QUESTION_ID AND TRIM(TO_VARCHAR(qc.CLAIM_ID)) = TRIM(TO_VARCHAR('{claim_q}'))
     WHERE s.FORM_KEY='MFQ_V1' AND s.IS_ACTIVE=TRUE AND q.IS_ACTIVE=TRUE AND q.IS_CURRENT=TRUE
     ORDER BY s.DISPLAY_ORDER, q.DISPLAY_ORDER
     """, query_name="mfq.get_form_workspace")
@@ -30,11 +30,11 @@ def get_claim_summaries(session, claim_id: str) -> pd.DataFrame:
     return execute_query_df(
         session,
         f"""
-        SELECT 'RECORD_SUMMARY' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM {obj.MFQ_RECORD_SUMMARY_TABLE} WHERE CLAIM_ID = '{claim_q}'
+        SELECT 'RECORD_SUMMARY' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM {obj.MFQ_RECORD_SUMMARY_TABLE} WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR('{claim_q}'))
         UNION ALL
-        SELECT 'MEDCRON' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM {obj.MFQ_MEDCRON_SUMMARY_TABLE} WHERE CLAIM_ID = '{claim_q}'
+        SELECT 'MEDCRON' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM {obj.MFQ_MEDCRON_SUMMARY_TABLE} WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR('{claim_q}'))
         UNION ALL
-        SELECT 'LEGAL_MEMO' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM {obj.MFQ_LEGAL_MEMO_TABLE} WHERE CLAIM_ID = '{claim_q}'
+        SELECT 'LEGAL_MEMO' AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS FROM {obj.MFQ_LEGAL_MEMO_TABLE} WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR('{claim_q}'))
         ORDER BY GENERATED_TS DESC
         """,
         query_name="mfq.get_claim_summaries",
@@ -44,7 +44,7 @@ def get_claim_summaries(session, claim_id: str) -> pd.DataFrame:
 def get_section_confidence(session, claim_id: str, section_id: str) -> pd.DataFrame:
     claim_q = quote_sql(claim_id)
     section_q = quote_sql(section_id)
-    return execute_query_df(session, f"SELECT CLAIM_ID,SECTION_ID,CONFIDENCE_SCORE FROM {obj.MFQ_SECTION_CONFIDENCE_TABLE} WHERE CLAIM_ID='{claim_q}' AND SECTION_ID='{section_q}'", query_name="mfq.get_section_confidence")
+    return execute_query_df(session, f"SELECT CLAIM_ID,SECTION_ID,CONFIDENCE_SCORE FROM {obj.MFQ_SECTION_CONFIDENCE_TABLE} WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR('{claim_q}')) AND SECTION_ID='{section_q}'", query_name="mfq.get_section_confidence")
 
 
 def get_claim_confidence_summary(session, claim_id: str) -> pd.DataFrame:
@@ -53,7 +53,7 @@ def get_claim_confidence_summary(session, claim_id: str) -> pd.DataFrame:
         session,
         f"""SELECT s.SECTION_NAME,s.DISPLAY_ORDER AS SECTION_ORDER,sc.CONFIDENCE_SCORE
         FROM {obj.MFQ_SECTION_CONFIDENCE_TABLE} sc JOIN {obj.MFQ_SECTIONS_TABLE} s ON s.SECTION_ID=sc.SECTION_ID
-        WHERE sc.CLAIM_ID='{claim_q}' ORDER BY s.DISPLAY_ORDER, s.SECTION_NAME""",
+        WHERE TRIM(TO_VARCHAR(sc.CLAIM_ID)) = TRIM(TO_VARCHAR('{claim_q}')) ORDER BY s.DISPLAY_ORDER, s.SECTION_NAME""",
         query_name="mfq.get_claim_confidence_summary",
     )
 
