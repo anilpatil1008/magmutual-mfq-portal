@@ -70,6 +70,14 @@ def _safe_read(session, object_name: str, sql: str, missing_objects: list[str]) 
     return safe_collect_df(session, sql)
 
 
+def _sort_claims_queue(queue: pd.DataFrame) -> pd.DataFrame:
+    """Sort claims by the best available recency column without assuming a view shape."""
+    for sort_column in ("DATE_REQUESTED", col.LAST_UPDATED_TS, "CREATED_TS"):
+        if sort_column in queue.columns:
+            return queue.sort_values(sort_column, ascending=False, na_position="last")
+    return queue
+
+
 def get_claims_queue(session, username: str, search_text: str = "", status_filter: str = "All") -> pd.DataFrame:
     started = perf_counter()
     df = claims_repository.get_claims_queue(session)
@@ -98,10 +106,7 @@ def get_claims_queue(session, username: str, search_text: str = "", status_filte
     if status_filter != "All" and "CLAIM_STATUS" in scoped.columns:
         scoped = scoped[scoped["CLAIM_STATUS"] == status_filter]
 
-    if "DATE_REQUESTED" in scoped.columns:
-        result = scoped.sort_values("DATE_REQUESTED", ascending=False, na_position="last")
-    else:
-        result = scoped
+    result = _sort_claims_queue(scoped)
     logger.info("get_claims_queue_ms=%d rows=%d", int((perf_counter() - started) * 1000), len(result))
     return result
 
