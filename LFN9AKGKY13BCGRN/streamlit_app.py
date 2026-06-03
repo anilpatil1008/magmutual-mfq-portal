@@ -44,7 +44,7 @@ render_missing_objects(missing_objects)
 if "active_page" not in st.session_state:
     st.session_state.active_page = "Dashboard"
 if "current_view" not in st.session_state:
-    st.session_state.current_view = "dashboard"
+    st.session_state.current_view = "Dashboard"
 if "selected_claim_id" not in st.session_state:
     st.session_state.selected_claim_id = None
 
@@ -62,7 +62,7 @@ def _sync_claim_details_route_from_query_params() -> None:
     if query_page.casefold() == "claim details".casefold() and query_claim_id:
         st.session_state["selected_claim_id"] = query_claim_id
         st.session_state["active_page"] = "Claim Details"
-        st.session_state["current_view"] = "claim_details"
+        st.session_state["current_view"] = "Claim Details"
 
 
 _sync_claim_details_route_from_query_params()
