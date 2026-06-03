@@ -4,7 +4,7 @@
 All object names should be maintained in `config/snowflake_objects.py`.
 
 ## Current Mapping
-- Dashboard KPI summary -> `MFQ_DASHBOARD_KPI_VW` via `MFQ_DASHBOARD_SUMMARY_VIEW` in `config/snowflake_objects.py`.
+- Dashboard summary -> `MFQ_DEV_DWH.APP.MFQ_DASHBOARD_SUMMARY_VW` via `MFQ_DASHBOARD_SUMMARY_VIEW` in `config/snowflake_objects.py`.
 - Claims list/search -> `VW_MFQ_CLAIMS` via `MFQ_CLAIMS_LIST_VIEW` in `config/snowflake_objects.py`.
 - Admin Users tab -> `APP_USER`, `APP_USER_ROLE`, `APP_ROLE` via `repositories.admin_repository.get_users_with_roles`.
 - Admin Role Mappings tab -> `APP_ROLE_PERMISSION`, `APP_ROLE`, `APP_PERMISSION` via `repositories.admin_repository.get_role_permissions`.
