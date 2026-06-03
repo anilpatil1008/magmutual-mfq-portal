@@ -50,18 +50,18 @@
     }
 
     function wireReviewLinks() {
-      const links = root.querySelectorAll('.review-link[data-claim-id]');
-      links.forEach((link) => {
-        if (link.dataset.nativeReviewReady === 'true') return;
-        link.dataset.nativeReviewReady = 'true';
-        link.addEventListener('click', (event) => {
-          event.preventDefault();
-          event.stopPropagation();
-          const claimId = String(link.dataset.claimId || '').trim();
-          if (claimId) {
-            setComponentValue({ claim_id: claimId, event_id: `${Date.now()}-${Math.random().toString(36).slice(2)}` });
-          }
-        });
+      if (root.dataset.nativeReviewDelegationReady === 'true') return;
+      root.dataset.nativeReviewDelegationReady = 'true';
+      root.addEventListener('click', (event) => {
+        const link = event.target.closest('.review-link[data-claim-id]');
+        if (!link || !root.contains(link)) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+        const claimId = String(link.dataset.claimId || '').trim();
+        if (claimId) {
+          setComponentValue({ claim_id: claimId, event_id: `${Date.now()}-${Math.random().toString(36).slice(2)}` });
+        }
       });
     }
 

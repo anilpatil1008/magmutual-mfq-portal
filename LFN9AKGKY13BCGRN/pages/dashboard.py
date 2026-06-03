@@ -137,20 +137,25 @@ def _render_dashboard_view(session, ctx) -> None:
         )
 
 
+def _normalized_view_name(value: object) -> str:
+    return str(value or "").strip().casefold().replace("_", " ")
+
+
 def render(session, ctx) -> None:
     if "current_view" not in st.session_state:
-        st.session_state["current_view"] = "dashboard"
+        st.session_state["current_view"] = "Dashboard"
 
-    if st.session_state.get("current_view") == "claim_details" and st.session_state.get("selected_claim_id"):
+    current_view = _normalized_view_name(st.session_state.get("current_view"))
+    if current_view == "claim details" and st.session_state.get("selected_claim_id"):
         logger.info("render_claim_details called claim_id=%s", st.session_state.get("selected_claim_id"))
         claim_details.render(session=session, ctx=ctx)
         st.stop()
 
-    if st.session_state.get("current_view") == "dashboard":
+    if current_view == "dashboard":
         _render_dashboard_view(session=session, ctx=ctx)
         st.stop()
 
     # Fallback to dashboard when state is unknown.
-    st.session_state["current_view"] = "dashboard"
+    st.session_state["current_view"] = "Dashboard"
     _render_dashboard_view(session=session, ctx=ctx)
     st.stop()

@@ -213,7 +213,7 @@ def render_sidebar(ctx) -> None:
 
             if st.button(page, icon=icon, use_container_width=True, key=f"{key_prefix}_{key_slug}"):
                 st.session_state.active_page = page
-                st.session_state.current_view = page.lower().replace(" ", "_")
+                st.session_state.current_view = page
                 st.query_params.clear()
                 st.rerun()
 
