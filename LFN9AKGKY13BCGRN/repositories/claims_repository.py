@@ -7,16 +7,48 @@ from core.query_executor import execute_query_df
 from services.snowflake_service import quote_sql
 
 
+def _parse_snowflake_object_name(object_name: str) -> tuple[str | None, str | None, str]:
+    parts = [part.strip().strip('"') for part in str(object_name).split(".") if part.strip()]
+    if len(parts) == 3:
+        database, schema, name = parts
+        return database.upper(), schema.upper(), name.upper()
+    if len(parts) == 2:
+        schema, name = parts
+        return None, schema.upper(), name.upper()
+    if len(parts) == 1:
+        return None, None, parts[0].upper()
+    raise ValueError(f"Invalid Snowflake object name: {object_name}")
+
+
+def _quote_identifier(identifier: str) -> str:
+    return f'"{str(identifier).replace(chr(34), chr(34) + chr(34))}"'
+
+
+def _information_schema_prefix(database: str | None) -> str:
+    if database:
+        return f"{_quote_identifier(database)}.INFORMATION_SCHEMA"
+    return "INFORMATION_SCHEMA"
+
+
+def _schema_predicate(schema: str | None) -> str:
+    if schema:
+        return f"UPPER(TABLE_SCHEMA) = '{quote_sql(schema)}'"
+    return "TABLE_SCHEMA = CURRENT_SCHEMA()"
+
+
 def object_exists(session, object_name: str) -> bool:
-    object_q = quote_sql(object_name.upper())
+    database, schema, name = _parse_snowflake_object_name(object_name)
+    object_q = quote_sql(name)
+    information_schema = _information_schema_prefix(database)
+    schema_predicate = _schema_predicate(schema)
     df = execute_query_df(
         session,
         f"""
-        SELECT 1 AS FOUND FROM INFORMATION_SCHEMA.TABLES
-        WHERE TABLE_SCHEMA = CURRENT_SCHEMA() AND TABLE_NAME = '{object_q}'
+        SELECT 1 AS FOUND FROM {information_schema}.TABLES
+        WHERE {schema_predicate} AND UPPER(TABLE_NAME) = '{object_q}'
         UNION ALL
-        SELECT 1 AS FOUND FROM INFORMATION_SCHEMA.VIEWS
-        WHERE TABLE_SCHEMA = CURRENT_SCHEMA() AND TABLE_NAME = '{object_q}'
+        SELECT 1 AS FOUND FROM {information_schema}.VIEWS
+        WHERE {schema_predicate} AND UPPER(TABLE_NAME) = '{object_q}'
         LIMIT 1
         """,
         query_name=f"claims.object_exists.{object_name}",
@@ -27,10 +59,18 @@ def object_exists(session, object_name: str) -> bool:
 def table_columns(session, table_name: str) -> set[str]:
     if not object_exists(session, table_name):
         return set()
-    table_q = quote_sql(table_name.upper())
+    database, schema, name = _parse_snowflake_object_name(table_name)
+    information_schema = _information_schema_prefix(database)
+    schema_predicate = _schema_predicate(schema)
+    table_q = quote_sql(name)
     df = execute_query_df(
         session,
-        f"SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = CURRENT_SCHEMA() AND TABLE_NAME = '{table_q}'",
+        f"""
+        SELECT COLUMN_NAME
+        FROM {information_schema}.COLUMNS
+        WHERE {schema_predicate}
+          AND UPPER(TABLE_NAME) = '{table_q}'
+        """,
         query_name=f"claims.table_columns.{table_name}",
     )
     return {str(v).upper() for v in df.get("COLUMN_NAME", pd.Series(dtype=str)).dropna().tolist()}

@@ -1,31 +1,60 @@
 from __future__ import annotations
 
-import pandas as pd
+import logging
 
+import pandas as pd
+import streamlit as st
+
+from config import snowflake_objects as obj
+from repositories.dashboard_repository import get_dashboard_summary
 from services.claim_service import get_claims_queue
+
+logger = logging.getLogger(__name__)
+
+DASHBOARD_METRIC_COLUMN_MAP = {
+    "Total Active Claims": "TOTAL_ACTIVE_CLAIMS",
+    "MFQ Generated": "MFQ_GENERATED_COUNT",
+    "Assigned": "ASSIGNED_COUNT",
+    "On Hold": "ON_HOLD_COUNT",
+    "Approved": "APPROVED_COUNT",
+    "Rejected": "REJECTED_COUNT",
+}
+
+
+def _empty_dashboard_metrics() -> dict[str, int]:
+    return {metric: 0 for metric in DASHBOARD_METRIC_COLUMN_MAP}
+
+
+def _show_dashboard_summary_error() -> None:
+    message = f"Dashboard summary view not found or query failed: {obj.MFQ_DASHBOARD_SUMMARY_VIEW}"
+    logger.error(message)
+    st.error(message)
 
 
 def get_dashboard_metrics(session, username: str) -> dict[str, int]:
-    claims = get_claims_queue(session, username=username)
-    if claims.empty:
-        return {
-            "Total Active Claims": 0,
-            "MFQ Generated": 0,
-            "Assigned": 0,
-            "On Hold": 0,
-            "Approved": 0,
-            "Rejected": 0,
-        }
+    summary = get_dashboard_summary(session)
+    if summary.empty:
+        _show_dashboard_summary_error()
+        return _empty_dashboard_metrics()
 
-    status = claims["STATUS"].fillna("")
-    return {
-        "Total Active Claims": int(len(claims)),
-        "MFQ Generated": int((status == "MFQ Generated").sum()),
-        "Assigned": int((status == "Assigned").sum()),
-        "On Hold": int((status == "On Hold").sum()),
-        "Approved": int((status == "Approved").sum()),
-        "Rejected": int((status == "Rejected").sum()),
-    }
+    row = summary.iloc[0]
+    metrics: dict[str, int] = {}
+    missing_columns: list[str] = []
+    for metric_name, column_name in DASHBOARD_METRIC_COLUMN_MAP.items():
+        if column_name not in summary.columns:
+            missing_columns.append(column_name)
+            metrics[metric_name] = 0
+            continue
+        metrics[metric_name] = int(row.get(column_name) or 0)
+
+    if missing_columns:
+        logger.error(
+            "Dashboard summary view missing expected columns: %s; view=%s",
+            ", ".join(missing_columns),
+            obj.MFQ_DASHBOARD_SUMMARY_VIEW,
+        )
+        _show_dashboard_summary_error()
+    return metrics
 
 
 def get_dashboard_charts(session, username: str) -> dict[str, pd.DataFrame]:
