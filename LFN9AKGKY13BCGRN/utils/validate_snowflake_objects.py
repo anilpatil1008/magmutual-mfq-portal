@@ -9,7 +9,7 @@ from repositories.claims_repository import object_exists
 
 REQUIRED_CORE_OBJECTS = [
     obj.MFQ_RECENT_CLAIMS_VIEW,
-    obj.MFQ_CLAIM_DETAIL_VIEW,
+    obj.MFQ_CLAIM_DETAIL_VW,
     obj.MFQ_FORM_WORKSPACE_VIEW,
     obj.MFQ_ASSIGNMENT_QUEUE_VIEW,
     obj.MFQ_STATUS_HISTORY_TABLE,

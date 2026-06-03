@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Sequence
 from typing import Any
 
 import pandas as pd
@@ -14,22 +15,26 @@ def execute_query(
     session,
     sql: str,
     *,
-    params: dict[str, Any] | None = None,
+    params: Sequence[Any] | dict[str, Any] | None = None,
     query_name: str = "query",
     as_dataframe: bool = True,
     fallback: pd.DataFrame | list[dict[str, Any]] | None = None,
 ) -> pd.DataFrame | list[dict[str, Any]]:
     """Execute a Snowflake query with consistent timing/error handling.
 
-    Params are accepted for compatibility; callers should pass pre-escaped inputs
-    until full Snowpark bind support is introduced across repositories.
+    Params are forwarded to Snowpark so callers can bind user-provided values
+    instead of interpolating them into SQL strings.
     """
     start = time.perf_counter()
     try:
         if params:
-            logger.debug("%s executed with params keys=%s", query_name, sorted(params.keys()))
+            if isinstance(params, dict):
+                logger.debug("%s executed with params keys=%s", query_name, sorted(params.keys()))
+            else:
+                logger.debug("%s executed with %d bind params", query_name, len(params))
 
-        result = session.sql(sql).to_pandas()
+        statement = session.sql(sql, params=params) if params else session.sql(sql)
+        result = statement.to_pandas()
         duration_ms = (time.perf_counter() - start) * 1000
         level = logging.WARNING if duration_ms >= SLOW_QUERY_THRESHOLD_MS else logging.INFO
         logger.log(level, "query=%s duration_ms=%.1f rows=%s", query_name, duration_ms, len(result))
@@ -45,11 +50,18 @@ def execute_query(
         return pd.DataFrame() if as_dataframe else []
 
 
-def execute_query_df(session, sql: str, fallback: pd.DataFrame | None = None, query_name: str = "query") -> pd.DataFrame:
+def execute_query_df(
+    session,
+    sql: str,
+    fallback: pd.DataFrame | None = None,
+    query_name: str = "query",
+    params: Sequence[Any] | dict[str, Any] | None = None,
+) -> pd.DataFrame:
     """Backward-compatible dataframe wrapper for legacy repository calls."""
     result = execute_query(
         session,
         sql,
+        params=params,
         query_name=query_name,
         as_dataframe=True,
         fallback=fallback if fallback is not None else pd.DataFrame(),
