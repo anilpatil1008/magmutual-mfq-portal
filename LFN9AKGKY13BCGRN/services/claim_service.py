@@ -80,19 +80,28 @@ def get_claims_queue(session, username: str, search_text: str = "", status_filte
     scoped = df.copy()
     if search_text.strip():
         needle = search_text.strip().lower()
-        scoped = scoped[
-            scoped[col.CLAIM_ID].astype(str).str.lower().str.contains(needle)
-            | scoped[col.PATIENT_NAME].astype(str).str.lower().str.contains(needle)
-            | scoped[col.DEFENDANT_NAME].astype(str).str.lower().str.contains(needle)
-            | scoped[col.FILE_NUMBER].astype(str).str.lower().str.contains(needle)
-            | scoped[col.STATUS].astype(str).str.lower().str.contains(needle)
-            | scoped[col.PRIORITY].astype(str).str.lower().str.contains(needle)
-        ]
+        search_columns = (
+            "CLAIM_ID",
+            "PATIENT_DEFENDANT",
+            "MFQ_STATUS",
+            "WORKFLOW_STATUS",
+            "PRIORITY",
+            "CLAIM_STATUS",
+            "CLAIM_TYPE",
+        )
+        mask = pd.Series(False, index=scoped.index)
+        for search_column in search_columns:
+            if search_column in scoped.columns:
+                mask = mask | scoped[search_column].astype(str).str.lower().str.contains(needle)
+        scoped = scoped[mask]
 
-    if status_filter != "All":
-        scoped = scoped[scoped[col.STATUS] == status_filter]
+    if status_filter != "All" and "CLAIM_STATUS" in scoped.columns:
+        scoped = scoped[scoped["CLAIM_STATUS"] == status_filter]
 
-    result = scoped.sort_values(col.LAST_UPDATED_TS, ascending=False)
+    if "DATE_REQUESTED" in scoped.columns:
+        result = scoped.sort_values("DATE_REQUESTED", ascending=False, na_position="last")
+    else:
+        result = scoped
     logger.info("get_claims_queue_ms=%d rows=%d", int((perf_counter() - started) * 1000), len(result))
     return result
 

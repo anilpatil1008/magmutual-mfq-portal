@@ -21,18 +21,7 @@ _RECENT_CLAIMS_TABLE_COMPONENT = components.declare_component(
 
 VISIBLE_COLUMNS = [
     "CLAIM_ID",
-    "PATIENT_NAME",
-    "DEFENDANT_NAME",
-    "STATUS",
-    "PRIORITY",
-    "DATE_REQUESTED",
-    "ASSIGNED_TO",
-]
-
-ENTERPRISE_COLUMNS = [
-    "CLAIM_ID",
-    "PATIENT_NAME",
-    "DEFENDANT_NAME",
+    "PATIENT_DEFENDANT",
     "MFQ_STATUS",
     "WORKFLOW_STATUS",
     "PRIORITY",
@@ -40,11 +29,22 @@ ENTERPRISE_COLUMNS = [
     "CLAIM_TYPE",
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
-    "STATUS",
+]
+
+ENTERPRISE_COLUMNS = [
+    "CLAIM_ID",
+    "PATIENT_DEFENDANT",
+    "MFQ_STATUS",
+    "WORKFLOW_STATUS",
+    "PRIORITY",
+    "CLAIM_STATUS",
+    "CLAIM_TYPE",
+    "DATE_REQUESTED",
+    "AI_CONFIDENCE",
 ]
 RECENT_CLAIMS_COLUMNS = [
     {"key": "CLAIM_ID", "label": "Claim ID", "width": 110, "sortable": True},
-    {"key": "PATIENT_NAME", "label": "Patient / Defendant", "width": 280, "sortable": True},
+    {"key": "PATIENT_DEFENDANT", "label": "Patient / Defendant", "width": 280, "sortable": True},
     {"key": "MFQ_STATUS", "label": "MFQ Status", "width": 180, "sortable": True},
     {"key": "WORKFLOW_STATUS", "label": "Workflow Status", "width": 200, "sortable": True},
     {"key": "PRIORITY", "label": "Priority", "width": 130, "sortable": True},
@@ -320,10 +320,8 @@ def _priority_sort_series(series: pd.Series) -> pd.Series:
 def _recent_claim_sort_series(df: pd.DataFrame, sort_column: str) -> pd.Series | pd.DataFrame:
     if sort_column == "CLAIM_ID":
         return _claim_id_sort_series(df.get("CLAIM_ID", pd.Series(index=df.index, dtype="object")))
-    if sort_column == "PATIENT_NAME":
-        patient = df.get("PATIENT_NAME", pd.Series(index=df.index, dtype="object")).fillna("").astype(str)
-        defendant = df.get("DEFENDANT_NAME", pd.Series(index=df.index, dtype="object")).fillna("").astype(str)
-        return (patient + " " + defendant).str.lower().str.strip()
+    if sort_column == "PATIENT_DEFENDANT":
+        return df.get("PATIENT_DEFENDANT", pd.Series(index=df.index, dtype="object")).fillna("").astype(str).str.lower()
     if sort_column in {"MFQ_STATUS", "WORKFLOW_STATUS", "CLAIM_TYPE", "CLAIM_STATUS"}:
         return df.get(sort_column, pd.Series(index=df.index, dtype="object")).fillna("").astype(str).str.lower()
     if sort_column == "PRIORITY":
@@ -366,7 +364,7 @@ def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.Dat
     needle = str(search_text or "").strip().lower()
     if not needle:
         return df
-    search_columns = ["CLAIM_ID", "PATIENT_NAME", "DEFENDANT_NAME", "STATUS", "PRIORITY", "FILE_NUMBER"]
+    search_columns = ["CLAIM_ID", "PATIENT_DEFENDANT", "MFQ_STATUS", "WORKFLOW_STATUS", "PRIORITY", "CLAIM_STATUS", "CLAIM_TYPE"]
     mask = pd.Series(False, index=df.index)
     for column in search_columns:
         if column in df.columns:
@@ -475,37 +473,33 @@ def render_recent_claims_table(
         rows_html: list[str] = []
         for _, row in show_df.iterrows():
             claim_id = str(row.get("CLAIM_ID", "")).strip() or "—"
-            status = str(row.get("STATUS", "")).strip()
-            patient_name = str(row.get("PATIENT_NAME", "")).strip() or "Unknown Patient"
-            defendant_name = str(row.get("DEFENDANT_NAME", "")).strip()
+            patient_defendant = str(row.get("PATIENT_DEFENDANT", "")).strip() or "Unknown Patient"
             requested = _format_date(row.get("DATE_REQUESTED"))
             requested_ts = pd.to_datetime(row.get("DATE_REQUESTED"), errors="coerce")
             requested_sort = str(int(requested_ts.timestamp())) if not pd.isna(requested_ts) else "-1"
             claim_id_sort_value = str(pd.to_numeric(str(claim_id), errors="coerce"))
             if claim_id_sort_value == "nan":
                 claim_id_sort_value = "-1"
-            patient_sort_value = f"{patient_name} {defendant_name}".strip().lower()
-            mfq_sort_value = _display_status_label(str(row.get("MFQ_STATUS", row.get("STATUS", ""))).strip()).lower()
-            workflow_sort_value = _display_status_label(str(row.get("WORKFLOW_STATUS", row.get("STATUS", ""))).strip()).lower()
+            patient_sort_value = patient_defendant.lower()
+            mfq_sort_value = _display_status_label(str(row.get("MFQ_STATUS", "")).strip()).lower()
+            workflow_sort_value = _display_status_label(str(row.get("WORKFLOW_STATUS", "")).strip()).lower()
             priority_sort_value = str(row.get("PRIORITY", "unknown")).strip().lower()
             priority_sort_rank = str(PRIORITY_ORDER.get(priority_sort_value, PRIORITY_ORDER["unknown"]))
-            claim_status_sort_value = _display_status_label(str(row.get("CLAIM_STATUS", row.get("STATUS", ""))).strip()).lower()
+            claim_status_sort_value = _display_status_label(str(row.get("CLAIM_STATUS", "")).strip()).lower()
             ai_confidence_sort = str(_confidence_sort_series(pd.Series([row.get("AI_CONFIDENCE")])).iloc[0])
 
-            patient_title = patient_name if not defendant_name else f"{patient_name} — {defendant_name}"
-            patient_html = f"<span class='patient-name' title='{escape(patient_title)}'>{escape(patient_name)}</span>"
-            if defendant_name:
-                patient_html += f"<span class='defendant-name' title='{escape(patient_title)}'>{escape(defendant_name)}</span>"
+            patient_title = patient_defendant
+            patient_html = f"<span class='patient-name' title='{escape(patient_title)}'>{escape(patient_defendant)}</span>"
 
-            mfq_status = str(row.get("MFQ_STATUS", row.get("STATUS", ""))).strip()
-            workflow_status = str(row.get("WORKFLOW_STATUS", row.get("STATUS", ""))).strip()
-            claim_status = str(row.get("CLAIM_STATUS", row.get("STATUS", ""))).strip()
+            mfq_status = str(row.get("MFQ_STATUS", "")).strip()
+            workflow_status = str(row.get("WORKFLOW_STATUS", "")).strip()
+            claim_status = str(row.get("CLAIM_STATUS", "")).strip()
             claim_type = str(row.get("CLAIM_TYPE", "—")).strip() or "—"
             display_claim_type = _display_status_label(claim_type)
             rows_html.append(
                 "<tr>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(claim_id_sort_value)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_ID']}px'><div class='single-line-ellipsis' title='{escape(claim_id)}'>{escape(claim_id)}</div></td>"
-                f"<td class='recent-claims-td' data-sort-value='{escape(patient_sort_value)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['PATIENT_NAME']}px'><div class='patient-cell'>{patient_html}</div></td>"
+                f"<td class='recent-claims-td' data-sort-value='{escape(patient_sort_value)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['PATIENT_DEFENDANT']}px'><div class='patient-cell'>{patient_html}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(mfq_sort_value)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['MFQ_STATUS']}px'><div class='status-cell'>{_status_badge_html(mfq_status)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(workflow_sort_value)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['WORKFLOW_STATUS']}px'><div class='status-cell'>{_status_badge_html(workflow_status)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(priority_sort_rank)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['PRIORITY']}px'><div class='priority-cell'>{_priority_badge_html(row.get('PRIORITY'))}</div></td>"

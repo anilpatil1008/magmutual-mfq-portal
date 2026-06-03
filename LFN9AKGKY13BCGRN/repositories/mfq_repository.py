@@ -5,7 +5,7 @@ from core.query_executor import execute_query_df
 from services.snowflake_service import quote_sql
 
 def get_status_values(session):
-    return execute_query_df(session, f"SELECT DISTINCT STATUS FROM {obj.MFQ_RECENT_CLAIMS_VIEW} ORDER BY STATUS", query_name="mfq.get_status")
+    return execute_query_df(session, f"SELECT DISTINCT CLAIM_STATUS AS STATUS FROM {obj.MFQ_CLAIMS_LIST_VIEW} WHERE CLAIM_STATUS IS NOT NULL ORDER BY STATUS", query_name="mfq.get_status")
 
 def get_mfq_form_workspace(session, claim_id: str, answer_value_expr: str, generated_answer_expr: str, reviewed_answer_expr: str, qc_level_expr: str, qc_reason_expr: str) -> pd.DataFrame:
     claim_q = quote_sql(claim_id)
