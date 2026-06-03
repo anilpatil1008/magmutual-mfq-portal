@@ -12,7 +12,7 @@ from pages import claim_details
 from services.claim_service import get_claims_queue
 from services.dashboard_service import get_dashboard_metrics
 from services.rbac_service import get_session_context_snapshot
-from utils.claim_lifecycle import classify_claim_bucket
+from utils.claim_lifecycle import approved_claim_status, classify_claim_bucket
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +110,7 @@ def _render_dashboard_view(session, ctx) -> None:
         queue["CLAIM_BUCKET"] = queue.apply(classify_claim_bucket, axis=1)
         ongoing_df = queue[queue["CLAIM_BUCKET"] == "ongoing"]
         history_df = queue[queue["CLAIM_BUCKET"] == "history"]
+        history_df = history_df[history_df.apply(approved_claim_status, axis=1)]
 
         selected_tab = st.radio(
             "Recent Claims Tabs",
