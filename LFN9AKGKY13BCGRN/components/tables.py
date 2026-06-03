@@ -4,6 +4,7 @@ from datetime import datetime
 from html import escape
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 import pandas as pd
 import streamlit as st
@@ -373,6 +374,17 @@ def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.Dat
     return df[mask]
 
 
+def _open_claim_details(claim_id: str) -> None:
+    st.session_state["selected_claim_id"] = str(claim_id)
+    st.session_state["active_page"] = "Claim Details"
+    st.session_state["current_view"] = "claim_details"
+    st.query_params.update(page="Claim Details", claim_id=str(claim_id))
+
+
+def _claim_details_href(claim_id: str) -> str:
+    return f"?page=Claim%20Details&claim_id={quote(str(claim_id), safe='')}"
+
+
 def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
     if df.empty:
         st.info("No claims found for this filter context.")
@@ -391,10 +403,7 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
         claim_id = row.get("CLAIM_ID", "")
         btn_key = f"{key_prefix}_open_{claim_id}"
         if st.button(f"Review {claim_id}", key=btn_key):
-            st.session_state.selected_claim_id = str(claim_id)
-            st.session_state.active_page = "Claim Details"
-            st.session_state.current_view = "claim_details"
-            st.query_params.update(page="Claim Details", claim_id=str(claim_id))
+            _open_claim_details(str(claim_id))
             st.rerun()
 
         row_html = "".join([f"<td>{value}</td>" for value in row.values])
@@ -504,7 +513,7 @@ def render_recent_claims_table(
                 f"<td class='recent-claims-td' data-sort-value='{escape(display_claim_type.lower())}' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_TYPE']}px'><div class='single-line-ellipsis' title='{escape(claim_type)}'>{escape(display_claim_type)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(requested_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['DATE_REQUESTED']}px'><div class='single-line-ellipsis' title='{escape(requested)}'>{escape(requested)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(ai_confidence_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['AI_CONFIDENCE']}px'><div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div></td>"
-                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='#' role='button' data-claim-id='{escape(claim_id)}'>Review</a></td>"
+                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{escape(_claim_details_href(claim_id))}' target='_top' role='button' data-claim-id='{escape(claim_id)}'>Review</a></td>"
                 "</tr>"
             )
         recent_claims_css = _load_recent_claims_table_css()
@@ -535,9 +544,7 @@ def render_recent_claims_table(
             last_event_key = f"{key_prefix}_recent_claims_last_review_event_id"
             if claim_id and event_id and st.session_state.get(last_event_key) != event_id:
                 st.session_state[last_event_key] = event_id
-                st.session_state["selected_claim_id"] = claim_id
-                st.session_state["active_page"] = "Claim Details"
-                st.session_state["current_view"] = "claim_details"
+                _open_claim_details(claim_id)
                 st.rerun()
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
         pager_cols = st.columns([3, 1], vertical_alignment="center")
