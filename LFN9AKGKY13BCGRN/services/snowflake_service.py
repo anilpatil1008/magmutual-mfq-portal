@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Any
 
 import pandas as pd
@@ -13,10 +14,15 @@ def get_session():
     return get_snowflake_session()
 
 
-def safe_collect_df(session, sql: str, fallback: pd.DataFrame | None = None) -> pd.DataFrame:
+def safe_collect_df(
+    session,
+    sql: str,
+    fallback: pd.DataFrame | None = None,
+    params: Sequence[Any] | dict[str, Any] | None = None,
+) -> pd.DataFrame:
     """Run SQL and return DataFrame; show UI error and fallback on failure."""
     try:
-        return execute_query_df(session, sql, fallback=fallback, query_name="safe_collect_df")
+        return execute_query_df(session, sql, fallback=fallback, query_name="safe_collect_df", params=params)
     except Exception as exc:  # pragma: no cover - safety path for runtime env differences
         st.error(f"Data query failed: {exc}")
         return fallback if fallback is not None else pd.DataFrame()

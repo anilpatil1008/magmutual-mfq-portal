@@ -26,7 +26,7 @@ ctx = get_current_user_context(session)
 
 required_objects = (
         (obj.MFQ_RECENT_CLAIMS_VIEW, "config/snowflake_objects.py", "Claims/Dashboard"),
-        (obj.MFQ_CLAIM_DETAIL_VIEW, "config/snowflake_objects.py", "Claim Details"),
+        (obj.MFQ_CLAIM_DETAIL_VW, "config/snowflake_objects.py", "Claim Details"),
         (obj.MFQ_NOTIFICATIONS_VIEW, "config/snowflake_objects.py", "Header Notifications"),
         (obj.MFQ_CLAIM_DEFENDANTS_TABLE, "config/snowflake_objects.py", "Claim Details"),
         (obj.MFQ_RECORD_SUMMARY_TABLE, "config/snowflake_objects.py", "Claim Details"),
@@ -62,7 +62,7 @@ def _sync_claim_details_route_from_query_params() -> None:
     if query_page.casefold() == "claim details".casefold() and query_claim_id:
         st.session_state["selected_claim_id"] = query_claim_id
         st.session_state["active_page"] = "Claim Details"
-        st.session_state["current_view"] = "claim_details"
+        st.session_state["current_view"] = "Claim Details"
 
 
 _sync_claim_details_route_from_query_params()

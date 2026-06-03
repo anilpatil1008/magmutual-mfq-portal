@@ -749,9 +749,16 @@ def render(session, ctx) -> None:
         workspace = _get_cached_claim_review_workspace(str(claim_id), refresh_nonce=refresh_nonce)
         logger.info("claim_details.workspace_load_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
     claim = workspace.get("claim")
+    missing_objects = workspace.get("missing_objects", [])
     if not claim:
-        st.error(f"Claim {claim_id} not found in claim detail view.")
-        _render_missing_objects(workspace.get("missing_objects", []))
+        if "MFQ_CLAIM_DETAIL_VW" in missing_objects:
+            st.error("MFQ_CLAIM_DETAIL_VW not found in current Snowflake database/schema.")
+        else:
+            st.error(
+                f"Claim {claim_id} was not found in MFQ_CLAIM_DETAIL_VW.\n"
+                "Please verify CLAIM_ID exists in the source claims table."
+            )
+        _render_missing_objects(missing_objects)
         return
 
     _render_header(session, ctx, str(claim_id), claim)
