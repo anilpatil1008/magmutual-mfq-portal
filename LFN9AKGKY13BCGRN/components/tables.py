@@ -60,6 +60,18 @@ RECENT_CLAIMS_SORTABLE_KEYS = {c["key"] for c in RECENT_CLAIMS_COLUMNS if c["sor
 PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2, "unknown": 3}
 
 
+def _display_patient_defendant(value: Any) -> str:
+    """Return the Snowflake PATIENT_DEFENDANT value unless it is null or blank."""
+    if value is None or pd.isna(value):
+        return "Unknown Patient"
+
+    display_value = str(value).strip()
+    if not display_value or display_value.lower() in {"nan", "none", "null"}:
+        return "Unknown Patient"
+
+    return display_value
+
+
 def _load_recent_claims_table_css() -> str:
     css_candidates = [
         Path(__file__).resolve().parent / "styles" / "carbonstyle.css",
@@ -391,6 +403,12 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
     show_df = df.copy()
     show_df = show_df[[c for c in VISIBLE_COLUMNS if c in show_df.columns]]
 
+    if "PATIENT_DEFENDANT" not in show_df.columns:
+        show_df["PATIENT_DEFENDANT"] = "Unknown Patient"
+        show_df = show_df[[c for c in VISIBLE_COLUMNS if c in show_df.columns]]
+    else:
+        show_df["PATIENT_DEFENDANT"] = show_df["PATIENT_DEFENDANT"].apply(_display_patient_defendant)
+
     if "STATUS" in show_df.columns:
         show_df["STATUS"] = show_df["STATUS"].apply(lambda x: status_badge(str(x)))
     if "PRIORITY" in show_df.columns:
@@ -436,6 +454,11 @@ def render_recent_claims_table(
 
     show_df = df.copy()
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
+    if "PATIENT_DEFENDANT" not in show_df.columns:
+        show_df["PATIENT_DEFENDANT"] = "Unknown Patient"
+        show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
+    else:
+        show_df["PATIENT_DEFENDANT"] = show_df["PATIENT_DEFENDANT"].apply(_display_patient_defendant)
     total_claims = len(show_df)
     total_pages = max(1, (total_claims + page_size - 1) // page_size)
     current_page = int(st.session_state.get(f"{pagination_key_base}_page", 1))
@@ -473,7 +496,7 @@ def render_recent_claims_table(
         rows_html: list[str] = []
         for _, row in show_df.iterrows():
             claim_id = str(row.get("CLAIM_ID", "")).strip() or "—"
-            patient_defendant = str(row.get("PATIENT_DEFENDANT", "")).strip() or "Unknown Patient"
+            patient_defendant = _display_patient_defendant(row.get("PATIENT_DEFENDANT"))
             requested = _format_date(row.get("DATE_REQUESTED"))
             requested_ts = pd.to_datetime(row.get("DATE_REQUESTED"), errors="coerce")
             requested_sort = str(int(requested_ts.timestamp())) if not pd.isna(requested_ts) else "-1"
