@@ -76,25 +76,51 @@ def table_columns(session, table_name: str) -> set[str]:
     return {str(v).upper() for v in df.get("COLUMN_NAME", pd.Series(dtype=str)).dropna().tolist()}
 
 
+CLAIMS_QUEUE_COLUMNS = [
+    "CLAIM_ID",
+    "PATIENT_DEFENDANT",
+    "MFQ_STATUS",
+    "WORKFLOW_STATUS",
+    "PRIORITY",
+    "CLAIM_STATUS",
+    "CLAIM_TYPE",
+    "DATE_REQUESTED",
+    "AI_CONFIDENCE",
+]
+
+
+def _normalize_snowflake_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize Snowflake result column labels to unquoted uppercase names."""
+    if df.columns.empty:
+        return df
+
+    normalized = df.copy()
+    normalized.columns = [str(column).strip().strip('"').upper() for column in normalized.columns]
+
+    if not normalized.columns.has_duplicates:
+        return normalized
+
+    deduped = pd.DataFrame(index=normalized.index)
+    for column in dict.fromkeys(normalized.columns):
+        matching = normalized.loc[:, normalized.columns == column]
+        deduped[column] = matching.bfill(axis=1).iloc[:, 0] if isinstance(matching, pd.DataFrame) else matching
+    return deduped
+
+
 def get_claims_queue(session) -> pd.DataFrame:
-    return execute_query_df(
+    select_columns = ",\n            ".join(f"{column} AS {column}" for column in CLAIMS_QUEUE_COLUMNS)
+    df = execute_query_df(
         session,
         f"""
         SELECT
-            CLAIM_ID,
-            PATIENT_DEFENDANT,
-            MFQ_STATUS,
-            WORKFLOW_STATUS,
-            PRIORITY,
-            CLAIM_STATUS,
-            CLAIM_TYPE,
-            DATE_REQUESTED,
-            AI_CONFIDENCE
+            {select_columns}
         FROM {obj.MFQ_CLAIMS_LIST_VIEW}
         ORDER BY DATE_REQUESTED DESC NULLS LAST
         """,
         query_name="claims.get_claims_queue",
     )
+    return _normalize_snowflake_dataframe_columns(df)
+
 
 def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
     return execute_query_df(
