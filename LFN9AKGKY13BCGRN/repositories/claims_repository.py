@@ -57,8 +57,16 @@ def get_claims_queue(session) -> pd.DataFrame:
     )
 
 def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
-    claim_q = quote_sql(claim_id)
-    return execute_query_df(session, f"SELECT * FROM {obj.MFQ_CLAIM_DETAIL_VIEW} WHERE CLAIM_ID = '{claim_q}'", query_name="claims.get_claim_detail")
+    return execute_query_df(
+        session,
+        f"""
+        SELECT *
+        FROM {obj.MFQ_CLAIM_DETAIL_VW}
+        WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR(?))
+        """,
+        params=[str(claim_id)],
+        query_name="claims.get_claim_detail",
+    )
 
 
 def get_claim_defendants(session, claim_id: str) -> pd.DataFrame:

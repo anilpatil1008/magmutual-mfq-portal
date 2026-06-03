@@ -30,9 +30,9 @@ def set_page(page: str) -> None:
 
 
 def select_claim(claim_id: str) -> None:
-    st.session_state.selected_claim_id = claim_id
+    st.session_state.selected_claim_id = str(claim_id)
     st.session_state.active_page = "Claim Details"
-    st.session_state.current_view = "claim_details"
+    st.session_state.current_view = "Claim Details"
 
 
 def score_bucket(score: float) -> str:

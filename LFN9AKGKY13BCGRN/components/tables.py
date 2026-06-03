@@ -375,7 +375,7 @@ def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.Dat
 def _open_claim_details(claim_id: str) -> None:
     st.session_state["selected_claim_id"] = str(claim_id)
     st.session_state["active_page"] = "Claim Details"
-    st.session_state["current_view"] = "claim_details"
+    st.session_state["current_view"] = "Claim Details"
     st.query_params.update(page="Claim Details", claim_id=str(claim_id))
 
 
