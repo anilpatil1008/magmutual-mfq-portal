@@ -25,7 +25,7 @@ st.session_state["selected_sf_role"] = selected_sf_role
 ctx = get_current_user_context(session)
 
 required_objects = (
-        (obj.MFQ_RECENT_CLAIMS_VIEW, "config/snowflake_objects.py", "Claims/Dashboard"),
+        (obj.MFQ_CLAIMS_LIST_VIEW, "config/snowflake_objects.py", "Claims/Dashboard"),
         (obj.MFQ_CLAIM_DETAIL_VIEW, "config/snowflake_objects.py", "Claim Details"),
         (obj.MFQ_NOTIFICATIONS_VIEW, "config/snowflake_objects.py", "Header Notifications"),
         (obj.MFQ_CLAIM_DEFENDANTS_TABLE, "config/snowflake_objects.py", "Claim Details"),

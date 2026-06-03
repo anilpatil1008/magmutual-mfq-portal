@@ -39,7 +39,20 @@ def table_columns(session, table_name: str) -> set[str]:
 def get_claims_queue(session) -> pd.DataFrame:
     return execute_query_df(
         session,
-        f"""SELECT CLAIM_ID,PATIENT_NAME,DEFENDANT_NAME,FILE_NUMBER,STATUS,PRIORITY,ASSIGNED_TO,LAST_UPDATED_TS,DATE_REQUESTED FROM {obj.MFQ_RECENT_CLAIMS_VIEW}""",
+        f"""
+        SELECT
+            CLAIM_ID,
+            PATIENT_DEFENDANT,
+            MFQ_STATUS,
+            WORKFLOW_STATUS,
+            PRIORITY,
+            CLAIM_STATUS,
+            CLAIM_TYPE,
+            DATE_REQUESTED,
+            AI_CONFIDENCE
+        FROM {obj.MFQ_CLAIMS_LIST_VIEW}
+        ORDER BY DATE_REQUESTED DESC NULLS LAST
+        """,
         query_name="claims.get_claims_queue",
     )
 
