@@ -29,43 +29,22 @@ logger = logging.getLogger(__name__)
 
 
 def _object_exists(session, object_name: str) -> bool:
-    object_q = quote_sql(object_name.upper())
-    sql = f"""
-      SELECT 1 AS FOUND
-      FROM INFORMATION_SCHEMA.TABLES
-      WHERE TABLE_SCHEMA = CURRENT_SCHEMA()
-        AND TABLE_NAME = '{object_q}'
-      UNION ALL
-      SELECT 1 AS FOUND
-      FROM INFORMATION_SCHEMA.VIEWS
-      WHERE TABLE_SCHEMA = CURRENT_SCHEMA()
-        AND TABLE_NAME = '{object_q}'
-      LIMIT 1
-    """
     return claims_repository.object_exists(session, object_name)
 
 
 def _table_columns(session, table_name: str) -> set[str]:
     if not _object_exists(session, table_name):
         return set()
-    table_q = quote_sql(table_name.upper())
-    cols_df = safe_collect_df(
-        session,
-        f"""
-        SELECT COLUMN_NAME
-        FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_SCHEMA = CURRENT_SCHEMA()
-          AND TABLE_NAME = '{table_q}'
-        """,
-    )
-    if cols_df.empty:
-        return set()
-    return {str(col).upper() for col in cols_df["COLUMN_NAME"].dropna().tolist()}
+    return claims_repository.table_columns(session, table_name)
+
+
+def _missing_object_message(session, object_name: str) -> str:
+    return f"{object_name} not found in {claims_repository.object_location(session, object_name)}"
 
 
 def _safe_read(session, object_name: str, sql: str, missing_objects: list[str]) -> pd.DataFrame:
     if not _object_exists(session, object_name):
-        missing_objects.append(object_name)
+        missing_objects.append(_missing_object_message(session, object_name))
         return pd.DataFrame()
     return safe_collect_df(session, sql)
 
@@ -98,8 +77,8 @@ def get_claims_queue(session, username: str, search_text: str = "", status_filte
 
 
 def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
-    claim_id_q = quote_sql(claim_id)
-    df = claims_repository.get_claim_detail(session, claim_id)
+    identifier_candidates = claims_repository.get_recent_claim_identifier_candidates(session, claim_id)
+    df = claims_repository.get_claim_detail(session, claim_id, identifier_candidates=identifier_candidates)
     if df.empty:
         return None
     return df.iloc[0].to_dict()
@@ -126,11 +105,11 @@ def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = No
         question_key_join_predicates.append("a.PDF_FIELD_NAME = q.QUESTION_KEY")
     question_join_predicate = " OR ".join(question_key_join_predicates)
 
-    claim_join_predicates = [f"a.CLAIM_ID = '{claim_id_q}'"]
+    claim_join_predicates = [f"TRIM(TO_VARCHAR(a.CLAIM_ID)) = TRIM(TO_VARCHAR('{claim_id_q}'))"]
     if "FILE_NO" in answer_cols:
-        claim_join_predicates.append(f"TRIM(a.FILE_NO) = '{claim_id_q}'")
+        claim_join_predicates.append(f"TRIM(TO_VARCHAR(a.FILE_NO)) = TRIM(TO_VARCHAR('{claim_id_q}'))")
     if "FILE_NUMBER" in answer_cols:
-        claim_join_predicates.append(f"TRIM(a.FILE_NUMBER) = '{claim_id_q}'")
+        claim_join_predicates.append(f"TRIM(TO_VARCHAR(a.FILE_NUMBER)) = TRIM(TO_VARCHAR('{claim_id_q}'))")
     answer_claim_join_predicate = " OR ".join(claim_join_predicates)
 
     sql = f"""
@@ -170,7 +149,7 @@ def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = No
          AND a.IS_CURRENT = TRUE
       LEFT JOIN {QUESTION_CONFIDENCE_TABLE} qc
           ON qc.QUESTION_ID = q.QUESTION_ID
-         AND qc.CLAIM_ID = '{claim_id_q}'
+         AND TRIM(TO_VARCHAR(qc.CLAIM_ID)) = TRIM(TO_VARCHAR('{claim_id_q}'))
       WHERE s.FORM_KEY = 'MFQ_V1'
         AND s.IS_ACTIVE = TRUE
         AND q.IS_ACTIVE = TRUE
@@ -189,20 +168,27 @@ def get_status_values(session) -> list[str]:
 
 def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
     started = perf_counter()
-    claim_id_q = quote_sql(claim_id)
     missing_objects: list[str] = []
+    identifier_candidates = claims_repository.get_recent_claim_identifier_candidates(session, claim_id)
 
     t_detail = perf_counter()
-    detail_df = _safe_read(
-        session,
-        DETAIL_VIEW,
-        f"SELECT * FROM {DETAIL_VIEW} WHERE CLAIM_ID = '{claim_id_q}'",
-        missing_objects,
+    if _object_exists(session, DETAIL_VIEW):
+        detail_df = claims_repository.get_claim_detail(session, claim_id, identifier_candidates=identifier_candidates)
+    else:
+        missing_objects.append(_missing_object_message(session, DETAIL_VIEW))
+        detail_df = pd.DataFrame()
+    logger.info(
+        "claim_workspace.detail_ms=%d selected_claim_id=%s identifier_candidates=%s",
+        int((perf_counter() - t_detail) * 1000),
+        claim_id,
+        identifier_candidates,
     )
-    logger.info("claim_workspace.detail_ms=%d claim_id=%s", int((perf_counter() - t_detail) * 1000), claim_id)
-    defendant_df = claims_repository.get_claim_defendants(session, claim_id) if _object_exists(session, obj.MFQ_CLAIM_DEFENDANTS_TABLE) else pd.DataFrame()
 
     detail = detail_df.iloc[0].to_dict() if not detail_df.empty else None
+    resolved_claim_id = str(detail.get("CLAIM_ID") or claim_id).strip() if detail else str(claim_id).strip()
+    claim_id_q = quote_sql(resolved_claim_id)
+    defendant_df = claims_repository.get_claim_defendants(session, resolved_claim_id) if _object_exists(session, obj.MFQ_CLAIM_DEFENDANTS_TABLE) else pd.DataFrame()
+
     synopsis = defendant_df.iloc[0].to_dict() if not defendant_df.empty else {}
     defendant_id = synopsis.get("DEFENDANT_ID") or (detail.get("DEFENDANT_ID") if detail else None)
 
@@ -210,7 +196,7 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
     form_objects = [SECTIONS_TABLE, QUESTIONS_TABLE, ANSWERS_TABLE, QUESTION_CONFIDENCE_TABLE]
     if all(_object_exists(session, obj) for obj in form_objects):
         t_sections = perf_counter()
-        sections_df = get_mfq_form_workspace(session, claim_id, defendant_id=str(defendant_id) if defendant_id else None)
+        sections_df = get_mfq_form_workspace(session, resolved_claim_id, defendant_id=str(defendant_id) if defendant_id else None)
         logger.info("claim_workspace.sections_ms=%d claim_id=%s", int((perf_counter() - t_sections) * 1000), claim_id)
     else:
         sections_df = _safe_read(
@@ -219,27 +205,27 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
             f"""
             SELECT *
             FROM {FORM_VIEW}
-            WHERE CLAIM_ID = '{claim_id_q}'
+            WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR('{claim_id_q}'))
             ORDER BY SECTION_ORDER, QUESTION_ORDER
             """,
             missing_objects,
         )
 
-    summary_df = mfq_repository.get_claim_summaries(session, claim_id)
-    docs_df = claims_repository.get_claim_documents(session, claim_id) if _object_exists(session, obj.MFQ_DOCUMENTS_TABLE) else pd.DataFrame()
-    assignment_df = claims_repository.get_assignment_queue(session, claim_id) if _object_exists(session, obj.MFQ_ASSIGNMENT_QUEUE_VIEW) else pd.DataFrame()
+    summary_df = mfq_repository.get_claim_summaries(session, resolved_claim_id)
+    docs_df = claims_repository.get_claim_documents(session, resolved_claim_id) if _object_exists(session, obj.MFQ_DOCUMENTS_TABLE) else pd.DataFrame()
+    assignment_df = claims_repository.get_assignment_queue(session, resolved_claim_id) if _object_exists(session, obj.MFQ_ASSIGNMENT_QUEUE_VIEW) else pd.DataFrame()
 
-    enquiries_df = claims_repository.get_status_history(session, claim_id) if _object_exists(session, obj.MFQ_STATUS_HISTORY_TABLE) else pd.DataFrame()
+    enquiries_df = claims_repository.get_status_history(session, resolved_claim_id) if _object_exists(session, obj.MFQ_STATUS_HISTORY_TABLE) else pd.DataFrame()
 
     confidence_summary = get_claim_confidence_summary(
         session=session,
-        claim_id=claim_id,
+        claim_id=resolved_claim_id,
         claim_detail=detail,
         synopsis=synopsis,
         sections_df=sections_df,
         missing_objects=missing_objects,
     )
-    section_confidence = get_claim_section_confidence(session, claim_id, sections_df)
+    section_confidence = get_claim_section_confidence(session, resolved_claim_id, sections_df)
 
     summary_map: dict[str, str] = {}
     if not summary_df.empty:
@@ -296,6 +282,9 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
 
     result = {
         "claim": detail,
+        "selected_claim_id": claim_id,
+        "resolved_claim_id": resolved_claim_id,
+        "identifier_candidates": identifier_candidates,
         "sections": sections_df,
         "synopsis": synopsis,
         "section_confidence": section_confidence,
@@ -308,7 +297,7 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
         "missing_objects": sorted(set(missing_objects)),
         "used_objects": sorted(used_objects),
     }
-    logger.info("get_claim_review_workspace_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
+    logger.info("get_claim_review_workspace_ms=%d selected_claim_id=%s resolved_claim_id=%s", int((perf_counter() - started) * 1000), claim_id, resolved_claim_id)
     return result
 
 
@@ -398,7 +387,7 @@ def get_claim_section_confidence(session, claim_id: str, sections_df: pd.DataFra
             FROM {SECTION_CONFIDENCE_TABLE} sc
             JOIN {SECTIONS_TABLE} s
               ON s.SECTION_ID = sc.SECTION_ID
-            WHERE sc.CLAIM_ID = '{claim_id_q}'
+            WHERE TRIM(TO_VARCHAR(sc.CLAIM_ID)) = TRIM(TO_VARCHAR('{claim_id_q}'))
             ORDER BY s.DISPLAY_ORDER, s.SECTION_NAME
             """,
         )
@@ -447,7 +436,7 @@ def get_claim_confidence_summary(
             elif needs_human_review is False:
                 recommendation = "No Faculty Review Needed"
     elif defendant_id:
-        missing_objects.append(LLM_EVAL_TABLE)
+        missing_objects.append(_missing_object_message(session, LLM_EVAL_TABLE))
 
     if recommendation is None:
         status = _confidence_status_from_score(overall_confidence)
