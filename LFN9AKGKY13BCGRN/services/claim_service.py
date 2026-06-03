@@ -28,24 +28,39 @@ LLM_EVAL_TABLE = obj.LLM_EVALUATION_TABLE
 logger = logging.getLogger(__name__)
 
 
-@st.cache_data(ttl=900, show_spinner=False)
-def _cached_object_exists(_session, object_name: str) -> bool:
-    return claims_repository.object_exists(_session, object_name)
-
-
 def _object_exists(session, object_name: str) -> bool:
-    return _cached_object_exists(session, object_name)
-
-
-@st.cache_data(ttl=900, show_spinner=False)
-def _cached_table_columns(_session, table_name: str) -> tuple[str, ...]:
-    return tuple(sorted(claims_repository.table_columns(_session, table_name)))
+    object_q = quote_sql(object_name.upper())
+    sql = f"""
+      SELECT 1 AS FOUND
+      FROM INFORMATION_SCHEMA.TABLES
+      WHERE TABLE_SCHEMA = CURRENT_SCHEMA()
+        AND TABLE_NAME = '{object_q}'
+      UNION ALL
+      SELECT 1 AS FOUND
+      FROM INFORMATION_SCHEMA.VIEWS
+      WHERE TABLE_SCHEMA = CURRENT_SCHEMA()
+        AND TABLE_NAME = '{object_q}'
+      LIMIT 1
+    """
+    return claims_repository.object_exists(session, object_name)
 
 
 def _table_columns(session, table_name: str) -> set[str]:
     if not _object_exists(session, table_name):
         return set()
-    return set(_cached_table_columns(session, table_name))
+    table_q = quote_sql(table_name.upper())
+    cols_df = safe_collect_df(
+        session,
+        f"""
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = CURRENT_SCHEMA()
+          AND TABLE_NAME = '{table_q}'
+        """,
+    )
+    if cols_df.empty:
+        return set()
+    return {str(col).upper() for col in cols_df["COLUMN_NAME"].dropna().tolist()}
 
 
 def _safe_read(session, object_name: str, sql: str, missing_objects: list[str]) -> pd.DataFrame:
@@ -63,15 +78,9 @@ def _sort_claims_queue(queue: pd.DataFrame) -> pd.DataFrame:
     return queue
 
 
-@st.cache_data(ttl=120, show_spinner=False)
-def _get_cached_claims_queue(_session, session_cache_key: int) -> pd.DataFrame:
-    _ = session_cache_key
-    return claims_repository.get_claims_queue(_session)
-
-
 def get_claims_queue(session, username: str, search_text: str = "", status_filter: str = "All") -> pd.DataFrame:
     started = perf_counter()
-    df = _get_cached_claims_queue(session, id(session))
+    df = claims_repository.get_claims_queue(session)
     if df.empty:
         logger.info("get_claims_queue_ms=%d rows=0", int((perf_counter() - started) * 1000))
         return df
@@ -102,15 +111,8 @@ def get_claims_queue(session, username: str, search_text: str = "", status_filte
     return result
 
 
-def get_claim_details_by_id(session, claim_id: str) -> dict[str, Any] | None:
-    df = claims_repository.get_claim_details_by_id(session, claim_id)
-    if df.empty:
-        return None
-    return df.iloc[0].to_dict()
-
-
 def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
-    df = claims_repository.get_claim_details_by_id(session, claim_id)
+    df = claims_repository.get_claim_detail(session, claim_id)
     if df.empty:
         return None
     return df.iloc[0].to_dict()
@@ -192,15 +194,10 @@ def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = No
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def _get_cached_status_values(_session, session_cache_key: int) -> list[str]:
-    _ = session_cache_key
-    df = mfq_repository.get_status_values(_session)
+def get_status_values(session) -> list[str]:
+    df = mfq_repository.get_status_values(session)
     statuses = [str(v) for v in df["STATUS"].dropna().tolist()] if not df.empty else []
     return ["All", *statuses]
-
-
-def get_status_values(session) -> list[str]:
-    return _get_cached_status_values(session, id(session))
 
 
 def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
@@ -210,7 +207,7 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
 
     t_detail = perf_counter()
     if _object_exists(session, DETAIL_VIEW):
-        detail_df = claims_repository.get_claim_details_by_id(session, claim_id)
+        detail_df = claims_repository.get_claim_detail(session, claim_id)
     else:
         missing_objects.append(DETAIL_VIEW)
         detail_df = pd.DataFrame()
@@ -232,32 +229,7 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
             session,
             FORM_VIEW,
             f"""
-            SELECT
-              SECTION_ID,
-              SECTION_KEY,
-              SECTION_NAME,
-              SECTION_ORDER,
-              QUESTION_ID,
-              QUESTION_KEY,
-              PARENT_QUESTION_ID,
-              QUESTION_ORDER,
-              QUESTION_TEXT,
-              ANSWER_TYPE,
-              ALLOWED_VALUES,
-              VISIBILITY_RULE,
-              ANSWER_ID,
-              CLAIM_ID,
-              DEFENDANT_ID,
-              ANSWER_TEXT,
-              ANSWER_JSON,
-              ANSWER_VALUE,
-              GENERATED_ANSWER,
-              REVIEWED_ANSWER,
-              CONFIDENCE_SCORE,
-              ANSWER_STATUS,
-              IS_CURRENT,
-              CONFIDENCE_LEVEL,
-              CONFIDENCE_REASON
+            SELECT *
             FROM {FORM_VIEW}
             WHERE CLAIM_ID = '{claim_id_q}'
             ORDER BY SECTION_ORDER, QUESTION_ORDER

@@ -88,20 +88,6 @@ CLAIMS_QUEUE_COLUMNS = [
     "AI_CONFIDENCE",
 ]
 
-CLAIM_DETAIL_COLUMNS = [
-    "CLAIM_ID",
-    "DEFENDANT_ID",
-    "STATUS",
-    "PRIORITY",
-    "PATIENT_NAME",
-    "DEFENDANT_NAME",
-    "ASSIGNED_TO",
-    "FILE_NUMBER",
-    "SPECIALTY",
-    "DATE_REQUESTED",
-    "AI_CONFIDENCE",
-]
-
 
 def _normalize_snowflake_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Normalize Snowflake result column labels to unquoted uppercase names."""
@@ -136,27 +122,17 @@ def get_claims_queue(session) -> pd.DataFrame:
     return _normalize_snowflake_dataframe_columns(df)
 
 
-def _select_list(columns: list[str]) -> str:
-    return ",\n            ".join(f"{column} AS {column}" for column in columns)
-
-
-def get_claim_details_by_id(session, claim_id: str) -> pd.DataFrame:
+def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
     return execute_query_df(
         session,
         f"""
-        SELECT
-            {_select_list(CLAIM_DETAIL_COLUMNS)}
+        SELECT *
         FROM {obj.MFQ_CLAIM_DETAIL_VW}
         WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR(?))
-        LIMIT 1
         """,
         params=[str(claim_id)],
-        query_name="claims.get_claim_details_by_id",
+        query_name="claims.get_claim_detail",
     )
-
-
-def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
-    return get_claim_details_by_id(session, claim_id)
 
 
 def get_claim_defendants(session, claim_id: str) -> pd.DataFrame:
