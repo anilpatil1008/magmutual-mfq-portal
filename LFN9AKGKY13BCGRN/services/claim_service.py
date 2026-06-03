@@ -16,7 +16,7 @@ from services.snowflake_service import quote_sql, safe_collect_df
 
 
 CLAIMS_VIEW = obj.MFQ_RECENT_CLAIMS_VIEW
-DETAIL_VIEW = obj.MFQ_CLAIM_DETAIL_VIEW
+DETAIL_VIEW = obj.MFQ_CLAIM_DETAIL_VW
 FORM_VIEW = obj.MFQ_FORM_WORKSPACE_VIEW
 SECTIONS_TABLE = obj.MFQ_SECTIONS_TABLE
 QUESTIONS_TABLE = obj.MFQ_QUESTIONS_TABLE
@@ -98,7 +98,6 @@ def get_claims_queue(session, username: str, search_text: str = "", status_filte
 
 
 def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
-    claim_id_q = quote_sql(claim_id)
     df = claims_repository.get_claim_detail(session, claim_id)
     if df.empty:
         return None
@@ -193,12 +192,11 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
     missing_objects: list[str] = []
 
     t_detail = perf_counter()
-    detail_df = _safe_read(
-        session,
-        DETAIL_VIEW,
-        f"SELECT * FROM {DETAIL_VIEW} WHERE CLAIM_ID = '{claim_id_q}'",
-        missing_objects,
-    )
+    if _object_exists(session, DETAIL_VIEW):
+        detail_df = claims_repository.get_claim_detail(session, claim_id)
+    else:
+        missing_objects.append(DETAIL_VIEW)
+        detail_df = pd.DataFrame()
     logger.info("claim_workspace.detail_ms=%d claim_id=%s", int((perf_counter() - t_detail) * 1000), claim_id)
     defendant_df = claims_repository.get_claim_defendants(session, claim_id) if _object_exists(session, obj.MFQ_CLAIM_DEFENDANTS_TABLE) else pd.DataFrame()
 

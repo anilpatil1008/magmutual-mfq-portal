@@ -141,7 +141,7 @@ def render(session, ctx) -> None:
     if "current_view" not in st.session_state:
         st.session_state["current_view"] = "dashboard"
 
-    if st.session_state.get("current_view") == "claim_details" and st.session_state.get("selected_claim_id"):
+    if st.session_state.get("current_view") in {"Claim Details", "claim_details"} and st.session_state.get("selected_claim_id"):
         logger.info("render_claim_details called claim_id=%s", st.session_state.get("selected_claim_id"))
         claim_details.render(session=session, ctx=ctx)
         st.stop()
