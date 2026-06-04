@@ -83,7 +83,11 @@ def _render_dashboard_filter_controls(session) -> None:
     if "ON HOLD" in available_statuses:
         status_options.append("On Hold")
 
-    st.markdown("<div class='mfq-filter-popover-heading'>Filter Claims</div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='mfq-dashboard-filter-panel-marker'></div>"
+        "<div class='mfq-filter-popover-heading'>Filter Claims</div>",
+        unsafe_allow_html=True,
+    )
     _render_filter_chip_group("Status", "selected_status", status_options, "status")
     _render_filter_chip_group("Priority", "selected_priority", PRIORITY_FILTER_OPTIONS, "priority")
     _render_filter_chip_group("AI Confidence Score", "selected_ai_confidence", AI_CONFIDENCE_FILTER_OPTIONS, "ai_confidence")
@@ -109,7 +113,12 @@ def _render_dashboard_header(session, display_name: str) -> None:
     with header_right:
         with st.container(key="dashboard_header_actions"):
             if hasattr(st, "popover"):
-                with st.popover("Filters"):
+                with st.popover(
+                    "Filters",
+                    icon=":material/filter_list:",
+                    width="content",
+                    key="dashboard_filters_popover",
+                ):
                     _render_dashboard_filter_controls(session)
             else:
                 with st.expander("Filters", expanded=False):

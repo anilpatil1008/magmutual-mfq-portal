@@ -3190,34 +3190,91 @@ section[data-testid="stSidebar"] .stButton button {
   padding-top: 6px !important;
 }
 
-.st-key-dashboard_header_actions [data-testid="stPopover"] button {
+.st-key-dashboard_filters_popover > div {
+  width: auto !important;
+}
+
+.st-key-dashboard_filters_popover > div > button,
+.st-key-dashboard_header_actions [data-testid="stPopover"] > div > button {
   min-height: 38px !important;
-  border-radius: 6px !important;
-  border: 1px solid #e5e7eb !important;
-  background: #ffffff !important;
-  color: #0f172a !important;
-  font-weight: 600 !important;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+  height: 38px !important;
+  width: auto !important;
+  padding: 0 14px !important;
+  border-radius: 8px !important;
+  border: 1px solid #00457c !important;
+  background: #00457c !important;
+  color: #ffffff !important;
+  font-size: 0.86rem !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  box-shadow: 0 2px 5px rgba(0, 69, 124, 0.18) !important;
+}
+
+.st-key-dashboard_filters_popover > div > button:hover,
+.st-key-dashboard_header_actions [data-testid="stPopover"] > div > button:hover {
+  background: #003a70 !important;
+  border-color: #003a70 !important;
+  color: #ffffff !important;
+}
+
+.st-key-dashboard_filters_popover > div > button p,
+.st-key-dashboard_filters_popover > div > button span,
+.st-key-dashboard_header_actions [data-testid="stPopover"] > div > button p,
+.st-key-dashboard_header_actions [data-testid="stPopover"] > div > button span {
+  color: #ffffff !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+
+.st-key-dashboard_filters_popover [data-testid="stPopoverContent"],
+[data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) {
+  width: clamp(320px, 34vw, 360px) !important;
+  max-width: 360px !important;
+  min-width: 320px !important;
+  max-height: 420px !important;
+  overflow-y: auto !important;
+  padding: 16px !important;
+  border-radius: 12px !important;
+  border: 1px solid rgba(148, 163, 184, 0.22) !important;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.14), 0 4px 10px rgba(15, 23, 42, 0.08) !important;
+}
+
+[data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) [data-testid="stVerticalBlock"] {
+  gap: 0.35rem !important;
+}
+
+.mfq-dashboard-filter-panel-marker {
+  display: none !important;
 }
 
 .mfq-filter-popover-heading {
-  margin: 2px 0 14px !important;
+  margin: 0 0 8px !important;
   color: #111827 !important;
-  font-size: 0.95rem !important;
+  font-size: 0.9rem !important;
   font-weight: 800 !important;
+  line-height: 1.2 !important;
 }
 
 .mfq-filter-section-label {
-  margin: 14px 0 6px !important;
+  margin: 8px 0 4px !important;
   color: #4b5563 !important;
-  font-size: 0.78rem !important;
-  font-weight: 600 !important;
+  font-size: 0.74rem !important;
+  font-weight: 700 !important;
+  line-height: 1.15 !important;
+}
+
+[data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) [data-testid="column"] {
+  padding: 0 3px !important;
+}
+
+[data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) .stButton {
+  margin-bottom: 4px !important;
 }
 
 div[class*="st-key-filter_chip_"] .stButton button {
   min-height: 30px !important;
   height: 30px !important;
-  padding: 4px 12px !important;
+  padding: 4px 8px !important;
   border-radius: 999px !important;
   font-size: 0.76rem !important;
   font-weight: 650 !important;
@@ -3227,13 +3284,19 @@ div[class*="st-key-filter_chip_"] .stButton button {
 }
 
 div[class*="st-key-filter_chip_"][class*="_selected"] .stButton button {
-  background: #003b73 !important;
-  border: 1px solid #003b73 !important;
+  background: #00457c !important;
+  border: 1px solid #00457c !important;
+  color: #ffffff !important;
+}
+
+div[class*="st-key-filter_chip_"][class*="_selected"] .stButton button:hover {
+  background: #003a70 !important;
+  border-color: #003a70 !important;
   color: #ffffff !important;
 }
 
 div[class*="st-key-filter_chip_"][class*="_unselected"] .stButton button {
-  background: #f8fafc !important;
+  background: #ffffff !important;
   border: 1px solid #d9dee7 !important;
   color: #1f2937 !important;
 }
@@ -3241,5 +3304,5 @@ div[class*="st-key-filter_chip_"][class*="_unselected"] .stButton button {
 div[class*="st-key-filter_chip_"][class*="_unselected"] .stButton button:hover {
   background: #eff6ff !important;
   border-color: #b7c6d8 !important;
-  color: #003b73 !important;
+  color: #003a70 !important;
 }
