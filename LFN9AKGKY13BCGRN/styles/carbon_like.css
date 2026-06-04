@@ -3200,16 +3200,6 @@ section[data-testid="stSidebar"] .stButton button {
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
 }
 
-.st-key-dashboard_generate_report button,
-.st-key-dashboard_header_actions .stButton button[kind="primary"] {
-  min-height: 38px !important;
-  border-radius: 6px !important;
-  background: #003b73 !important;
-  border-color: #003b73 !important;
-  color: #ffffff !important;
-  font-weight: 700 !important;
-}
-
 .mfq-filter-popover-heading {
   margin: 2px 0 14px !important;
   color: #111827 !important;

@@ -108,17 +108,12 @@ def _render_dashboard_header(session, display_name: str) -> None:
             )
     with header_right:
         with st.container(key="dashboard_header_actions"):
-            filter_col, report_col = st.columns([1, 1.35], gap="small", vertical_alignment="center")
-            with filter_col:
-                if hasattr(st, "popover"):
-                    with st.popover("Filters"):
-                        _render_dashboard_filter_controls(session)
-                else:
-                    with st.expander("Filters", expanded=False):
-                        _render_dashboard_filter_controls(session)
-            with report_col:
-                st.button("Generate Report", key="dashboard_generate_report", type="primary", use_container_width=True)
-
+            if hasattr(st, "popover"):
+                with st.popover("Filters"):
+                    _render_dashboard_filter_controls(session)
+            else:
+                with st.expander("Filters", expanded=False):
+                    _render_dashboard_filter_controls(session)
 
 
 def _resolve_user_display_name(ctx) -> str:
