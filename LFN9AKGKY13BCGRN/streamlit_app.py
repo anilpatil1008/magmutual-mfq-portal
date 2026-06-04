@@ -5,8 +5,6 @@ from pages import admin, claim_details, claims, dashboard, reports
 from services.notification_service import get_user_notifications
 from services.rbac_service import get_available_roles, get_current_user_context, get_selected_sf_role
 from services.snowflake_service import get_session
-from utils.validate_snowflake_objects import render_missing_objects, validate_required_objects
-from config import snowflake_objects as obj
 
 st.set_page_config(
     page_title="MagMutual MFQ Enterprise Portal",
@@ -23,25 +21,6 @@ selected_sf_role = get_selected_sf_role(session)
 st.session_state["selected_sf_role"] = selected_sf_role
 
 ctx = get_current_user_context(session)
-
-required_objects = (
-        (obj.MFQ_CLAIMS_LIST_VIEW, "config/snowflake_objects.py", "Claims/Dashboard"),
-        (obj.MFQ_RECENT_CLAIMS_VIEW, "config/snowflake_objects.py", "Claims/Dashboard"),
-        (obj.MFQ_DASHBOARD_SUMMARY_VIEW, "config/snowflake_objects.py", "Dashboard"),
-        (obj.MFQ_CLAIM_DETAIL_VW, "config/snowflake_objects.py", "Claim Details"),
-        (obj.MFQ_NOTIFICATIONS_VIEW, "config/snowflake_objects.py", "Header Notifications"),
-        (obj.MFQ_CLAIM_DEFENDANTS_TABLE, "config/snowflake_objects.py", "Claim Details"),
-        (obj.MFQ_RECORD_SUMMARY_TABLE, "config/snowflake_objects.py", "Claim Details"),
-        (obj.MFQ_MEDCRON_SUMMARY_TABLE, "config/snowflake_objects.py", "Claim Details"),
-        (obj.MFQ_LEGAL_MEMO_TABLE, "config/snowflake_objects.py", "Claim Details"),
-        (obj.MFQ_DOCUMENTS_TABLE, "config/snowflake_objects.py", "Claim Details"),
-        (obj.MFQ_ASSIGNMENT_QUEUE_VIEW, "config/snowflake_objects.py", "Claim Details"),
-        (obj.MFQ_STATUS_HISTORY_TABLE, "config/snowflake_objects.py", "Claim Details"),
-        (obj.MFQ_SECTION_CONFIDENCE_TABLE, "config/snowflake_objects.py", "Claim Details"),
-        (obj.LLM_EVALUATION_TABLE, "config/snowflake_objects.py", "Claim Details"),
- )
-missing_objects = validate_required_objects(session, required_objects)
-render_missing_objects(missing_objects)
 
 if "active_page" not in st.session_state:
     st.session_state.active_page = "Dashboard"
