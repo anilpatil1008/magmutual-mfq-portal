@@ -94,7 +94,7 @@ def _render_dashboard_filter_controls(session) -> None:
 
 
 def _render_dashboard_header(session, display_name: str) -> None:
-    header_left, header_right = st.columns([5, 2], vertical_alignment="center")
+    header_left, header_right = st.columns([8, 2], vertical_alignment="top")
     with header_left:
         st.title("Dashboard")
         if display_name:
@@ -112,6 +112,7 @@ def _render_dashboard_header(session, display_name: str) -> None:
             )
     with header_right:
         with st.container(key="dashboard_header_actions"):
+            st.markdown("<div class='dashboard-filter-button-wrapper'>", unsafe_allow_html=True)
             if hasattr(st, "popover"):
                 with st.popover(
                     "Filters",
@@ -123,6 +124,7 @@ def _render_dashboard_header(session, display_name: str) -> None:
             else:
                 with st.expander("Filters", expanded=False):
                     _render_dashboard_filter_controls(session)
+            st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _resolve_user_display_name(ctx) -> str:
