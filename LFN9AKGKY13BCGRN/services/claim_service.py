@@ -111,6 +111,23 @@ def get_claims_queue(session, username: str, search_text: str = "", status_filte
     return result
 
 
+
+
+def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[object]]:
+    return claims_repository.build_claim_filter_where_clause(filters)
+
+
+def get_filtered_recent_claims(session, filters: dict | None, page: int, page_size: int) -> pd.DataFrame:
+    return claims_repository.get_filtered_recent_claims(session, filters, page, page_size)
+
+
+def get_filtered_claims_count(session, filters: dict | None) -> int:
+    return claims_repository.get_filtered_claims_count(session, filters)
+
+
+def get_available_claim_statuses(session) -> list[str]:
+    return claims_repository.get_available_claim_statuses(session)
+
 def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
     df = claims_repository.get_claim_detail(session, claim_id)
     if df.empty:

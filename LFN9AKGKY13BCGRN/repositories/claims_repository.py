@@ -122,6 +122,112 @@ def get_claims_queue(session) -> pd.DataFrame:
     return _normalize_snowflake_dataframe_columns(df)
 
 
+
+
+CLAIM_FILTER_SELECT_COLUMNS = [
+    "CLAIM_ID",
+    "PATIENT_DEFENDANT",
+    "MFQ_STATUS",
+    "PRIORITY",
+    "DATE_REQUESTED",
+    "AI_CONFIDENCE",
+    "CLAIM_TYPE",
+    "CLAIM_STATUS",
+]
+
+
+def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[object]]:
+    """Build a parameterized Snowflake WHERE clause for recent-claims filters."""
+    filters = filters or {}
+    predicates = ["1 = 1"]
+    params: list[object] = []
+
+    selected_status = str(filters.get("selected_status") or "All Statuses").strip()
+    if selected_status and selected_status != "All Statuses":
+        predicates.append("UPPER(MFQ_STATUS) = UPPER(?)")
+        params.append(selected_status)
+
+    selected_priority = str(filters.get("selected_priority") or "All Priorities").strip()
+    if selected_priority and selected_priority != "All Priorities":
+        predicates.append("UPPER(PRIORITY) = UPPER(?)")
+        params.append(selected_priority)
+
+    selected_ai_confidence = str(filters.get("selected_ai_confidence") or "All Scores").strip()
+    if selected_ai_confidence == "High":
+        predicates.append("AI_CONFIDENCE >= 90")
+    elif selected_ai_confidence == "Medium":
+        predicates.append("AI_CONFIDENCE >= 80 AND AI_CONFIDENCE < 90")
+    elif selected_ai_confidence == "Low":
+        predicates.append("AI_CONFIDENCE < 80")
+
+    search_text = str(filters.get("search_text") or "").strip()
+    if search_text:
+        predicates.append(
+            "("
+            "TO_VARCHAR(CLAIM_ID) ILIKE ? OR "
+            "TO_VARCHAR(PATIENT_DEFENDANT) ILIKE ? OR "
+            "TO_VARCHAR(MFQ_STATUS) ILIKE ? OR "
+            "TO_VARCHAR(PRIORITY) ILIKE ? OR "
+            "TO_VARCHAR(CLAIM_TYPE) ILIKE ? OR "
+            "TO_VARCHAR(CLAIM_STATUS) ILIKE ?"
+            ")"
+        )
+        params.extend([f"%{search_text}%"] * 6)
+
+    return " WHERE " + " AND ".join(predicates), params
+
+
+def get_filtered_claims_count(session, filters: dict | None) -> int:
+    where_clause, params = build_claim_filter_where_clause(filters)
+    df = execute_query_df(
+        session,
+        f"SELECT COUNT(*) AS CLAIM_COUNT FROM {obj.VW_MFQ_CLAIMS}{where_clause}",
+        params=params,
+        query_name="claims.get_filtered_claims_count",
+    )
+    df = _normalize_snowflake_dataframe_columns(df)
+    if df.empty or "CLAIM_COUNT" not in df.columns:
+        return 0
+    return int(df.iloc[0].get("CLAIM_COUNT") or 0)
+
+
+def get_filtered_recent_claims(session, filters: dict | None, page: int, page_size: int) -> pd.DataFrame:
+    where_clause, params = build_claim_filter_where_clause(filters)
+    offset = max(0, (max(1, int(page)) - 1) * max(1, int(page_size)))
+    select_columns = ",\n            ".join(f"{column} AS {column}" for column in CLAIM_FILTER_SELECT_COLUMNS)
+    df = execute_query_df(
+        session,
+        f"""
+        SELECT
+            {select_columns}
+        FROM {obj.VW_MFQ_CLAIMS}
+        {where_clause}
+        ORDER BY DATE_REQUESTED DESC NULLS LAST
+        LIMIT ? OFFSET ?
+        """,
+        params=[*params, int(page_size), offset],
+        query_name="claims.get_filtered_recent_claims",
+    )
+    return _normalize_snowflake_dataframe_columns(df)
+
+
+def get_available_claim_statuses(session) -> list[str]:
+    df = execute_query_df(
+        session,
+        f"""
+        SELECT DISTINCT MFQ_STATUS
+        FROM {obj.VW_MFQ_CLAIMS}
+        WHERE MFQ_STATUS IS NOT NULL
+        ORDER BY MFQ_STATUS
+        """,
+        query_name="claims.get_available_claim_statuses",
+    )
+    df = _normalize_snowflake_dataframe_columns(df)
+    if df.empty or "MFQ_STATUS" not in df.columns:
+        return []
+    return [str(value).strip() for value in df["MFQ_STATUS"].dropna().tolist() if str(value).strip()]
+
+
 def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
     return execute_query_df(
         session,

@@ -3181,3 +3181,75 @@ section[data-testid="stSidebar"] .stButton button {
   min-height: 46px !important;
   height: 46px !important;
 }
+
+/* Dashboard filter popover controls */
+.st-key-dashboard_header_actions {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  padding-top: 6px !important;
+}
+
+.st-key-dashboard_header_actions [data-testid="stPopover"] button {
+  min-height: 38px !important;
+  border-radius: 6px !important;
+  border: 1px solid #e5e7eb !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08) !important;
+}
+
+.st-key-dashboard_generate_report button,
+.st-key-dashboard_header_actions .stButton button[kind="primary"] {
+  min-height: 38px !important;
+  border-radius: 6px !important;
+  background: #003b73 !important;
+  border-color: #003b73 !important;
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+.mfq-filter-popover-heading {
+  margin: 2px 0 14px !important;
+  color: #111827 !important;
+  font-size: 0.95rem !important;
+  font-weight: 800 !important;
+}
+
+.mfq-filter-section-label {
+  margin: 14px 0 6px !important;
+  color: #4b5563 !important;
+  font-size: 0.78rem !important;
+  font-weight: 600 !important;
+}
+
+div[class*="st-key-filter_chip_"] .stButton button {
+  min-height: 30px !important;
+  height: 30px !important;
+  padding: 4px 12px !important;
+  border-radius: 999px !important;
+  font-size: 0.76rem !important;
+  font-weight: 650 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  box-shadow: none !important;
+}
+
+div[class*="st-key-filter_chip_"][class*="_selected"] .stButton button {
+  background: #003b73 !important;
+  border: 1px solid #003b73 !important;
+  color: #ffffff !important;
+}
+
+div[class*="st-key-filter_chip_"][class*="_unselected"] .stButton button {
+  background: #f8fafc !important;
+  border: 1px solid #d9dee7 !important;
+  color: #1f2937 !important;
+}
+
+div[class*="st-key-filter_chip_"][class*="_unselected"] .stButton button:hover {
+  background: #eff6ff !important;
+  border-color: #b7c6d8 !important;
+  color: #003b73 !important;
+}
