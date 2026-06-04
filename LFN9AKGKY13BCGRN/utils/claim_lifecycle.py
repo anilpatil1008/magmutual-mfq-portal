@@ -16,7 +16,7 @@ LIFECYCLE_FIELDS = [
 
 ONGOING_DERIVED_STATUSES = {"initiated", "assigned", "in review", "pending", "open", "mfr accepted & reviewing", "mfq generated"}
 HISTORY_DERIVED_STATUSES = {"approved", "rejected", "completed", "closed", "cancelled"}
-CLAIM_STATUS_FIELDS = ("CLAIM_STATUS", "MFQ_STATUS", "STATUS")
+MFQ_STATUS_FIELD = "MFQ_STATUS"
 APPROVED_STATUS = "APPROVED"
 
 
@@ -25,24 +25,23 @@ def _normalize(value: Any) -> str:
 
 
 def approved_claim_status(row: pd.Series) -> bool:
-    """Return True when the claim's claim/MFQ status is Approved.
+    """Return True only when the row's MFQ Status column is Approved.
 
-    History Claims must use a case-insensitive status comparison equivalent
-    to UPPER(CLAIM_STATUS) = 'APPROVED'. Some data sets expose the same
-    business status as MFQ_STATUS instead of CLAIM_STATUS, and local/demo
-    views expose it as STATUS, so evaluate the first populated status field
-    in that order.
+    History Claims are driven by the visible MFQ Status column, so do not
+    fall back to claim/workflow/status fields that can describe a different
+    lifecycle state for the same claim.
     """
-    for field in CLAIM_STATUS_FIELDS:
-        if field not in row.index:
-            continue
-        status = str(row.get(field) or "").strip()
-        if status:
-            return status.upper() == APPROVED_STATUS
-    return False
+    if MFQ_STATUS_FIELD not in row.index:
+        return False
+
+    status = str(row.get(MFQ_STATUS_FIELD) or "").strip()
+    return status.upper() == APPROVED_STATUS
 
 
 def classify_claim_bucket(row: pd.Series) -> str:
+    if approved_claim_status(row):
+        return "history"
+
     # TODO: Confirm final Ongoing vs History separation logic with BA/Data team.
     # TODO: Confirm which DB/API field should identify claim lifecycle status.
     # TODO: Replace derived status mapping once backend provides a dedicated lifecycle/category field.
