@@ -441,16 +441,23 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
 
 
 def render_recent_claims_table(
-    df: pd.DataFrame, key_prefix: str = "recent_claims", *, empty_message: str = "No claims found for this filter context."
+    df: pd.DataFrame,
+    key_prefix: str = "recent_claims",
+    *,
+    empty_message: str = "No claims found for this filter context.",
+    total_claims: int | None = None,
+    page: int | None = None,
+    page_size: int = 10,
+    pagination_state_key: str | None = None,
 ) -> None:
-    if df.empty:
+    pagination_key_base = f"{key_prefix}_recent_claims_pagination"
+    page_state_key = pagination_state_key or f"{pagination_key_base}_page"
+    if page_state_key not in st.session_state:
+        st.session_state[page_state_key] = 1
+
+    if df.empty and not total_claims:
         st.info(empty_message)
         return
-
-    pagination_key_base = f"{key_prefix}_recent_claims_pagination"
-    page_size = 10
-    if f"{pagination_key_base}_page" not in st.session_state:
-        st.session_state[f"{pagination_key_base}_page"] = 1
 
     show_df = df.copy()
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
@@ -459,16 +466,20 @@ def render_recent_claims_table(
         show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
     else:
         show_df["PATIENT_DEFENDANT"] = show_df["PATIENT_DEFENDANT"].apply(_display_patient_defendant)
-    total_claims = len(show_df)
+    is_server_paginated = total_claims is not None or page is not None
+    total_claims = int(total_claims if total_claims is not None else len(show_df))
     total_pages = max(1, (total_claims + page_size - 1) // page_size)
-    current_page = int(st.session_state.get(f"{pagination_key_base}_page", 1))
+    current_page = int(page if page is not None else st.session_state.get(page_state_key, 1))
     current_page = max(1, min(current_page, total_pages))
-    st.session_state[f"{pagination_key_base}_page"] = current_page
+    st.session_state[page_state_key] = current_page
     start_idx = (current_page - 1) * page_size
-    end_idx = min(start_idx + page_size, total_claims)
-    page_df = show_df.iloc[start_idx:end_idx].copy()
+    end_idx = min(start_idx + len(show_df), total_claims) if is_server_paginated else min(start_idx + page_size, total_claims)
+    if not is_server_paginated:
+        show_df = show_df.iloc[start_idx:end_idx].copy()
 
-    show_df = page_df
+    if show_df.empty:
+        st.info(empty_message)
+        return
 
     with st.container(key=f"{key_prefix}_recent_claims_table"):
         header_cells: list[str] = []
@@ -570,9 +581,9 @@ def render_recent_claims_table(
             prev_col, next_col = st.columns(2)
             with prev_col:
                 if st.button("Previous", key=f"{pagination_key_base}_prev", disabled=current_page <= 1, use_container_width=True):
-                    st.session_state[f"{pagination_key_base}_page"] = max(1, current_page - 1)
+                    st.session_state[page_state_key] = max(1, current_page - 1)
                     st.rerun()
             with next_col:
                 if st.button("Next", key=f"{pagination_key_base}_next", disabled=current_page >= total_pages, use_container_width=True):
-                    st.session_state[f"{pagination_key_base}_page"] = min(total_pages, current_page + 1)
+                    st.session_state[page_state_key] = min(total_pages, current_page + 1)
                     st.rerun()
