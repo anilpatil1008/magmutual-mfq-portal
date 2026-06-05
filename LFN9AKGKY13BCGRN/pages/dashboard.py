@@ -49,6 +49,8 @@ def _init_dashboard_filter_state() -> None:
         "selected_claim_types": [],
         "date_requested_from": None,
         "date_requested_to": None,
+        "date_requested_from_widget": None,
+        "date_requested_to_widget": None,
         "claims_page_number": 1,
     }
     for key, value in defaults.items():
@@ -143,6 +145,8 @@ def _set_date_requested_quick_filter(label: str) -> None:
     if st.session_state.get("date_requested_from") != from_date or st.session_state.get("date_requested_to") != to_date:
         st.session_state["date_requested_from"] = from_date
         st.session_state["date_requested_to"] = to_date
+        st.session_state["date_requested_from_widget"] = from_date
+        st.session_state["date_requested_to_widget"] = to_date
         _reset_recent_claims_pagination()
         st.rerun()
 
@@ -178,37 +182,43 @@ def _render_date_requested_filter() -> None:
 
     from_col, to_col = st.columns(2, gap="small")
     with from_col:
-        st.date_input(
+        from_date = st.date_input(
             "From Date",
             value=st.session_state.get("date_requested_from"),
-            key="date_requested_from",
+            key="date_requested_from_widget",
             format="MM/DD/YYYY",
             on_change=_reset_recent_claims_pagination,
         )
     with to_col:
-        st.date_input(
+        to_date = st.date_input(
             "To Date",
             value=st.session_state.get("date_requested_to"),
-            key="date_requested_to",
+            key="date_requested_to_widget",
             format="MM/DD/YYYY",
             on_change=_reset_recent_claims_pagination,
         )
 
+    if st.session_state.get("date_requested_from") != from_date:
+        st.session_state["date_requested_from"] = from_date
+    if st.session_state.get("date_requested_to") != to_date:
+        st.session_state["date_requested_to"] = to_date
 
-def _clear_all_dashboard_filters() -> None:
-    updates = {
-        "selected_statuses": [],
-        "selected_priorities": [],
-        "selected_ai_confidence_buckets": [],
-        "selected_claim_types": [],
-        "date_requested_from": None,
-        "date_requested_to": None,
-    }
-    changed = any(st.session_state.get(key) != value for key, value in updates.items())
-    st.session_state.update(updates)
-    if changed:
-        _reset_recent_claims_pagination()
-        st.rerun()
+
+def _clear_all_dashboard_filters_before_widgets() -> None:
+    st.session_state.update(
+        {
+            "selected_statuses": [],
+            "selected_priorities": [],
+            "selected_ai_confidence_buckets": [],
+            "selected_claim_types": [],
+            "date_requested_from": None,
+            "date_requested_to": None,
+            "date_requested_from_widget": None,
+            "date_requested_to_widget": None,
+            "claims_page_number": 1,
+            "dash_recent_claims_pagination_page": 1,
+        }
+    )
 
 
 def _active_dashboard_filter_count() -> int:
@@ -253,6 +263,9 @@ def _merge_filter_options(default_options: list[str], dynamic_options: list[str]
 
 
 def _render_dashboard_filter_controls(session) -> None:
+    if st.session_state.pop("dashboard_filters_clear_requested", False):
+        _clear_all_dashboard_filters_before_widgets()
+
     status_options = _merge_filter_options(STATUS_FILTER_OPTIONS, get_available_claim_statuses(session))
     claim_type_options = _merge_filter_options([], get_available_claim_types(session))
 
@@ -274,7 +287,8 @@ def _render_dashboard_filter_controls(session) -> None:
     _render_date_requested_filter()
     st.markdown("<div class='mfq-filter-clear-all'></div>", unsafe_allow_html=True)
     if st.button("Clear All Filters", key="dashboard_clear_all_filters", use_container_width=True):
-        _clear_all_dashboard_filters()
+        st.session_state["dashboard_filters_clear_requested"] = True
+        st.rerun()
 
 
 def _render_dashboard_header(session, display_name: str) -> None:
