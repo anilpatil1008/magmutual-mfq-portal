@@ -127,8 +127,11 @@ def get_claims_queue(session) -> pd.DataFrame:
 
 CLAIM_FILTER_SELECT_COLUMNS = [
     "CLAIM_ID",
+    "FILE_NUMBER",
+    "DEFENDANT_NAME",
     "PATIENT_DEFENDANT",
     "MFQ_STATUS",
+    "WORKFLOW_STATUS",
     "PRIORITY",
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
@@ -213,14 +216,17 @@ def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[obj
         predicates.append(
             "("
             "TO_VARCHAR(CLAIM_ID) ILIKE ? OR "
+            "TO_VARCHAR(FILE_NUMBER) ILIKE ? OR "
             "TO_VARCHAR(PATIENT_DEFENDANT) ILIKE ? OR "
+            "TO_VARCHAR(DEFENDANT_NAME) ILIKE ? OR "
             "TO_VARCHAR(MFQ_STATUS) ILIKE ? OR "
+            "TO_VARCHAR(WORKFLOW_STATUS) ILIKE ? OR "
             "TO_VARCHAR(PRIORITY) ILIKE ? OR "
             "TO_VARCHAR(CLAIM_TYPE) ILIKE ? OR "
             "TO_VARCHAR(CLAIM_STATUS) ILIKE ?"
             ")"
         )
-        params.extend([f"%{search_text}%"] * 6)
+        params.extend([f"%{search_text}%"] * 9)
 
     claim_bucket_predicate, claim_bucket_params = claim_bucket_sql_predicate(
         str(filters.get("claim_bucket") or "")

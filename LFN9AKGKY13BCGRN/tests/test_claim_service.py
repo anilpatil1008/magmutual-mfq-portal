@@ -62,3 +62,21 @@ def test_get_claims_queue_returns_unsorted_when_recency_columns_missing(monkeypa
     result = claim_service.get_claims_queue(session=object(), username="apatil")
 
     assert result["CLAIM_ID"].tolist() == ["CLM-1", "CLM-2"]
+
+
+def test_dashboard_claim_search_where_clause_includes_live_search_columns():
+    where_clause, params = claim_service.build_claim_filter_where_clause({"search_text": "smith"})
+
+    for column in (
+        "CLAIM_ID",
+        "FILE_NUMBER",
+        "PATIENT_DEFENDANT",
+        "DEFENDANT_NAME",
+        "MFQ_STATUS",
+        "WORKFLOW_STATUS",
+        "PRIORITY",
+        "CLAIM_TYPE",
+        "CLAIM_STATUS",
+    ):
+        assert f"TO_VARCHAR({column}) ILIKE ?" in where_clause
+    assert params == ["%smith%"] * 9

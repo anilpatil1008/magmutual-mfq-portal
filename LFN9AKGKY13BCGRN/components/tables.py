@@ -16,9 +16,15 @@ _RECENT_CLAIMS_TABLE_COMPONENT = components.declare_component(
     path=str(Path(__file__).resolve().parent / "recent_claims_table_component"),
 )
 
+_LIVE_SEARCH_INPUT_COMPONENT = components.declare_component(
+    "live_search_input",
+    path=str(Path(__file__).resolve().parent / "live_search_input_component"),
+)
+
 
 VISIBLE_COLUMNS = [
     "CLAIM_ID",
+    "FILE_NUMBER",
     "PATIENT_DEFENDANT",
     "MFQ_STATUS",
     "WORKFLOW_STATUS",
@@ -31,6 +37,7 @@ VISIBLE_COLUMNS = [
 
 ENTERPRISE_COLUMNS = [
     "CLAIM_ID",
+    "FILE_NUMBER",
     "PATIENT_DEFENDANT",
     "MFQ_STATUS",
     "WORKFLOW_STATUS",
@@ -370,11 +377,43 @@ def _sort_recent_claims(df: pd.DataFrame, sort_column: str | None, sort_directio
     )
 
 
+def render_live_claims_search(
+    *,
+    value: str,
+    table_key: str,
+    placeholder: str = "Search by patient, defendant, claim ID, file #, or status...",
+    height: int = 48,
+) -> str | None:
+    """Render a Carbon-like search input that emits on every browser input event."""
+    event = _LIVE_SEARCH_INPUT_COMPONENT(
+        value=str(value or ""),
+        placeholder=placeholder,
+        aria_label=placeholder,
+        table_key=table_key,
+        height=height,
+        key=f"{table_key}_live_search_input_component",
+        default=None,
+    )
+    if isinstance(event, dict):
+        return str(event.get("search_text") or "")
+    return None
+
+
 def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.DataFrame:
     needle = str(search_text or "").strip().lower()
     if not needle:
         return df
-    search_columns = ["CLAIM_ID", "PATIENT_DEFENDANT", "MFQ_STATUS", "WORKFLOW_STATUS", "PRIORITY", "CLAIM_STATUS", "CLAIM_TYPE"]
+    search_columns = [
+        "CLAIM_ID",
+        "FILE_NUMBER",
+        "PATIENT_DEFENDANT",
+        "DEFENDANT_NAME",
+        "MFQ_STATUS",
+        "WORKFLOW_STATUS",
+        "PRIORITY",
+        "CLAIM_STATUS",
+        "CLAIM_TYPE",
+    ]
     mask = pd.Series(False, index=df.index)
     for column in search_columns:
         if column in df.columns:

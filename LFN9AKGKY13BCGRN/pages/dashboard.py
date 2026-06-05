@@ -8,7 +8,7 @@ from time import perf_counter
 import streamlit as st
 
 from components.cards import render_kpi_cards
-from components.tables import render_recent_claims_table
+from components.tables import render_live_claims_search, render_recent_claims_table
 from pages import claim_details
 from services.claim_service import (
     get_available_claim_statuses,
@@ -54,6 +54,9 @@ def _init_dashboard_filter_state() -> None:
         "date_requested_from_widget": None,
         "date_requested_to_widget": None,
         "claims_page_number": 1,
+        "dash_recent_claims_search": "",
+        "dash_ongoing_claims_search": "",
+        "dash_history_claims_search": "",
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -240,7 +243,7 @@ def _active_dashboard_filter_count() -> int:
     return count
 
 
-def _dashboard_filters() -> dict[str, object]:
+def _dashboard_filters(search_text: str = "") -> dict[str, object]:
     return {
         "selected_statuses": _selected_list("selected_statuses"),
         "selected_priorities": _selected_list("selected_priorities"),
@@ -248,13 +251,26 @@ def _dashboard_filters() -> dict[str, object]:
         "selected_claim_types": _selected_list("selected_claim_types"),
         "date_requested_from": st.session_state.get("date_requested_from"),
         "date_requested_to": st.session_state.get("date_requested_to"),
-        "search_text": str(st.session_state.get("dash_recent_claims_search") or ""),
+        "search_text": str(search_text or ""),
     }
 
 
-def _claim_bucket_filters(filters: dict[str, object], claim_bucket: str) -> dict[str, object]:
+def _claims_search_state_key(claim_bucket: str) -> str:
+    bucket_key = str(claim_bucket or "recent").strip().lower()
+    if bucket_key in {"ongoing", "history"}:
+        return f"dash_{bucket_key}_claims_search"
+    return "dash_recent_claims_search"
+
+
+def _claims_search_text(claim_bucket: str) -> str:
+    return str(st.session_state.get(_claims_search_state_key(claim_bucket)) or "")
+
+
+def _claim_bucket_filters(filters: dict[str, object], claim_bucket: str, search_text: str | None = None) -> dict[str, object]:
     bucket_filters = dict(filters)
     bucket_filters["claim_bucket"] = claim_bucket
+    if search_text is not None:
+        bucket_filters["search_text"] = str(search_text or "")
     return bucket_filters
 
 
@@ -405,7 +421,11 @@ def _render_dashboard_view(session, ctx) -> None:
     render_kpi_cards(metrics)
 
     card_key = "dash_recent_claims"
-    search = st.session_state.get(f"{card_key}_search", "")
+    selected_bucket_for_search = str(st.session_state.get(f"{card_key}_bucket") or CLAIM_BUCKET_OPTIONS[0])
+    if selected_bucket_for_search not in CLAIM_BUCKET_OPTIONS:
+        selected_bucket_for_search = CLAIM_BUCKET_OPTIONS[0]
+    search_state_key = _claims_search_state_key(selected_bucket_for_search)
+    search = _claims_search_text(selected_bucket_for_search)
 
     with st.container(key="recent_claims_card"):
         with st.container(key="recent_claims_toolbar"):
@@ -422,18 +442,22 @@ def _render_dashboard_view(session, ctx) -> None:
                 )
             with header_right:
                 with st.container(key="recent_claims_search"):
-                    search = st.text_input(
-                        "Search",
+                    live_search = render_live_claims_search(
                         value=search,
-                        placeholder="Search by patient, file #...",
-                        label_visibility="collapsed",
-                        key=f"{card_key}_search",
+                        table_key=search_state_key,
+                        placeholder="Search by patient, defendant, claim ID, file #, or status...",
                     )
+                    if live_search is not None and live_search != search:
+                        st.session_state[search_state_key] = live_search
+                        search = live_search
 
-        filters = _dashboard_filters()
+        filters = _dashboard_filters(search)
         t1 = perf_counter()
         claim_counts = {
-            bucket: get_filtered_claims_count(session, _claim_bucket_filters(filters, bucket))
+            bucket: get_filtered_claims_count(
+                session,
+                _claim_bucket_filters(_dashboard_filters(_claims_search_text(bucket)), bucket),
+            )
             for bucket in CLAIM_BUCKET_OPTIONS
         }
 
@@ -445,9 +469,12 @@ def _render_dashboard_view(session, ctx) -> None:
             format_func=lambda bucket: _claim_bucket_label(bucket, claim_counts),
             label_visibility="collapsed",
         )
+        if selected_bucket != selected_bucket_for_search:
+            search = _claims_search_text(selected_bucket)
+            filters = _dashboard_filters(search)
         _reset_claims_page_on_context_change(card_key, selected_bucket, search)
 
-        bucket_filters = _claim_bucket_filters(filters, selected_bucket)
+        bucket_filters = _claim_bucket_filters(filters, selected_bucket, search)
         total_claims = claim_counts[selected_bucket]
         requested_page = max(1, int(st.session_state.get("claims_page_number", 1)))
         total_pages = max(1, (total_claims + DASHBOARD_RECENT_CLAIMS_PAGE_SIZE - 1) // DASHBOARD_RECENT_CLAIMS_PAGE_SIZE)
