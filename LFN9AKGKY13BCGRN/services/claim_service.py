@@ -126,10 +126,12 @@ def get_filtered_claims_count(session, filters: dict | None) -> int:
 
 
 def get_available_claim_statuses(session) -> list[str]:
+    """Return available MFQ claim statuses for dashboard filters."""
     return claims_repository.get_available_claim_statuses(session)
 
 
 def get_available_claim_types(session) -> list[str]:
+    """Return available claim types for dashboard filters."""
     return claims_repository.get_available_claim_types(session)
 
 
