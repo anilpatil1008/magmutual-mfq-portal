@@ -356,7 +356,19 @@ def _resolve_user_display_name(ctx) -> str:
     return str(getattr(ctx, "username", "") or "").strip()
 
 
+def _is_claim_details_active() -> bool:
+    return (
+        st.session_state.get("active_page") == "Claim Details"
+        or st.session_state.get("current_view") in {"Claim Details", "claim_details"}
+    ) and bool(st.session_state.get("selected_claim_id"))
+
+
 def _render_dashboard_view(session, ctx) -> None:
+    if _is_claim_details_active():
+        logger.info("dashboard_render_skipped_for_claim_details claim_id=%s", st.session_state.get("selected_claim_id"))
+        claim_details.render(session=session, ctx=ctx)
+        return
+
     logger.info("render_dashboard called")
     _init_dashboard_filter_state()
     display_name = _resolve_user_display_name(ctx)
@@ -434,7 +446,7 @@ def render(session, ctx) -> None:
     if "current_view" not in st.session_state:
         st.session_state["current_view"] = "dashboard"
 
-    if st.session_state.get("current_view") in {"Claim Details", "claim_details"} and st.session_state.get("selected_claim_id"):
+    if _is_claim_details_active():
         logger.info("render_claim_details called claim_id=%s", st.session_state.get("selected_claim_id"))
         claim_details.render(session=session, ctx=ctx)
         st.stop()
@@ -444,6 +456,7 @@ def render(session, ctx) -> None:
         st.stop()
 
     # Fallback to dashboard when state is unknown.
+    st.session_state["active_page"] = "Dashboard"
     st.session_state["current_view"] = "dashboard"
     _render_dashboard_view(session=session, ctx=ctx)
     st.stop()

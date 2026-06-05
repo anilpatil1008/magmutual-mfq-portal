@@ -153,6 +153,11 @@ def _go_back_to_dashboard() -> None:
     st.session_state["active_page"] = "Dashboard"
     st.session_state["current_view"] = "Dashboard"
     st.session_state["selected_claim_id"] = None
+    st.session_state["last_review_event"] = None
+    st.session_state["last_processed_review_claim_id"] = None
+    for key in list(st.session_state.keys()):
+        if key.endswith("_recent_claims_last_review_event_id"):
+            st.session_state.pop(key, None)
     st.query_params.clear()
     st.rerun()
 

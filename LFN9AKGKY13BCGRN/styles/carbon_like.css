@@ -2734,9 +2734,11 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   border-radius: 6px;
   color: #0f62fe;
   background: #fff;
+  font-family: inherit;
   font-size: .82rem;
   font-weight: 600;
   text-decoration: none;
+  cursor: pointer;
 }
 .st-key-dash_recent_claims_table .review-link:hover {
   background: #edf5ff;
@@ -2974,9 +2976,11 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   border: 1px solid #a6c8ff;
   background: #ffffff;
   color: var(--mm-blue, #0f62fe);
+  font-family: inherit;
   font-size: 0.78rem;
   font-weight: 700;
   text-decoration: none;
+  cursor: pointer;
   transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
 

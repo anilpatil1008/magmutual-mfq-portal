@@ -4,8 +4,6 @@ from datetime import datetime
 from html import escape
 from pathlib import Path
 from typing import Any
-from urllib.parse import quote
-
 import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
@@ -385,14 +383,12 @@ def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.Dat
 
 
 def _open_claim_details(claim_id: str) -> None:
-    st.session_state["selected_claim_id"] = str(claim_id)
+    claim_id = str(claim_id).strip()
+    st.session_state["selected_claim_id"] = claim_id
     st.session_state["active_page"] = "Claim Details"
     st.session_state["current_view"] = "Claim Details"
-    st.query_params.update(page="Claim Details", claim_id=str(claim_id))
-
-
-def _claim_details_href(claim_id: str) -> str:
-    return f"?page=Claim%20Details&claim_id={quote(str(claim_id), safe='')}"
+    st.session_state["last_review_event"] = None
+    st.session_state["last_processed_review_claim_id"] = claim_id
 
 
 def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
@@ -541,7 +537,7 @@ def render_recent_claims_table(
                 f"<td class='recent-claims-td' data-sort-value='{escape(display_claim_type.lower())}' style='width:{RECENT_CLAIMS_WIDTH_MAP['CLAIM_TYPE']}px'><div class='single-line-ellipsis' title='{escape(claim_type)}'>{escape(display_claim_type)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(requested_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['DATE_REQUESTED']}px'><div class='single-line-ellipsis' title='{escape(requested)}'>{escape(requested)}</div></td>"
                 f"<td class='recent-claims-td' data-sort-value='{escape(ai_confidence_sort)}' style='width:{RECENT_CLAIMS_WIDTH_MAP['AI_CONFIDENCE']}px'><div class='confidence-cell'>{_confidence_badge_html(row.get('AI_CONFIDENCE'))}</div></td>"
-                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><a class='review-link' href='{escape(_claim_details_href(claim_id))}' target='_top' role='button' data-claim-id='{escape(claim_id)}'>Review</a></td>"
+                f"<td class='recent-claims-td sticky-actions-cell' style='width:{RECENT_CLAIMS_WIDTH_MAP['ACTIONS']}px'><button class='review-link' type='button' data-claim-id='{escape(claim_id)}'>Review</button></td>"
                 "</tr>"
             )
         recent_claims_css = _load_recent_claims_table_css()
@@ -570,10 +566,15 @@ def render_recent_claims_table(
             claim_id = str(review_event.get("claim_id", "")).strip()
             event_id = str(review_event.get("event_id", "")).strip()
             last_event_key = f"{key_prefix}_recent_claims_last_review_event_id"
-            if claim_id and event_id and st.session_state.get(last_event_key) != event_id:
+            last_processed_claim_id = str(st.session_state.get("last_processed_review_claim_id", "")).strip()
+            is_new_event = bool(event_id) and st.session_state.get(last_event_key) != event_id
+            is_new_claim_without_event_id = bool(claim_id) and not event_id and claim_id != last_processed_claim_id
+            if claim_id and (is_new_event or is_new_claim_without_event_id):
                 st.session_state[last_event_key] = event_id
+                st.session_state["last_review_event"] = None
                 _open_claim_details(claim_id)
                 st.rerun()
+                st.stop()
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
         pager_cols = st.columns([3, 1], vertical_alignment="center")
         pager_cols[0].markdown(f"<div class='recent-claims-pagination-summary'>{summary_text}</div>", unsafe_allow_html=True)

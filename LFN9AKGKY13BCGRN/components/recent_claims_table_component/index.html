@@ -54,7 +54,9 @@
       links.forEach((link) => {
         if (link.dataset.nativeReviewReady === 'true') return;
         link.dataset.nativeReviewReady = 'true';
-        link.addEventListener('click', () => {
+        link.addEventListener('click', (event) => {
+          event.preventDefault();
+          event.stopPropagation();
           const claimId = String(link.dataset.claimId || '').trim();
           if (claimId) {
             setComponentValue({ claim_id: claimId, event_id: `${Date.now()}-${Math.random().toString(36).slice(2)}` });
