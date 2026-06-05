@@ -20,6 +20,20 @@ MFQ_STATUS_FIELD = "MFQ_STATUS"
 APPROVED_STATUS = "APPROVED"
 
 
+def claim_bucket_sql_predicate(claim_bucket: str) -> tuple[str, list[str]]:
+    """Return SQL predicate pieces for dashboard claim buckets.
+
+    History Claims are claims whose visible MFQ Status is Approved; Ongoing
+    Claims are everything else. Keep this aligned with approved_claim_status().
+    """
+    normalized_bucket = str(claim_bucket or "").strip().lower()
+    if normalized_bucket == "history":
+        return "UPPER(TRIM(COALESCE(MFQ_STATUS, ''))) = ?", [APPROVED_STATUS]
+    if normalized_bucket == "ongoing":
+        return "UPPER(TRIM(COALESCE(MFQ_STATUS, ''))) <> ?", [APPROVED_STATUS]
+    return "", []
+
+
 def _normalize(value: Any) -> str:
     return str(value or "").strip().lower()
 
