@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      background: transparent;
+      font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    }
+
+    .live-search-shell {
+      width: 100%;
+    }
+
+    .live-search-input {
+      width: 100%;
+      min-height: 2.5rem;
+      padding: 0 1rem;
+      border: 1px solid #8d8d8d;
+      border-radius: 0;
+      background: #f4f4f4;
+      color: #161616;
+      font-size: 0.875rem;
+      line-height: 1.28572;
+      outline: 2px solid transparent;
+      outline-offset: -2px;
+      box-sizing: border-box;
+      transition: background-color 70ms cubic-bezier(0.2, 0, 0.38, 0.9),
+        outline 70ms cubic-bezier(0.2, 0, 0.38, 0.9);
+    }
+
+    .live-search-input::placeholder {
+      color: #6f6f6f;
+      opacity: 1;
+    }
+
+    .live-search-input:focus {
+      outline: 2px solid #0f62fe;
+      outline-offset: -2px;
+      background: #ffffff;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    const STREAMLIT_READY = 'streamlit:componentReady';
+    const STREAMLIT_RENDER = 'streamlit:render';
+    const STREAMLIT_SET_COMPONENT_VALUE = 'streamlit:setComponentValue';
+    const STREAMLIT_SET_FRAME_HEIGHT = 'streamlit:setFrameHeight';
+
+    const root = document.getElementById('root');
+    let inputEl = null;
+    let componentKey = '';
+
+    function sendMessage(type, data) {
+      window.parent.postMessage({ isStreamlitMessage: true, type, ...data }, '*');
+    }
+
+    function setFrameHeight(height) {
+      sendMessage(STREAMLIT_SET_FRAME_HEIGHT, { height });
+    }
+
+    function setComponentValue(value) {
+      sendMessage(STREAMLIT_SET_COMPONENT_VALUE, { value, dataType: 'json' });
+    }
+
+    function emitSearchValue(value) {
+      setComponentValue({
+        search_text: value,
+        table_key: componentKey,
+        event_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+      });
+    }
+
+    function render(args) {
+      const value = String(args.value || '');
+      const placeholder = String(args.placeholder || 'Search');
+      const ariaLabel = String(args.aria_label || 'Search');
+      componentKey = String(args.table_key || '');
+
+      if (!inputEl) {
+        root.innerHTML = `
+          <div class="live-search-shell">
+            <input class="live-search-input" type="search" autocomplete="off" spellcheck="false" />
+          </div>
+        `;
+        inputEl = root.querySelector('.live-search-input');
+        inputEl.addEventListener('input', (event) => {
+          emitSearchValue(event.target.value);
+        });
+      }
+
+      inputEl.placeholder = placeholder;
+      inputEl.setAttribute('aria-label', ariaLabel);
+
+      if (document.activeElement !== inputEl && inputEl.value !== value) {
+        inputEl.value = value;
+      }
+
+      setFrameHeight(Number(args.height || 48));
+    }
+
+    window.addEventListener('message', (event) => {
+      const data = event.data || {};
+      if (data.type === STREAMLIT_RENDER) {
+        render(data.args || {});
+      }
+    });
+
+    sendMessage(STREAMLIT_READY, { apiVersion: 1 });
+  </script>
+</body>
+</html>
