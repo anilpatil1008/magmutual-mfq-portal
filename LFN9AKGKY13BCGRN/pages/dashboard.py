@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, timedelta
 from html import escape
 import logging
 from time import perf_counter
@@ -11,6 +12,7 @@ from components.tables import render_recent_claims_table
 from pages import claim_details
 from services.claim_service import (
     get_available_claim_statuses,
+    get_available_claim_types,
     get_filtered_claims_count,
     get_filtered_recent_claims,
 )
@@ -20,77 +22,259 @@ from services.rbac_service import get_session_context_snapshot
 logger = logging.getLogger(__name__)
 
 DASHBOARD_RECENT_CLAIMS_PAGE_SIZE = 10
-STATUS_FILTER_OPTIONS = ["All Statuses", "MFQ Generated", "Assigned", "Approved", "Rejected"]
-PRIORITY_FILTER_OPTIONS = ["All Priorities", "High", "Medium", "Low"]
+STATUS_FILTER_OPTIONS = ["MFQ Generated", "Assigned", "Approved", "Rejected"]
+PRIORITY_FILTER_OPTIONS = ["High", "Medium", "Low"]
 AI_CONFIDENCE_FILTER_OPTIONS = [
-    ("All Scores", "All Scores"),
     ("High", "High (90%+)"),
     ("Medium", "Medium (80-89%)"),
     ("Low", "Low (<80%)"),
 ]
+DATE_REQUESTED_QUICK_FILTERS = [
+    "All Dates",
+    "Today",
+    "Last 7 Days",
+    "Last 30 Days",
+    "This Month",
+]
 
 
 def _init_dashboard_filter_state() -> None:
+    legacy_status = st.session_state.pop("selected_status", None)
+    legacy_priority = st.session_state.pop("selected_priority", None)
+    legacy_ai_confidence = st.session_state.pop("selected_ai_confidence", None)
     defaults = {
-        "selected_status": "All Statuses",
-        "selected_priority": "All Priorities",
-        "selected_ai_confidence": "All Scores",
+        "selected_statuses": [],
+        "selected_priorities": [],
+        "selected_ai_confidence_buckets": [],
+        "selected_claim_types": [],
+        "date_requested_from": None,
+        "date_requested_to": None,
         "claims_page_number": 1,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
+    legacy_migrations = (
+        (legacy_status, "All Statuses", "selected_statuses"),
+        (legacy_priority, "All Priorities", "selected_priorities"),
+        (legacy_ai_confidence, "All Scores", "selected_ai_confidence_buckets"),
+    )
+    for legacy_value, all_label, state_key in legacy_migrations:
+        if legacy_value and legacy_value != all_label and not st.session_state.get(state_key):
+            st.session_state[state_key] = [str(legacy_value)]
+
+
+def _reset_recent_claims_pagination() -> None:
+    st.session_state["claims_page_number"] = 1
+    st.session_state["dash_recent_claims_pagination_page"] = 1
+
 
 def _filter_button_slug(value: str) -> str:
-    return "".join(ch.lower() if ch.isalnum() else "_" for ch in str(value)).strip("_")
+    return "".join(ch.lower() if ch.isalnum() else "_" for ch in str(value)).strip("_") or "blank"
 
 
-def _set_dashboard_filter(state_key: str, value: str) -> None:
-    if st.session_state.get(state_key) != value:
-        st.session_state[state_key] = value
-        st.session_state["claims_page_number"] = 1
-        st.session_state["dash_recent_claims_pagination_page"] = 1
+def _selected_list(state_key: str) -> list[str]:
+    value = st.session_state.get(state_key, [])
+    if isinstance(value, list):
+        return [str(item) for item in value if str(item or "").strip()]
+    if isinstance(value, tuple | set):
+        return [str(item) for item in value if str(item or "").strip()]
+    return [str(value)] if str(value or "").strip() else []
+
+
+def _toggle_dashboard_multi_filter(state_key: str, value: str, all_label: str | None = None) -> None:
+    current_values = _selected_list(state_key)
+    if all_label and value == all_label:
+        new_values = []
+    elif value in current_values:
+        new_values = [item for item in current_values if item != value]
+    else:
+        new_values = [*current_values, value]
+
+    if current_values != new_values:
+        st.session_state[state_key] = new_values
+        _reset_recent_claims_pagination()
         st.rerun()
 
 
-def _render_filter_chip_group(title: str, state_key: str, options: list[str] | list[tuple[str, str]], group_key: str) -> None:
+def _render_filter_chip_group(
+    title: str,
+    state_key: str,
+    options: list[str] | list[tuple[str, str]],
+    group_key: str,
+    all_label: str,
+) -> None:
     st.markdown(f"<p class='mfq-filter-section-label'>{escape(title)}</p>", unsafe_allow_html=True)
+    options_with_all: list[str] | list[tuple[str, str]] = [all_label, *options]
     columns = st.columns(3, gap="small")
-    for index, option in enumerate(options):
+    selected_values = _selected_list(state_key)
+    for index, option in enumerate(options_with_all):
         value, label = option if isinstance(option, tuple) else (option, option)
-        selected = st.session_state.get(state_key) == value
+        selected = not selected_values if value == all_label else value in selected_values
         state_suffix = "selected" if selected else "unselected"
         chip_key = f"filter_chip_{group_key}_{_filter_button_slug(str(value))}_{state_suffix}"
         with columns[index % 3]:
             with st.container(key=chip_key):
                 if st.button(str(label), key=f"{chip_key}_button", use_container_width=True):
-                    _set_dashboard_filter(state_key, str(value))
+                    _toggle_dashboard_multi_filter(state_key, str(value), all_label=all_label)
 
 
-def _dashboard_filters() -> dict[str, str]:
+def _set_date_requested_quick_filter(label: str) -> None:
+    today = date.today()
+    if label == "All Dates":
+        from_date = None
+        to_date = None
+    elif label == "Today":
+        from_date = today
+        to_date = today
+    elif label == "Last 7 Days":
+        from_date = today - timedelta(days=6)
+        to_date = today
+    elif label == "Last 30 Days":
+        from_date = today - timedelta(days=29)
+        to_date = today
+    elif label == "This Month":
+        from_date = today.replace(day=1)
+        to_date = today
+    else:
+        return
+
+    if st.session_state.get("date_requested_from") != from_date or st.session_state.get("date_requested_to") != to_date:
+        st.session_state["date_requested_from"] = from_date
+        st.session_state["date_requested_to"] = to_date
+        _reset_recent_claims_pagination()
+        st.rerun()
+
+
+def _date_quick_filter_is_selected(label: str) -> bool:
+    from_date = st.session_state.get("date_requested_from")
+    to_date = st.session_state.get("date_requested_to")
+    today = date.today()
+    if label == "All Dates":
+        return from_date is None and to_date is None
+    if label == "Today":
+        return from_date == today and to_date == today
+    if label == "Last 7 Days":
+        return from_date == today - timedelta(days=6) and to_date == today
+    if label == "Last 30 Days":
+        return from_date == today - timedelta(days=29) and to_date == today
+    if label == "This Month":
+        return from_date == today.replace(day=1) and to_date == today
+    return False
+
+
+def _render_date_requested_filter() -> None:
+    st.markdown("<p class='mfq-filter-section-label'>Date Requested</p>", unsafe_allow_html=True)
+    chip_columns = st.columns(3, gap="small")
+    for index, label in enumerate(DATE_REQUESTED_QUICK_FILTERS):
+        selected = _date_quick_filter_is_selected(label)
+        state_suffix = "selected" if selected else "unselected"
+        chip_key = f"filter_chip_date_requested_{_filter_button_slug(label)}_{state_suffix}"
+        with chip_columns[index % 3]:
+            with st.container(key=chip_key):
+                if st.button(label, key=f"{chip_key}_button", use_container_width=True):
+                    _set_date_requested_quick_filter(label)
+
+    from_col, to_col = st.columns(2, gap="small")
+    with from_col:
+        st.date_input(
+            "From Date",
+            value=st.session_state.get("date_requested_from"),
+            key="date_requested_from",
+            format="MM/DD/YYYY",
+            on_change=_reset_recent_claims_pagination,
+        )
+    with to_col:
+        st.date_input(
+            "To Date",
+            value=st.session_state.get("date_requested_to"),
+            key="date_requested_to",
+            format="MM/DD/YYYY",
+            on_change=_reset_recent_claims_pagination,
+        )
+
+
+def _clear_all_dashboard_filters() -> None:
+    updates = {
+        "selected_statuses": [],
+        "selected_priorities": [],
+        "selected_ai_confidence_buckets": [],
+        "selected_claim_types": [],
+        "date_requested_from": None,
+        "date_requested_to": None,
+    }
+    changed = any(st.session_state.get(key) != value for key, value in updates.items())
+    st.session_state.update(updates)
+    if changed:
+        _reset_recent_claims_pagination()
+        st.rerun()
+
+
+def _active_dashboard_filter_count() -> int:
+    count = sum(
+        len(_selected_list(key))
+        for key in (
+            "selected_statuses",
+            "selected_priorities",
+            "selected_ai_confidence_buckets",
+            "selected_claim_types",
+        )
+    )
+    if st.session_state.get("date_requested_from") is not None:
+        count += 1
+    if st.session_state.get("date_requested_to") is not None:
+        count += 1
+    return count
+
+
+def _dashboard_filters() -> dict[str, object]:
     return {
-        "selected_status": str(st.session_state.get("selected_status") or "All Statuses"),
-        "selected_priority": str(st.session_state.get("selected_priority") or "All Priorities"),
-        "selected_ai_confidence": str(st.session_state.get("selected_ai_confidence") or "All Scores"),
+        "selected_statuses": _selected_list("selected_statuses"),
+        "selected_priorities": _selected_list("selected_priorities"),
+        "selected_ai_confidence_buckets": _selected_list("selected_ai_confidence_buckets"),
+        "selected_claim_types": _selected_list("selected_claim_types"),
+        "date_requested_from": st.session_state.get("date_requested_from"),
+        "date_requested_to": st.session_state.get("date_requested_to"),
         "search_text": str(st.session_state.get("dash_recent_claims_search") or ""),
     }
 
 
+def _merge_filter_options(default_options: list[str], dynamic_options: list[str]) -> list[str]:
+    merged: list[str] = []
+    seen: set[str] = set()
+    for value in [*default_options, *dynamic_options]:
+        normalized = str(value or "").strip()
+        upper_value = normalized.upper()
+        if normalized and upper_value not in seen:
+            merged.append(normalized)
+            seen.add(upper_value)
+    return merged
+
+
 def _render_dashboard_filter_controls(session) -> None:
-    available_statuses = {status.upper() for status in get_available_claim_statuses(session)}
-    status_options = [*STATUS_FILTER_OPTIONS]
-    if "ON HOLD" in available_statuses:
-        status_options.append("On Hold")
+    status_options = _merge_filter_options(STATUS_FILTER_OPTIONS, get_available_claim_statuses(session))
+    claim_type_options = _merge_filter_options([], get_available_claim_types(session))
 
     st.markdown(
         "<div class='mfq-dashboard-filter-panel-marker'></div>"
         "<div class='mfq-filter-popover-heading'>Filter Claims</div>",
         unsafe_allow_html=True,
     )
-    _render_filter_chip_group("Status", "selected_status", status_options, "status")
-    _render_filter_chip_group("Priority", "selected_priority", PRIORITY_FILTER_OPTIONS, "priority")
-    _render_filter_chip_group("AI Confidence Score", "selected_ai_confidence", AI_CONFIDENCE_FILTER_OPTIONS, "ai_confidence")
+    _render_filter_chip_group("Status", "selected_statuses", status_options, "status", "All Statuses")
+    _render_filter_chip_group("Priority", "selected_priorities", PRIORITY_FILTER_OPTIONS, "priority", "All Priorities")
+    _render_filter_chip_group("Claim Type", "selected_claim_types", claim_type_options, "claim_type", "All Claim Types")
+    _render_filter_chip_group(
+        "AI Confidence Score",
+        "selected_ai_confidence_buckets",
+        AI_CONFIDENCE_FILTER_OPTIONS,
+        "ai_confidence",
+        "All Scores",
+    )
+    _render_date_requested_filter()
+    st.markdown("<div class='mfq-filter-clear-all'></div>", unsafe_allow_html=True)
+    if st.button("Clear All Filters", key="dashboard_clear_all_filters", use_container_width=True):
+        _clear_all_dashboard_filters()
 
 
 def _render_dashboard_header(session, display_name: str) -> None:
@@ -114,8 +298,10 @@ def _render_dashboard_header(session, display_name: str) -> None:
         with st.container(key="dashboard_header_actions"):
             st.markdown("<div class='dashboard-filter-button-wrapper'>", unsafe_allow_html=True)
             if hasattr(st, "popover"):
+                active_filter_count = _active_dashboard_filter_count()
+                filter_label = f"Filters ({active_filter_count})" if active_filter_count else "Filters"
                 with st.popover(
-                    "Filters",
+                    filter_label,
                     icon=":material/filter_list:",
                     width="content",
                     key="dashboard_filters_popover",
