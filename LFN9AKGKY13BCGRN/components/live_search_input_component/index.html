@@ -58,6 +58,8 @@
     const root = document.getElementById('root');
     let inputEl = null;
     let componentKey = '';
+    let debounceTimer = null;
+    let debounceMs = 275;
 
     function sendMessage(type, data) {
       window.parent.postMessage({ isStreamlitMessage: true, type, ...data }, '*');
@@ -72,11 +74,14 @@
     }
 
     function emitSearchValue(value) {
-      setComponentValue({
-        search_text: value,
-        table_key: componentKey,
-        event_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-      });
+      window.clearTimeout(debounceTimer);
+      debounceTimer = window.setTimeout(() => {
+        setComponentValue({
+          search_text: value,
+          table_key: componentKey,
+          event_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        });
+      }, debounceMs);
     }
 
     function render(args) {
@@ -84,6 +89,7 @@
       const placeholder = String(args.placeholder || 'Search');
       const ariaLabel = String(args.aria_label || 'Search');
       componentKey = String(args.table_key || '');
+      debounceMs = Number(args.debounce_ms || 275);
 
       if (!inputEl) {
         root.innerHTML = `

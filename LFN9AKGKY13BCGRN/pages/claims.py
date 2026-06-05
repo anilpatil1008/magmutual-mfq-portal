@@ -4,7 +4,7 @@ import logging
 
 import streamlit as st
 
-from components.tables import render_claims_table
+from components.tables import render_claims_table, render_live_claims_search
 from services.claim_service import get_claims_queue, get_status_values
 from services.rbac_service import get_session_context_snapshot
 
@@ -23,11 +23,14 @@ def render(session, ctx) -> None:
 
     f1, f2, f3 = st.columns([3, 2, 2])
     with f1:
-        search = st.text_input(
-            "Search",
+        live_search = render_live_claims_search(
+            value=str(st.session_state.get("claims_search_text") or ""),
+            table_key="claims_search_text",
             placeholder="Claim ID, Patient, Defendant, File Number",
-            key="claims_search_text",
         )
+        if live_search is not None and live_search != st.session_state.get("claims_search_text"):
+            st.session_state["claims_search_text"] = live_search
+        search = str(st.session_state.get("claims_search_text") or "")
     with f2:
         statuses = get_status_values(session)
         current_status = st.session_state.get("claims_status_filter", "All")
@@ -45,4 +48,7 @@ def render(session, ctx) -> None:
     if "DATE_REQUESTED" in df.columns and sort_by == "Oldest":
         df = df.sort_values("DATE_REQUESTED", ascending=True)
 
-    render_claims_table(df, key_prefix="claims")
+    if df.empty and search.strip():
+        st.info("No matching claims found")
+    else:
+        render_claims_table(df, key_prefix="claims")
