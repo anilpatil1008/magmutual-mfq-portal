@@ -82,8 +82,10 @@ def get_current_user_context(session) -> UserContext:
     return UserContext(username=username, sf_role=sf_role)
 
 
-def get_session_context_snapshot(session) -> dict[str, str]:
-    row = session.sql("""
+@st.cache_data(show_spinner=False, ttl=300)
+def _get_session_context_snapshot_cached(_session, cache_scope: str) -> dict[str, str]:
+    del cache_scope
+    row = _session.sql("""
         SELECT
             CURRENT_USER() AS CURRENT_USER,
             CURRENT_ROLE() AS CURRENT_ROLE,
@@ -92,6 +94,11 @@ def get_session_context_snapshot(session) -> dict[str, str]:
             CURRENT_SCHEMA() AS CURRENT_SCHEMA
     """).to_pandas().iloc[0]
     return {k: str(v or "").strip() for k, v in row.to_dict().items()}
+
+
+def get_session_context_snapshot(session) -> dict[str, str]:
+    cache_scope = str(st.session_state.get("selected_sf_role") or "default")
+    return _get_session_context_snapshot_cached(session, cache_scope)
 
 
 def can_edit_claim(claim_status: str, assigned_to: str | None, username: str) -> bool:

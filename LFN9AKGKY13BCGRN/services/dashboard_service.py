@@ -4,6 +4,7 @@ import logging
 
 import pandas as pd
 import streamlit as st
+from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 from config import snowflake_objects as obj
 from repositories.dashboard_repository import get_dashboard_summary
@@ -31,8 +32,19 @@ def _show_dashboard_summary_error() -> None:
     st.error(message)
 
 
+@st.cache_data(ttl=300, show_spinner=False)
+def _get_dashboard_summary_cached(_session, cache_scope: str) -> pd.DataFrame:
+    del cache_scope
+    return get_dashboard_summary(_session)
+
+
 def get_dashboard_metrics(session, username: str) -> dict[str, int]:
-    summary = get_dashboard_summary(session)
+    cache_scope = str(st.session_state.get("selected_sf_role") or "default")
+    summary = (
+        _get_dashboard_summary_cached(session, cache_scope)
+        if get_script_run_ctx(suppress_warning=True) is not None
+        else get_dashboard_summary(session)
+    )
     if summary.empty:
         _show_dashboard_summary_error()
         return _empty_dashboard_metrics()

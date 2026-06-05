@@ -8,11 +8,13 @@ from typing import Any
 import pandas as pd
 
 import streamlit as st
+from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 from config import column_mappings as col
 from config import snowflake_objects as obj
 from repositories import assignment_repository, claims_repository, faculty_repository, mfq_repository, user_repository
 from services.snowflake_service import quote_sql, safe_collect_df
+from utils.claim_lifecycle import classify_claim_bucket
 
 
 CLAIMS_VIEW = obj.MFQ_RECENT_CLAIMS_VIEW
@@ -26,6 +28,85 @@ SECTION_CONFIDENCE_TABLE = obj.MFQ_SECTION_CONFIDENCE_TABLE
 LLM_EVAL_TABLE = obj.LLM_EVALUATION_TABLE
 
 logger = logging.getLogger(__name__)
+
+CLAIMS_SEARCH_INDEX_COLUMN = "_CLAIMS_SEARCH_TEXT"
+CLAIMS_SEARCHABLE_COLUMNS = (
+    "CLAIM_ID",
+    "FILE_NUMBER",
+    "PATIENT_DEFENDANT",
+    "DEFENDANT_NAME",
+    "MFQ_STATUS",
+    "WORKFLOW_STATUS",
+    "PRIORITY",
+    "CLAIM_STATUS",
+    "CLAIM_TYPE",
+    "DATE_REQUESTED",
+    "AI_CONFIDENCE",
+)
+
+
+def _claims_cache_scope() -> str:
+    """Key cached claims by app role/context without hashing the Snowflake session."""
+    return str(st.session_state.get("selected_sf_role") or "default")
+
+
+def _in_streamlit_runtime() -> bool:
+    return get_script_run_ctx(suppress_warning=True) is not None
+
+
+def _normalize_search_series(series: pd.Series) -> pd.Series:
+    if pd.api.types.is_datetime64_any_dtype(series):
+        return series.dt.strftime("%Y-%m-%d").fillna("").str.lower()
+    return series.fillna("").astype(str).str.lower()
+
+
+def add_claims_search_index(df: pd.DataFrame, search_columns: tuple[str, ...] = CLAIMS_SEARCHABLE_COLUMNS) -> pd.DataFrame:
+    """Copy a claims dataframe and precompute one lowercase string search index per row."""
+    indexed = df.copy()
+    if indexed.empty:
+        indexed[CLAIMS_SEARCH_INDEX_COLUMN] = pd.Series(dtype=str)
+        return indexed
+
+    normalized_columns = [column for column in search_columns if column in indexed.columns]
+    if not normalized_columns:
+        indexed[CLAIMS_SEARCH_INDEX_COLUMN] = ""
+        return indexed
+
+    search_parts = [_normalize_search_series(indexed[column]) for column in normalized_columns]
+    indexed[CLAIMS_SEARCH_INDEX_COLUMN] = pd.concat(search_parts, axis=1).agg(" ".join, axis=1)
+    return indexed
+
+
+def filter_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.DataFrame:
+    """Filter claims locally with a precomputed lowercase search index."""
+    needle = str(search_text or "").strip().lower()
+    if not needle or df.empty:
+        return df
+
+    indexed = df if CLAIMS_SEARCH_INDEX_COLUMN in df.columns else add_claims_search_index(df)
+    return indexed[indexed[CLAIMS_SEARCH_INDEX_COLUMN].str.contains(needle, regex=False, na=False)]
+
+
+def _coerce_filter_values(value: object) -> list[str]:
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        raw_values = value
+    else:
+        raw_values = [value]
+    return [str(item).strip() for item in raw_values if str(item or "").strip()]
+
+
+@st.cache_data(ttl=300, show_spinner="Loading claims...")
+def _load_claims_queue_cached(_session, cache_scope: str) -> pd.DataFrame:
+    del cache_scope
+    return add_claims_search_index(claims_repository.get_claims_queue(_session))
+
+
+@st.cache_data(ttl=300, show_spinner="Loading claims...")
+def _load_recent_claims_cached(_session, cache_scope: str) -> pd.DataFrame:
+    del cache_scope
+    return add_claims_search_index(claims_repository.get_recent_claims_dataset(_session))
 
 
 def _object_exists(session, object_name: str) -> bool:
@@ -80,28 +161,17 @@ def _sort_claims_queue(queue: pd.DataFrame) -> pd.DataFrame:
 
 def get_claims_queue(session, username: str, search_text: str = "", status_filter: str = "All") -> pd.DataFrame:
     started = perf_counter()
-    df = claims_repository.get_claims_queue(session)
+    df = (
+        _load_claims_queue_cached(session, _claims_cache_scope())
+        if _in_streamlit_runtime()
+        else add_claims_search_index(claims_repository.get_claims_queue(session))
+    )
     if df.empty:
         logger.info("get_claims_queue_ms=%d rows=0", int((perf_counter() - started) * 1000))
         return df
 
     scoped = df.copy()
-    if search_text.strip():
-        needle = search_text.strip().lower()
-        search_columns = (
-            "CLAIM_ID",
-            "PATIENT_DEFENDANT",
-            "MFQ_STATUS",
-            "WORKFLOW_STATUS",
-            "PRIORITY",
-            "CLAIM_STATUS",
-            "CLAIM_TYPE",
-        )
-        mask = pd.Series(False, index=scoped.index)
-        for search_column in search_columns:
-            if search_column in scoped.columns:
-                mask = mask | scoped[search_column].astype(str).str.lower().str.contains(needle)
-        scoped = scoped[mask]
+    scoped = filter_claims_by_search(scoped, search_text)
 
     if status_filter != "All" and "CLAIM_STATUS" in scoped.columns:
         scoped = scoped[scoped["CLAIM_STATUS"] == status_filter]
@@ -119,6 +189,68 @@ def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[obj
 
 def get_filtered_recent_claims(session, filters: dict | None, page: int, page_size: int) -> pd.DataFrame:
     return claims_repository.get_filtered_recent_claims(session, filters, page, page_size)
+
+
+def get_cached_recent_claims(session) -> pd.DataFrame:
+    """Load recent claims once per cache scope for fast in-memory dashboard filtering."""
+    if _in_streamlit_runtime():
+        return _load_recent_claims_cached(session, _claims_cache_scope())
+    return add_claims_search_index(claims_repository.get_recent_claims_dataset(session))
+
+
+def _local_filter_values(df: pd.DataFrame, column_name: str, values: list[str], all_labels: set[str]) -> pd.DataFrame:
+    filtered_values = [str(value).strip() for value in values if str(value).strip() and value not in all_labels]
+    if not filtered_values or column_name not in df.columns:
+        return df
+    selected = {value.upper() for value in filtered_values}
+    return df[df[column_name].fillna("").astype(str).str.upper().isin(selected)]
+
+
+def _local_dashboard_filters(df: pd.DataFrame, filters: dict | None) -> pd.DataFrame:
+    filters = filters or {}
+    scoped = df.copy()
+    scoped = _local_filter_values(scoped, "MFQ_STATUS", _coerce_filter_values(filters.get("selected_statuses")), {"All Statuses"})
+    scoped = _local_filter_values(scoped, "PRIORITY", _coerce_filter_values(filters.get("selected_priorities")), {"All Priorities"})
+    scoped = _local_filter_values(scoped, "CLAIM_TYPE", _coerce_filter_values(filters.get("selected_claim_types")), {"All Claim Types"})
+
+    confidence_buckets = [value for value in _coerce_filter_values(filters.get("selected_ai_confidence_buckets")) if value != "All Scores"]
+    if confidence_buckets and "AI_CONFIDENCE" in scoped.columns:
+        confidence = pd.to_numeric(scoped["AI_CONFIDENCE"], errors="coerce")
+        confidence_mask = pd.Series(False, index=scoped.index)
+        if "High" in confidence_buckets:
+            confidence_mask = confidence_mask | (confidence >= 90)
+        if "Medium" in confidence_buckets:
+            confidence_mask = confidence_mask | ((confidence >= 80) & (confidence < 90))
+        if "Low" in confidence_buckets:
+            confidence_mask = confidence_mask | (confidence < 80)
+        scoped = scoped[confidence_mask]
+
+    if "DATE_REQUESTED" in scoped.columns:
+        requested_dates = pd.to_datetime(scoped["DATE_REQUESTED"], errors="coerce").dt.date
+        date_requested_from = filters.get("date_requested_from")
+        if date_requested_from is not None:
+            scoped = scoped[requested_dates >= date_requested_from]
+            requested_dates = requested_dates.loc[scoped.index]
+        date_requested_to = filters.get("date_requested_to")
+        if date_requested_to is not None:
+            scoped = scoped[requested_dates <= date_requested_to]
+
+    claim_bucket = str(filters.get("claim_bucket") or "").strip().lower()
+    if claim_bucket in {"ongoing", "history"}:
+        bucket_values = scoped.apply(classify_claim_bucket, axis=1)
+        scoped = scoped[bucket_values == claim_bucket]
+
+    return filter_claims_by_search(scoped, str(filters.get("search_text") or ""))
+
+
+def get_filtered_recent_claims_local(claims: pd.DataFrame, filters: dict | None, page: int, page_size: int) -> pd.DataFrame:
+    scoped = _local_dashboard_filters(claims, filters)
+    offset = max(0, (max(1, int(page)) - 1) * max(1, int(page_size)))
+    return scoped.iloc[offset : offset + max(1, int(page_size))].copy()
+
+
+def get_filtered_claims_count_local(claims: pd.DataFrame, filters: dict | None) -> int:
+    return len(_local_dashboard_filters(claims, filters))
 
 
 def get_filtered_claims_count(session, filters: dict | None) -> int:
@@ -216,7 +348,16 @@ def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = No
 
 
 @st.cache_data(ttl=300, show_spinner=False)
+def _get_status_values_cached(_session, cache_scope: str) -> list[str]:
+    del cache_scope
+    df = mfq_repository.get_status_values(_session)
+    statuses = [str(v) for v in df["STATUS"].dropna().tolist()] if not df.empty else []
+    return ["All", *statuses]
+
+
 def get_status_values(session) -> list[str]:
+    if _in_streamlit_runtime():
+        return _get_status_values_cached(session, _claims_cache_scope())
     df = mfq_repository.get_status_values(session)
     statuses = [str(v) for v in df["STATUS"].dropna().tolist()] if not df.empty else []
     return ["All", *statuses]

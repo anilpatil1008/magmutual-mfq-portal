@@ -140,6 +140,28 @@ CLAIM_FILTER_SELECT_COLUMNS = [
 ]
 
 
+def get_recent_claims_dataset(session) -> pd.DataFrame:
+    """Return all visible recent-claims rows for cached, in-memory UI filtering."""
+    available_columns = table_columns(session, obj.VW_MFQ_CLAIMS)
+    select_columns = _select_columns_for_available_view(CLAIM_FILTER_SELECT_COLUMNS, available_columns)
+    order_by_clause = (
+        "ORDER BY DATE_REQUESTED DESC NULLS LAST"
+        if "DATE_REQUESTED" in available_columns
+        else "ORDER BY CLAIM_ID"
+    )
+    df = execute_query_df(
+        session,
+        f"""
+        SELECT
+            {select_columns}
+        FROM {obj.VW_MFQ_CLAIMS}
+        {order_by_clause}
+        """,
+        query_name="claims.get_recent_claims_dataset",
+    )
+    return _normalize_snowflake_dataframe_columns(df)
+
+
 def _coerce_filter_values(value: object) -> list[str]:
     """Return non-empty filter values while tolerating legacy scalar state."""
     if value is None:

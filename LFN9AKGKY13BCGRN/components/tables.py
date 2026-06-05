@@ -383,6 +383,7 @@ def render_live_claims_search(
     table_key: str,
     placeholder: str = "Search by patient, defendant, claim ID, file #, or status...",
     height: int = 48,
+    debounce_ms: int = 275,
 ) -> str | None:
     """Render a Carbon-like search input that emits on every browser input event."""
     event = _LIVE_SEARCH_INPUT_COMPONENT(
@@ -391,6 +392,7 @@ def render_live_claims_search(
         aria_label=placeholder,
         table_key=table_key,
         height=height,
+        debounce_ms=debounce_ms,
         key=f"{table_key}_live_search_input_component",
         default=None,
     )
