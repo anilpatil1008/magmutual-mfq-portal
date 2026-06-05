@@ -80,3 +80,32 @@ def test_dashboard_claim_search_where_clause_includes_live_search_columns():
     ):
         assert f"TO_VARCHAR({column}) ILIKE ?" in where_clause
     assert params == ["%smith%"] * 9
+
+
+def test_dashboard_claim_search_where_clause_skips_columns_missing_from_deployed_view():
+    available_columns = {"CLAIM_ID", "PATIENT_DEFENDANT", "MFQ_STATUS"}
+
+    where_clause, params = claim_service.claims_repository.build_claim_filter_where_clause(
+        {"search_text": "smith"}, available_columns
+    )
+
+    assert "TO_VARCHAR(CLAIM_ID) ILIKE ?" in where_clause
+    assert "TO_VARCHAR(PATIENT_DEFENDANT) ILIKE ?" in where_clause
+    assert "TO_VARCHAR(MFQ_STATUS) ILIKE ?" in where_clause
+    assert "TO_VARCHAR(FILE_NUMBER) ILIKE ?" not in where_clause
+    assert "TO_VARCHAR(DEFENDANT_NAME) ILIKE ?" not in where_clause
+    assert params == ["%smith%"] * 3
+
+
+def test_recent_claims_select_projects_nulls_for_missing_deployed_view_columns():
+    available_columns = {"CLAIM_ID", "PATIENT_DEFENDANT", "MFQ_STATUS"}
+
+    select_columns = claim_service.claims_repository._select_columns_for_available_view(
+        claim_service.claims_repository.CLAIM_FILTER_SELECT_COLUMNS, available_columns
+    )
+
+    assert "CLAIM_ID AS CLAIM_ID" in select_columns
+    assert "PATIENT_DEFENDANT AS PATIENT_DEFENDANT" in select_columns
+    assert "MFQ_STATUS AS MFQ_STATUS" in select_columns
+    assert "NULL AS FILE_NUMBER" in select_columns
+    assert "NULL AS DEFENDANT_NAME" in select_columns

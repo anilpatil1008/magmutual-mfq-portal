@@ -151,22 +151,40 @@ def _coerce_filter_values(value: object) -> list[str]:
     return [str(item).strip() for item in raw_values if str(item or "").strip()]
 
 
+def _has_column(available_columns: set[str] | None, column_name: str) -> bool:
+    return available_columns is None or column_name.upper() in available_columns
+
+
+def _select_columns_for_available_view(desired_columns: list[str], available_columns: set[str]) -> str:
+    """Select stable dashboard columns while tolerating older deployed view shapes."""
+    select_expressions: list[str] = []
+    for column in desired_columns:
+        if column.upper() in available_columns:
+            select_expressions.append(f"{column} AS {column}")
+        else:
+            select_expressions.append(f"NULL AS {column}")
+    return ",\n            ".join(select_expressions)
+
+
 def _add_upper_in_predicate(
     predicates: list[str],
     params: list[object],
     column_name: str,
     values: list[str],
     all_labels: set[str] | None = None,
+    available_columns: set[str] | None = None,
 ) -> None:
     filtered_values = [value for value in values if value not in (all_labels or set())]
-    if not filtered_values:
+    if not filtered_values or not _has_column(available_columns, column_name):
         return
     placeholders = ", ".join("?" for _ in filtered_values)
     predicates.append(f"UPPER({column_name}) IN ({placeholders})")
     params.extend(value.upper() for value in filtered_values)
 
 
-def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[object]]:
+def build_claim_filter_where_clause(
+    filters: dict | None, available_columns: set[str] | None = None
+) -> tuple[str, list[object]]:
     """Build a parameterized Snowflake WHERE clause for recent-claims filters."""
     filters = filters or {}
     predicates = ["1 = 1"]
@@ -175,15 +193,21 @@ def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[obj
     selected_statuses = _coerce_filter_values(
         filters.get("selected_statuses", filters.get("selected_status"))
     )
-    _add_upper_in_predicate(predicates, params, "MFQ_STATUS", selected_statuses, {"All Statuses"})
+    _add_upper_in_predicate(
+        predicates, params, "MFQ_STATUS", selected_statuses, {"All Statuses"}, available_columns
+    )
 
     selected_priorities = _coerce_filter_values(
         filters.get("selected_priorities", filters.get("selected_priority"))
     )
-    _add_upper_in_predicate(predicates, params, "PRIORITY", selected_priorities, {"All Priorities"})
+    _add_upper_in_predicate(
+        predicates, params, "PRIORITY", selected_priorities, {"All Priorities"}, available_columns
+    )
 
     selected_claim_types = _coerce_filter_values(filters.get("selected_claim_types"))
-    _add_upper_in_predicate(predicates, params, "CLAIM_TYPE", selected_claim_types, {"All Claim Types"})
+    _add_upper_in_predicate(
+        predicates, params, "CLAIM_TYPE", selected_claim_types, {"All Claim Types"}, available_columns
+    )
 
     selected_ai_confidence_buckets = _coerce_filter_values(
         filters.get("selected_ai_confidence_buckets", filters.get("selected_ai_confidence"))
@@ -192,46 +216,53 @@ def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[obj
         value for value in selected_ai_confidence_buckets if value != "All Scores"
     ]
     ai_confidence_predicates: list[str] = []
-    if "High" in selected_ai_confidence_buckets:
-        ai_confidence_predicates.append("AI_CONFIDENCE >= 90")
-    if "Medium" in selected_ai_confidence_buckets:
-        ai_confidence_predicates.append("(AI_CONFIDENCE >= 80 AND AI_CONFIDENCE < 90)")
-    if "Low" in selected_ai_confidence_buckets:
-        ai_confidence_predicates.append("AI_CONFIDENCE < 80")
+    if _has_column(available_columns, "AI_CONFIDENCE"):
+        if "High" in selected_ai_confidence_buckets:
+            ai_confidence_predicates.append("AI_CONFIDENCE >= 90")
+        if "Medium" in selected_ai_confidence_buckets:
+            ai_confidence_predicates.append("(AI_CONFIDENCE >= 80 AND AI_CONFIDENCE < 90)")
+        if "Low" in selected_ai_confidence_buckets:
+            ai_confidence_predicates.append("AI_CONFIDENCE < 80")
     if ai_confidence_predicates:
         predicates.append("(" + " OR ".join(ai_confidence_predicates) + ")")
 
     date_requested_from = filters.get("date_requested_from")
-    if date_requested_from is not None:
+    if date_requested_from is not None and _has_column(available_columns, "DATE_REQUESTED"):
         predicates.append("DATE(DATE_REQUESTED) >= ?")
         params.append(date_requested_from)
 
     date_requested_to = filters.get("date_requested_to")
-    if date_requested_to is not None:
+    if date_requested_to is not None and _has_column(available_columns, "DATE_REQUESTED"):
         predicates.append("DATE(DATE_REQUESTED) <= ?")
         params.append(date_requested_to)
 
     search_text = str(filters.get("search_text") or "").strip()
     if search_text:
-        predicates.append(
-            "("
-            "TO_VARCHAR(CLAIM_ID) ILIKE ? OR "
-            "TO_VARCHAR(FILE_NUMBER) ILIKE ? OR "
-            "TO_VARCHAR(PATIENT_DEFENDANT) ILIKE ? OR "
-            "TO_VARCHAR(DEFENDANT_NAME) ILIKE ? OR "
-            "TO_VARCHAR(MFQ_STATUS) ILIKE ? OR "
-            "TO_VARCHAR(WORKFLOW_STATUS) ILIKE ? OR "
-            "TO_VARCHAR(PRIORITY) ILIKE ? OR "
-            "TO_VARCHAR(CLAIM_TYPE) ILIKE ? OR "
-            "TO_VARCHAR(CLAIM_STATUS) ILIKE ?"
-            ")"
-        )
-        params.extend([f"%{search_text}%"] * 9)
+        search_columns = [
+            column
+            for column in (
+                "CLAIM_ID",
+                "FILE_NUMBER",
+                "PATIENT_DEFENDANT",
+                "DEFENDANT_NAME",
+                "MFQ_STATUS",
+                "WORKFLOW_STATUS",
+                "PRIORITY",
+                "CLAIM_TYPE",
+                "CLAIM_STATUS",
+            )
+            if _has_column(available_columns, column)
+        ]
+        if search_columns:
+            predicates.append(
+                "(" + " OR ".join(f"TO_VARCHAR({column}) ILIKE ?" for column in search_columns) + ")"
+            )
+            params.extend([f"%{search_text}%"] * len(search_columns))
 
     claim_bucket_predicate, claim_bucket_params = claim_bucket_sql_predicate(
         str(filters.get("claim_bucket") or "")
     )
-    if claim_bucket_predicate:
+    if claim_bucket_predicate and _has_column(available_columns, "MFQ_STATUS"):
         predicates.append(claim_bucket_predicate)
         params.extend(claim_bucket_params)
 
@@ -239,7 +270,8 @@ def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[obj
 
 
 def get_filtered_claims_count(session, filters: dict | None) -> int:
-    where_clause, params = build_claim_filter_where_clause(filters)
+    available_columns = table_columns(session, obj.VW_MFQ_CLAIMS)
+    where_clause, params = build_claim_filter_where_clause(filters, available_columns)
     df = execute_query_df(
         session,
         f"SELECT COUNT(*) AS TOTAL_COUNT FROM {obj.VW_MFQ_CLAIMS}{where_clause}",
@@ -253,9 +285,15 @@ def get_filtered_claims_count(session, filters: dict | None) -> int:
 
 
 def get_filtered_recent_claims(session, filters: dict | None, page: int, page_size: int) -> pd.DataFrame:
-    where_clause, params = build_claim_filter_where_clause(filters)
+    available_columns = table_columns(session, obj.VW_MFQ_CLAIMS)
+    where_clause, params = build_claim_filter_where_clause(filters, available_columns)
     offset = max(0, (max(1, int(page)) - 1) * max(1, int(page_size)))
-    select_columns = ",\n            ".join(f"{column} AS {column}" for column in CLAIM_FILTER_SELECT_COLUMNS)
+    select_columns = _select_columns_for_available_view(CLAIM_FILTER_SELECT_COLUMNS, available_columns)
+    order_by_clause = (
+        "ORDER BY DATE_REQUESTED DESC NULLS LAST"
+        if "DATE_REQUESTED" in available_columns
+        else "ORDER BY CLAIM_ID"
+    )
     df = execute_query_df(
         session,
         f"""
@@ -263,7 +301,7 @@ def get_filtered_recent_claims(session, filters: dict | None, page: int, page_si
             {select_columns}
         FROM {obj.VW_MFQ_CLAIMS}
         {where_clause}
-        ORDER BY DATE_REQUESTED DESC NULLS LAST
+        {order_by_clause}
         LIMIT ? OFFSET ?
         """,
         params=[*params, int(page_size), offset],
