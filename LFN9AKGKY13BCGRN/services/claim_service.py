@@ -128,6 +128,11 @@ def get_filtered_claims_count(session, filters: dict | None) -> int:
 def get_available_claim_statuses(session) -> list[str]:
     return claims_repository.get_available_claim_statuses(session)
 
+
+def get_available_claim_types(session) -> list[str]:
+    return claims_repository.get_available_claim_types(session)
+
+
 def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
     df = claims_repository.get_claim_detail(session, claim_id)
     if df.empty:

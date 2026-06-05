@@ -136,29 +136,76 @@ CLAIM_FILTER_SELECT_COLUMNS = [
 ]
 
 
+def _coerce_filter_values(value: object) -> list[str]:
+    """Return non-empty filter values while tolerating legacy scalar state."""
+    if value is None:
+        return []
+    if isinstance(value, (list, tuple, set)):
+        raw_values = value
+    else:
+        raw_values = [value]
+    return [str(item).strip() for item in raw_values if str(item or "").strip()]
+
+
+def _add_upper_in_predicate(
+    predicates: list[str],
+    params: list[object],
+    column_name: str,
+    values: list[str],
+    all_labels: set[str] | None = None,
+) -> None:
+    filtered_values = [value for value in values if value not in (all_labels or set())]
+    if not filtered_values:
+        return
+    placeholders = ", ".join("?" for _ in filtered_values)
+    predicates.append(f"UPPER({column_name}) IN ({placeholders})")
+    params.extend(value.upper() for value in filtered_values)
+
+
 def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[object]]:
     """Build a parameterized Snowflake WHERE clause for recent-claims filters."""
     filters = filters or {}
     predicates = ["1 = 1"]
     params: list[object] = []
 
-    selected_status = str(filters.get("selected_status") or "All Statuses").strip()
-    if selected_status and selected_status != "All Statuses":
-        predicates.append("UPPER(MFQ_STATUS) = UPPER(?)")
-        params.append(selected_status)
+    selected_statuses = _coerce_filter_values(
+        filters.get("selected_statuses", filters.get("selected_status"))
+    )
+    _add_upper_in_predicate(predicates, params, "MFQ_STATUS", selected_statuses, {"All Statuses"})
 
-    selected_priority = str(filters.get("selected_priority") or "All Priorities").strip()
-    if selected_priority and selected_priority != "All Priorities":
-        predicates.append("UPPER(PRIORITY) = UPPER(?)")
-        params.append(selected_priority)
+    selected_priorities = _coerce_filter_values(
+        filters.get("selected_priorities", filters.get("selected_priority"))
+    )
+    _add_upper_in_predicate(predicates, params, "PRIORITY", selected_priorities, {"All Priorities"})
 
-    selected_ai_confidence = str(filters.get("selected_ai_confidence") or "All Scores").strip()
-    if selected_ai_confidence == "High":
-        predicates.append("AI_CONFIDENCE >= 90")
-    elif selected_ai_confidence == "Medium":
-        predicates.append("AI_CONFIDENCE >= 80 AND AI_CONFIDENCE < 90")
-    elif selected_ai_confidence == "Low":
-        predicates.append("AI_CONFIDENCE < 80")
+    selected_claim_types = _coerce_filter_values(filters.get("selected_claim_types"))
+    _add_upper_in_predicate(predicates, params, "CLAIM_TYPE", selected_claim_types, {"All Claim Types"})
+
+    selected_ai_confidence_buckets = _coerce_filter_values(
+        filters.get("selected_ai_confidence_buckets", filters.get("selected_ai_confidence"))
+    )
+    selected_ai_confidence_buckets = [
+        value for value in selected_ai_confidence_buckets if value != "All Scores"
+    ]
+    ai_confidence_predicates: list[str] = []
+    if "High" in selected_ai_confidence_buckets:
+        ai_confidence_predicates.append("AI_CONFIDENCE >= 90")
+    if "Medium" in selected_ai_confidence_buckets:
+        ai_confidence_predicates.append("(AI_CONFIDENCE >= 80 AND AI_CONFIDENCE < 90)")
+    if "Low" in selected_ai_confidence_buckets:
+        ai_confidence_predicates.append("AI_CONFIDENCE < 80")
+    if ai_confidence_predicates:
+        predicates.append("(" + " OR ".join(ai_confidence_predicates) + ")")
+
+    date_requested_from = filters.get("date_requested_from")
+    if date_requested_from is not None:
+        predicates.append("DATE(DATE_REQUESTED) >= ?")
+        params.append(date_requested_from)
+
+    date_requested_to = filters.get("date_requested_to")
+    if date_requested_to is not None:
+        predicates.append("DATE(DATE_REQUESTED) <= ?")
+        params.append(date_requested_to)
 
     search_text = str(filters.get("search_text") or "").strip()
     if search_text:
@@ -181,14 +228,14 @@ def get_filtered_claims_count(session, filters: dict | None) -> int:
     where_clause, params = build_claim_filter_where_clause(filters)
     df = execute_query_df(
         session,
-        f"SELECT COUNT(*) AS CLAIM_COUNT FROM {obj.VW_MFQ_CLAIMS}{where_clause}",
+        f"SELECT COUNT(*) AS TOTAL_COUNT FROM {obj.VW_MFQ_CLAIMS}{where_clause}",
         params=params,
         query_name="claims.get_filtered_claims_count",
     )
     df = _normalize_snowflake_dataframe_columns(df)
-    if df.empty or "CLAIM_COUNT" not in df.columns:
+    if df.empty or "TOTAL_COUNT" not in df.columns:
         return 0
-    return int(df.iloc[0].get("CLAIM_COUNT") or 0)
+    return int(df.iloc[0].get("TOTAL_COUNT") or 0)
 
 
 def get_filtered_recent_claims(session, filters: dict | None, page: int, page_size: int) -> pd.DataFrame:
@@ -226,6 +273,23 @@ def get_available_claim_statuses(session) -> list[str]:
     if df.empty or "MFQ_STATUS" not in df.columns:
         return []
     return [str(value).strip() for value in df["MFQ_STATUS"].dropna().tolist() if str(value).strip()]
+
+
+def get_available_claim_types(session) -> list[str]:
+    df = execute_query_df(
+        session,
+        f"""
+        SELECT DISTINCT CLAIM_TYPE
+        FROM {obj.VW_MFQ_CLAIMS}
+        WHERE CLAIM_TYPE IS NOT NULL
+        ORDER BY CLAIM_TYPE
+        """,
+        query_name="claims.get_available_claim_types",
+    )
+    df = _normalize_snowflake_dataframe_columns(df)
+    if df.empty or "CLAIM_TYPE" not in df.columns:
+        return []
+    return [str(value).strip() for value in df["CLAIM_TYPE"].dropna().tolist() if str(value).strip()]
 
 
 def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
