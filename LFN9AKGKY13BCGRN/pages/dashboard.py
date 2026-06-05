@@ -439,7 +439,7 @@ def render(session, ctx) -> None:
         claim_details.render(session=session, ctx=ctx)
         st.stop()
 
-    if st.session_state.get("current_view") == "dashboard":
+    if st.session_state.get("current_view") in {"dashboard", "Dashboard"}:
         _render_dashboard_view(session=session, ctx=ctx)
         st.stop()
 

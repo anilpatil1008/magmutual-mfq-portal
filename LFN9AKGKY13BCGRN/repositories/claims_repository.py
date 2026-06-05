@@ -305,9 +305,50 @@ def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
     )
 
 
+def get_claim_status_snapshot(session, claim_id: str) -> pd.DataFrame:
+    df = execute_query_df(
+        session,
+        f"""
+        SELECT
+            CLAIM_ID,
+            PATIENT_DEFENDANT,
+            MFQ_STATUS,
+            CLAIM_STATUS,
+            PRIORITY,
+            CLAIM_TYPE,
+            DATE_REQUESTED
+        FROM {obj.VW_MFQ_CLAIMS}
+        WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR(?))
+        """,
+        params=[str(claim_id)],
+        query_name="claims.get_claim_status_snapshot",
+    )
+    return _normalize_snowflake_dataframe_columns(df)
+
+
 def get_claim_defendants(session, claim_id: str) -> pd.DataFrame:
-    claim_q = quote_sql(claim_id)
-    return execute_query_df(session, f"SELECT DEFENDANT_ID, CLAIM_ID, DEFENDANT_NAME FROM {obj.MFQ_CLAIM_DEFENDANTS_TABLE} WHERE CLAIM_ID = '{claim_q}'", query_name="claims.get_claim_defendants")
+    columns = table_columns(session, obj.MFQ_CLAIM_DEFENDANTS_TABLE)
+    specialty_expr = "NULL AS DEFENDANT_SPECIALTY"
+    for specialty_column in ("DEFENDANT_SPECIALTY", "DEFENDANT_SPECIALITY", "SPECIALTY", "SPECIALITY"):
+        if specialty_column in columns:
+            specialty_expr = f"{specialty_column} AS DEFENDANT_SPECIALTY"
+            break
+
+    df = execute_query_df(
+        session,
+        f"""
+        SELECT
+            DEFENDANT_ID,
+            CLAIM_ID,
+            DEFENDANT_NAME,
+            {specialty_expr}
+        FROM {obj.MFQ_CLAIM_DEFENDANTS_TABLE}
+        WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR(?))
+        """,
+        params=[str(claim_id)],
+        query_name="claims.get_claim_defendants",
+    )
+    return _normalize_snowflake_dataframe_columns(df)
 
 
 def get_claim_documents(session, claim_id: str) -> pd.DataFrame:

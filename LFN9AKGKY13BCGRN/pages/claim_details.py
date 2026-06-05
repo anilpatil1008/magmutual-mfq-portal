@@ -51,13 +51,68 @@ def _tone_for_conf(value) -> str:
     return "low"
 
 
+def _safe_display(value, fallback: str = "-") -> str:
+    """Return a UI-safe text value, hiding null-like pandas/Python values."""
+    if value is None:
+        return fallback
+    try:
+        if pd.isna(value):
+            return fallback
+    except (TypeError, ValueError):
+        pass
+    text = str(value).strip()
+    if not text or text.casefold() in {"nan", "none", "null"}:
+        return fallback
+    return text
+
+
+def _first_safe_display(claim: dict, keys: tuple[str, ...], fallback: str = "-") -> str:
+    for key in keys:
+        value = _safe_display(claim.get(key), fallback="")
+        if value:
+            return value
+    return fallback
+
+
+def _normalize_for_rule(value) -> str:
+    return _safe_display(value, fallback="").replace("_", " ").strip().upper()
+
+
+def get_claim_detail_actions(claim_status, mfq_status, current_role) -> list[str]:
+    workflow_status = _normalize_for_rule(mfq_status) or _normalize_for_rule(claim_status)
+    claim_status_normalized = _normalize_for_rule(claim_status)
+    role = _normalize_for_rule(current_role)
+
+    if "APPROVED" in {workflow_status, claim_status_normalized}:
+        return []
+    if "REJECTED" in {workflow_status, claim_status_normalized}:
+        if role in {"CLAIM OPS", "CLAIM ANALYST SUPERVISOR"}:
+            return ["assign_to_faculty"]
+        return []
+    if workflow_status == "MFQ GENERATED" and role == "CLAIM OPS":
+        return ["assign_to_faculty", "approve"]
+    return []
+
+
 def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
-    status = escape(str(claim.get("STATUS", "Unknown")))
-    priority = escape(str(claim.get("PRIORITY", "Unknown")))
-    patient = escape(str(claim.get("PATIENT_NAME", "Unknown Patient")))
-    defendant = escape(str(claim.get("DEFENDANT_NAME", "Unknown Defendant")))
-    assigned_to = str(claim.get("ASSIGNED_TO", "") or "").strip()
+    claim_id_display = _safe_display(claim.get("CLAIM_ID"), fallback=_safe_display(claim_id))
+    status = _first_safe_display(claim, ("MFQ_STATUS", "STATUS", "CLAIM_STATUS"), fallback="Unknown")
+    priority = _safe_display(claim.get("PRIORITY"), fallback="Unknown")
+    patient = _safe_display(claim.get("PATIENT_NAME"), fallback="Unknown Patient")
+    defendant = _safe_display(claim.get("DEFENDANT_NAME"), fallback="Unknown")
+    specialty = _first_safe_display(
+        claim,
+        ("DEFENDANT_SPECIALTY", "DEFENDANT_SPECIALITY", "SPECIALTY", "SPECIALITY"),
+    )
+    date_requested = _safe_display(claim.get("DATE_REQUESTED"))
+    assigned_to = _safe_display(claim.get("ASSIGNED_TO"), fallback="")
+    assigned_to_display = assigned_to or "Unassigned"
     assign_label = "Reassign to Faculty" if assigned_to else "Assign to Faculty"
+    actions = get_claim_detail_actions(
+        claim_status=claim.get("CLAIM_STATUS", claim.get("STATUS")),
+        mfq_status=claim.get("MFQ_STATUS", claim.get("STATUS")),
+        current_role=getattr(ctx, "sf_role", ""),
+    )
 
     with st.container(key="review_header_card"):
         left_col, action_col = st.columns([6.2, 1.3], vertical_alignment="top")
@@ -65,16 +120,16 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
             st.markdown("<div class='review-headline-wrap'>", unsafe_allow_html=True)
             st.markdown(
                 (
-                    f"<div class='review-headline'>{patient} <span class='review-vs'>vs</span> {defendant}</div>"
+                    f"<div class='review-headline'>{escape(patient) if defendant == 'Unknown' else escape(patient) + ' <span class=\'review-vs\'>vs</span> ' + escape(defendant)}</div>"
                     "<div class='review-badges'>"
-                    f"<span class='review-pill review-status'>{status}</span>"
-                    f"<span class='review-pill review-priority'>{priority}</span>"
+                    f"<span class='review-pill review-status'>{escape(status)}</span>"
+                    f"<span class='review-pill review-priority'>{escape(priority)}</span>"
                     "</div>"
                     "<div class='review-meta-grid claim-meta-grid'>"
-                    f"<div><div class='review-meta-label'>File Number</div><div>{escape(str(claim.get('FILE_NUMBER', '—')))}</div></div>"
-                    f"<div><div class='review-meta-label'>Defendant Specialty</div><div>{escape(str(claim.get('SPECIALTY', '—')))}</div></div>"
-                    f"<div><div class='review-meta-label'>Date Requested</div><div>{escape(str(claim.get('DATE_REQUESTED', '—')))}</div></div>"
-                    f"<div><div class='review-meta-label'>Assigned To</div><div>{escape(str(claim.get('ASSIGNED_TO', 'Unassigned')))}</div></div>"
+                    f"<div><div class='review-meta-label'>Claim ID</div><div>{escape(claim_id_display)}</div></div>"
+                    f"<div><div class='review-meta-label'>Defendant Specialty</div><div>{escape(specialty)}</div></div>"
+                    f"<div><div class='review-meta-label'>Date Requested</div><div>{escape(date_requested)}</div></div>"
+                    f"<div><div class='review-meta-label'>Assigned To</div><div>{escape(assigned_to_display)}</div></div>"
                     "</div>"
                 ),
                 unsafe_allow_html=True,
@@ -82,21 +137,24 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
             st.markdown("</div>", unsafe_allow_html=True)
 
         with action_col:
-            st.markdown("<div class='review-header-actions claim-header-actions'>", unsafe_allow_html=True)
-            if st.button(assign_label, type="primary", use_container_width=True):
-                st.session_state[f"open_assign_modal_{claim_id}"] = True
+            if actions:
+                st.markdown("<div class='review-header-actions claim-header-actions'>", unsafe_allow_html=True)
+                if "assign_to_faculty" in actions and st.button(assign_label, type="primary", use_container_width=True):
+                    st.session_state[f"open_assign_modal_{claim_id}"] = True
 
-            if st.button("Approve", type="secondary", use_container_width=True):
+                if "approve" in actions and st.button("Approve", type="secondary", use_container_width=True):
                     update_claim_status(session, claim_id, "Approved")
                     st.success("Claim approved.")
                     st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+                st.markdown("</div>", unsafe_allow_html=True)
 
 
 def _go_back_to_dashboard() -> None:
-    st.session_state["selected_claim_id"] = None
-    st.session_state["current_view"] = "dashboard"
     st.session_state["active_page"] = "Dashboard"
+    st.session_state["current_view"] = "Dashboard"
+    st.session_state["selected_claim_id"] = None
+    st.query_params.clear()
+    st.rerun()
 
 
 def _render_breadcrumb(claim_id: str) -> None:
@@ -736,12 +794,6 @@ def render(session, ctx) -> None:
         return
 
     _render_breadcrumb(str(claim_id))
-
-    toolbar_col, _ = st.columns([2, 6])
-    with toolbar_col:
-        if st.button("Refresh answers", key=f"refresh_answers_{claim_id}", type="tertiary"):
-            st.session_state[f"mfq_refresh_nonce_{claim_id}"] = st.session_state.get(f"mfq_refresh_nonce_{claim_id}", 0) + 1
-            st.rerun()
 
     with st.spinner("Loading claim details..."):
         started = perf_counter()

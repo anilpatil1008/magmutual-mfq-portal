@@ -237,7 +237,21 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
     defendant_df = claims_repository.get_claim_defendants(session, claim_id) if _object_exists(session, obj.MFQ_CLAIM_DEFENDANTS_TABLE) else pd.DataFrame()
 
     detail = detail_df.iloc[0].to_dict() if not detail_df.empty else None
+    if detail is not None and _object_exists(session, obj.VW_MFQ_CLAIMS):
+        status_df = claims_repository.get_claim_status_snapshot(session, claim_id)
+        if not status_df.empty:
+            status_snapshot = status_df.iloc[0].to_dict()
+            for key, value in status_snapshot.items():
+                current_value = detail.get(key)
+                if current_value is None or (isinstance(current_value, float) and pd.isna(current_value)) or str(current_value).strip().lower() in {"", "nan", "none", "null"}:
+                    detail[key] = value
     synopsis = defendant_df.iloc[0].to_dict() if not defendant_df.empty else {}
+    if detail is not None and synopsis:
+        for key in ("DEFENDANT_ID", "DEFENDANT_NAME", "DEFENDANT_SPECIALTY", "DEFENDANT_SPECIALITY", "SPECIALTY", "SPECIALITY"):
+            current_value = detail.get(key)
+            synopsis_value = synopsis.get(key)
+            if current_value is None or (isinstance(current_value, float) and pd.isna(current_value)) or str(current_value).strip().lower() in {"", "nan", "none", "null"}:
+                detail[key] = synopsis_value
     defendant_id = synopsis.get("DEFENDANT_ID") or (detail.get("DEFENDANT_ID") if detail else None)
 
     sections_df = pd.DataFrame()
