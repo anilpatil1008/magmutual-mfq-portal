@@ -62,3 +62,30 @@ def test_get_claims_queue_returns_unsorted_when_recency_columns_missing(monkeypa
     result = claim_service.get_claims_queue(session=object(), username="apatil")
 
     assert result["CLAIM_ID"].tolist() == ["CLM-1", "CLM-2"]
+
+
+def test_dashboard_filter_helpers_are_public_claim_service_exports():
+    assert callable(claim_service.get_available_claim_statuses)
+    assert callable(claim_service.get_available_claim_types)
+
+
+def test_get_available_claim_statuses_delegates_to_repository(monkeypatch):
+    expected_statuses = ["Assigned", "Approved"]
+    monkeypatch.setattr(
+        claim_service.claims_repository,
+        "get_available_claim_statuses",
+        lambda session: expected_statuses,
+    )
+
+    assert claim_service.get_available_claim_statuses(session=object()) == expected_statuses
+
+
+def test_get_available_claim_types_delegates_to_repository(monkeypatch):
+    expected_claim_types = ["Medical", "Dental"]
+    monkeypatch.setattr(
+        claim_service.claims_repository,
+        "get_available_claim_types",
+        lambda session: expected_claim_types,
+    )
+
+    assert claim_service.get_available_claim_types(session=object()) == expected_claim_types
