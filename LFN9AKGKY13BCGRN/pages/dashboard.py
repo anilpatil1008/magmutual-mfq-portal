@@ -22,6 +22,8 @@ from services.rbac_service import get_session_context_snapshot
 logger = logging.getLogger(__name__)
 
 DASHBOARD_RECENT_CLAIMS_PAGE_SIZE = 10
+CLAIM_BUCKET_OPTIONS = ("ongoing", "history")
+CLAIM_BUCKET_LABELS = {"ongoing": "Ongoing Claims", "history": "History Claims"}
 STATUS_FILTER_OPTIONS = ["MFQ Generated", "Assigned", "Approved", "Rejected"]
 PRIORITY_FILTER_OPTIONS = ["High", "Medium", "Low"]
 AI_CONFIDENCE_FILTER_OPTIONS = [
@@ -250,6 +252,26 @@ def _dashboard_filters() -> dict[str, object]:
     }
 
 
+def _claim_bucket_filters(filters: dict[str, object], claim_bucket: str) -> dict[str, object]:
+    bucket_filters = dict(filters)
+    bucket_filters["claim_bucket"] = claim_bucket
+    return bucket_filters
+
+
+def _claim_bucket_label(claim_bucket: str, counts: dict[str, int]) -> str:
+    label = CLAIM_BUCKET_LABELS.get(claim_bucket, str(claim_bucket).title())
+    return f"{label} ({counts.get(claim_bucket, 0)})"
+
+
+def _reset_claims_page_on_context_change(card_key: str, selected_bucket: str, search: str) -> None:
+    previous_bucket = st.session_state.get(f"{card_key}_prev_bucket")
+    previous_search = st.session_state.get(f"{card_key}_prev_search", "")
+    if previous_bucket != selected_bucket or str(previous_search) != str(search):
+        _reset_recent_claims_pagination()
+    st.session_state[f"{card_key}_prev_bucket"] = selected_bucket
+    st.session_state[f"{card_key}_prev_search"] = search
+
+
 def _merge_filter_options(default_options: list[str], dynamic_options: list[str]) -> list[str]:
     merged: list[str] = []
     seen: set[str] = set()
@@ -408,33 +430,53 @@ def _render_dashboard_view(session, ctx) -> None:
                         key=f"{card_key}_search",
                     )
 
-        previous_search = st.session_state.get(f"{card_key}_prev_search", "")
-        if str(previous_search) != str(search):
-            st.session_state["claims_page_number"] = 1
-            st.session_state["dash_recent_claims_pagination_page"] = 1
-        st.session_state[f"{card_key}_prev_search"] = search
-
         filters = _dashboard_filters()
-        requested_page = max(1, int(st.session_state.get("claims_page_number", 1)))
         t1 = perf_counter()
-        total_claims = get_filtered_claims_count(session, filters)
+        claim_counts = {
+            bucket: get_filtered_claims_count(session, _claim_bucket_filters(filters, bucket))
+            for bucket in CLAIM_BUCKET_OPTIONS
+        }
+
+        selected_bucket = st.radio(
+            "Recent Claims Tabs",
+            CLAIM_BUCKET_OPTIONS,
+            horizontal=True,
+            key=f"{card_key}_bucket",
+            format_func=lambda bucket: _claim_bucket_label(bucket, claim_counts),
+            label_visibility="collapsed",
+        )
+        _reset_claims_page_on_context_change(card_key, selected_bucket, search)
+
+        bucket_filters = _claim_bucket_filters(filters, selected_bucket)
+        total_claims = claim_counts[selected_bucket]
+        requested_page = max(1, int(st.session_state.get("claims_page_number", 1)))
         total_pages = max(1, (total_claims + DASHBOARD_RECENT_CLAIMS_PAGE_SIZE - 1) // DASHBOARD_RECENT_CLAIMS_PAGE_SIZE)
         current_page = min(requested_page, total_pages)
         if current_page != requested_page:
             st.session_state["claims_page_number"] = current_page
-        recent_claims = get_filtered_recent_claims(session, filters, current_page, DASHBOARD_RECENT_CLAIMS_PAGE_SIZE)
+        recent_claims = get_filtered_recent_claims(
+            session,
+            bucket_filters,
+            current_page,
+            DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
+        )
         logger.info(
-            "dashboard_recent_claims_ms=%d rows=%d total=%d filters=%s",
+            "dashboard_recent_claims_ms=%d bucket=%s rows=%d total=%d filters=%s",
             int((perf_counter() - t1) * 1000),
+            selected_bucket,
             len(recent_claims),
             total_claims,
-            filters,
+            bucket_filters,
         )
 
         render_recent_claims_table(
             recent_claims,
             key_prefix="dash",
-            empty_message="No claims found for the selected filters.",
+            empty_message=(
+                "No ongoing claims found for the selected filters."
+                if selected_bucket == "ongoing"
+                else "No history claims found for the selected filters."
+            ),
             total_claims=total_claims,
             page=current_page,
             page_size=DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,

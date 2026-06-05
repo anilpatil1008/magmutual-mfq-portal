@@ -5,6 +5,7 @@ import pandas as pd
 from config import snowflake_objects as obj
 from core.query_executor import execute_query_df
 from services.snowflake_service import quote_sql
+from utils.claim_lifecycle import claim_bucket_sql_predicate
 
 
 def _parse_snowflake_object_name(object_name: str) -> tuple[str | None, str | None, str]:
@@ -220,6 +221,13 @@ def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[obj
             ")"
         )
         params.extend([f"%{search_text}%"] * 6)
+
+    claim_bucket_predicate, claim_bucket_params = claim_bucket_sql_predicate(
+        str(filters.get("claim_bucket") or "")
+    )
+    if claim_bucket_predicate:
+        predicates.append(claim_bucket_predicate)
+        params.extend(claim_bucket_params)
 
     return " WHERE " + " AND ".join(predicates), params
 
