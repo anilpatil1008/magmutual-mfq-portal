@@ -395,11 +395,6 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
 
 def _go_back_to_dashboard() -> None:
     navigate_to_dashboard()
-    st.session_state["last_review_event"] = None
-    # Preserve recent-claims de-dupe keys. Custom components can replay their
-    # last Review payload when Dashboard remounts; clearing these keys here
-    # makes that stale payload look new and immediately reopens Claim Details.
-    st.query_params.clear()
     st.rerun()
 
 

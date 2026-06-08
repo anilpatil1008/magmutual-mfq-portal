@@ -18,7 +18,7 @@ from services.claim_service import (
 )
 from services.dashboard_service import get_dashboard_metrics
 from services.rbac_service import get_session_context_snapshot
-from utils.navigation import navigate_to_dashboard
+from utils.navigation import DASHBOARD_VIEW, navigate_to_dashboard
 
 logger = logging.getLogger(__name__)
 
@@ -519,14 +519,8 @@ def _render_dashboard_view(session, ctx) -> None:
 
 
 def render(session, ctx) -> None:
-    if "current_view" not in st.session_state:
-        st.session_state["current_view"] = "dashboard"
+    """Render the single active Dashboard implementation once for this router pass."""
+    if str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower() != DASHBOARD_VIEW:
+        navigate_to_dashboard()
 
-    if st.session_state.get("current_view") in {"dashboard", "Dashboard"}:
-        _render_dashboard_view(session=session, ctx=ctx)
-        st.stop()
-
-    # Fallback to dashboard when state is unknown.
-    navigate_to_dashboard()
     _render_dashboard_view(session=session, ctx=ctx)
-    st.stop()
