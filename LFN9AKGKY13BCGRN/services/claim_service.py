@@ -269,6 +269,10 @@ def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
     return get_claim_detail_by_id(session, claim_id)
 
 
+def _is_blank_value(value: Any) -> bool:
+    return value is None or (isinstance(value, float) and pd.isna(value)) or str(value).strip().lower() in {"", "nan", "none", "null"}
+
+
 def get_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
     started = perf_counter()
     df = claims_repository.get_claim_detail_by_id(session, claim_id)
@@ -277,40 +281,55 @@ def get_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
         status_df = claims_repository.get_claim_status_snapshot(session, claim_id)
         if not status_df.empty:
             for key, value in status_df.iloc[0].to_dict().items():
-                current_value = detail.get(key)
-                if current_value is None or (isinstance(current_value, float) and pd.isna(current_value)) or str(current_value).strip().lower() in {"", "nan", "none", "null"}:
+                if _is_blank_value(detail.get(key)):
                     detail[key] = value
     if detail is not None and _object_exists(session, obj.MFQ_CLAIM_DEFENDANTS_TABLE):
         defendant_df = claims_repository.get_claim_defendants(session, claim_id)
         if not defendant_df.empty:
             for key, value in defendant_df.iloc[0].to_dict().items():
-                current_value = detail.get(key)
-                if current_value is None or (isinstance(current_value, float) and pd.isna(current_value)) or str(current_value).strip().lower() in {"", "nan", "none", "null"}:
+                if _is_blank_value(detail.get(key)):
                     detail[key] = value
     logger.info("get_claim_detail_by_id_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
     return detail
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def _get_mfq_sections_cached(_session, cache_scope: str) -> pd.DataFrame:
+def _get_active_mfq_sections_and_questions_cached(_session, cache_scope: str) -> pd.DataFrame:
     del cache_scope
     started = perf_counter()
-    df = mfq_repository.get_mfq_sections(_session)
-    logger.info("get_mfq_sections_ms=%d rows=%d", int((perf_counter() - started) * 1000), len(df))
+    df = mfq_repository.get_active_mfq_sections_and_questions(_session)
+    logger.info("get_active_mfq_sections_and_questions_ms=%d rows=%d", int((perf_counter() - started) * 1000), len(df))
     return df
+
+
+def get_active_mfq_sections_and_questions(session) -> pd.DataFrame:
+    if _in_streamlit_runtime():
+        return _get_active_mfq_sections_and_questions_cached(session, _claims_cache_scope())
+    return mfq_repository.get_active_mfq_sections_and_questions(session)
 
 
 def get_mfq_sections(session) -> pd.DataFrame:
-    if _in_streamlit_runtime():
-        return _get_mfq_sections_cached(session, _claims_cache_scope())
-    return mfq_repository.get_mfq_sections(session)
+    return get_active_mfq_sections_and_questions(session)
+
+
+def _session_claim_cache(cache_name: str) -> dict[str, Any]:
+    cache = st.session_state.get(cache_name) if _in_streamlit_runtime() else None
+    if not isinstance(cache, dict):
+        cache = {}
+        if _in_streamlit_runtime():
+            st.session_state[cache_name] = cache
+    return cache
+
+
+def get_current_mfq_answers_by_claim_id(session, claim_id: str) -> pd.DataFrame:
+    started = perf_counter()
+    df = mfq_repository.get_current_mfq_answers_by_claim_id(session, claim_id)
+    logger.info("get_current_mfq_answers_by_claim_id_ms=%d claim_id=%s rows=%d", int((perf_counter() - started) * 1000), claim_id, len(df))
+    return df
 
 
 def get_mfq_answers_by_claim_id(session, claim_id: str) -> pd.DataFrame:
-    started = perf_counter()
-    df = mfq_repository.get_mfq_answers_by_claim_id(session, claim_id)
-    logger.info("get_mfq_answers_by_claim_id_ms=%d claim_id=%s rows=%d", int((perf_counter() - started) * 1000), claim_id, len(df))
-    return df
+    return get_current_mfq_answers_by_claim_id(session, claim_id)
 
 
 def get_claim_history_by_claim_id(session, claim_id: str) -> pd.DataFrame:
@@ -340,25 +359,105 @@ def get_claim_summaries_by_claim_id(session, claim_id: str) -> dict[str, str]:
     return summary_map
 
 
-def build_mfq_workspace_for_claim(session, claim_id: str) -> dict[str, Any]:
+def _mfq_required_objects_available(session) -> tuple[bool, list[str]]:
+    required = [SECTIONS_TABLE, QUESTIONS_TABLE, ANSWERS_TABLE]
+    missing = [name for name in required if not _object_exists(session, name)]
+    return not missing, missing
+
+
+def _merge_mfq_sections_answers(sections_df: pd.DataFrame, answers_df: pd.DataFrame) -> pd.DataFrame:
+    if sections_df.empty:
+        return sections_df
+    merged = sections_df.copy()
+    if not answers_df.empty:
+        answer_rows = answers_df.copy()
+        if "UPDATED_AT" in answer_rows.columns:
+            answer_rows = answer_rows.sort_values("UPDATED_AT", ascending=False, na_position="last")
+        answer_rows = answer_rows.drop_duplicates(subset=["QUESTION_ID"], keep="first")
+        merged = merged.merge(answer_rows, on="QUESTION_ID", how="left", suffixes=("", "_ANSWER"))
+    else:
+        for column in (
+            "ANSWER_ID",
+            "RUN_ID",
+            "RUN_SCOPE",
+            "RUN_TYPE",
+            "VERSION_NUMBER",
+            "IS_CURRENT",
+            "SUPERSEDED_BY_ANSWER_ID",
+            "CLAIM_ID",
+            "DEFENDANT_ID",
+            "ANSWER_SECTION_ID",
+            "PACKET_ID",
+            "ANSWER_VALUE",
+            "ANSWER_TEXT",
+            "RATIONALE_TEXT",
+            "CITATIONS_JSON",
+            "CONFIDENCE_SCORE",
+            "ANSWER_STATUS",
+            "STATUS",
+            "EVALUATION_ID",
+            "LLM_INVOCATION_ID",
+            "RAW_RESPONSE_JSON",
+            "ANSWER_JSON",
+            "CREATED_AT",
+            "UPDATED_AT",
+        ):
+            merged[column] = None
+    allowed_col = "ANSWER_OPTIONS" if "ANSWER_OPTIONS" in merged.columns else "ALLOWED_VALUES"
+    if allowed_col in merged.columns:
+        merged["ALLOWED_VALUES_LIST"] = merged[allowed_col].apply(_normalize_allowed_values)
+    else:
+        merged["ALLOWED_VALUES_LIST"] = [[] for _ in range(len(merged))]
+    merged["DISPLAY_ANSWER"] = merged.apply(get_answer_value, axis=1)
+    return merged
+
+
+def get_mfq_form_payload(session, claim_id: str) -> dict[str, Any]:
     started = perf_counter()
-    sections_df = get_mfq_sections(session)
-    answers_df = get_mfq_answers_by_claim_id(session, claim_id)
-    if not sections_df.empty:
-        sections_df = sections_df.copy()
-        if not answers_df.empty:
-            sections_df = sections_df.merge(answers_df, on="QUESTION_ID", how="left")
-        else:
-            for column in ("ANSWER_ID", "CLAIM_ID", "DEFENDANT_ID", "ANSWER_TEXT", "ANSWER_JSON", "CONFIDENCE_SCORE", "ANSWER_STATUS", "IS_CURRENT"):
-                sections_df[column] = None
-        if "ALLOWED_VALUES" in sections_df.columns:
-            sections_df["ALLOWED_VALUES_LIST"] = sections_df["ALLOWED_VALUES"].apply(_normalize_allowed_values)
-        else:
-            sections_df["ALLOWED_VALUES_LIST"] = [[] for _ in range(len(sections_df))]
-        sections_df["DISPLAY_ANSWER"] = sections_df.apply(get_answer_value, axis=1)
-    section_confidence = get_claim_section_confidence(session, claim_id, sections_df)
-    logger.info("build_mfq_workspace_for_claim_ms=%d claim_id=%s questions=%d", int((perf_counter() - started) * 1000), claim_id, len(sections_df))
-    return {"sections": sections_df, "section_confidence": section_confidence}
+    available, missing_objects = _mfq_required_objects_available(session)
+    if not available:
+        logger.warning("get_mfq_form_payload_missing_objects claim_id=%s missing=%s", claim_id, missing_objects)
+        return {
+            "sections": pd.DataFrame(),
+            "section_confidence": pd.DataFrame(),
+            "confidence_summary": get_claim_confidence_summary(session, claim_id, None, {}, pd.DataFrame(), missing_objects),
+            "missing_objects": missing_objects,
+            "mfq_available": False,
+        }
+
+    sections_df = get_active_mfq_sections_and_questions(session)
+    answers_cache = _session_claim_cache("mfq_answers_cache")
+    if str(claim_id) in answers_cache:
+        answers_df = answers_cache[str(claim_id)]
+        logger.info("mfq_answers_cache_hit claim_id=%s rows=%d", claim_id, len(answers_df) if isinstance(answers_df, pd.DataFrame) else -1)
+    else:
+        answers_df = get_current_mfq_answers_by_claim_id(session, claim_id)
+        answers_cache[str(claim_id)] = answers_df
+    merged_sections = _merge_mfq_sections_answers(sections_df, answers_df)
+    section_confidence = get_claim_section_confidence(session, claim_id, merged_sections)
+    confidence_summary = get_claim_confidence_summary(session, claim_id, None, {}, merged_sections, [])
+    logger.info("get_mfq_form_payload_ms=%d claim_id=%s questions=%d answers=%d", int((perf_counter() - started) * 1000), claim_id, len(merged_sections), len(answers_df))
+    return {
+        "sections": merged_sections,
+        "answers": answers_df,
+        "section_confidence": section_confidence,
+        "confidence_summary": confidence_summary,
+        "missing_objects": [],
+        "mfq_available": True,
+    }
+
+
+def build_mfq_workspace_for_claim(session, claim_id: str) -> dict[str, Any]:
+    form_cache = _session_claim_cache("mfq_form_cache")
+    claim_key = str(claim_id)
+    if claim_key in form_cache:
+        logger.info("mfq_form_cache_hit claim_id=%s", claim_id)
+        return form_cache[claim_key]
+    started = perf_counter()
+    payload = get_mfq_form_payload(session, claim_id)
+    form_cache[claim_key] = payload
+    logger.info("build_mfq_workspace_for_claim_ms=%d claim_id=%s questions=%d", int((perf_counter() - started) * 1000), claim_id, len(payload.get("sections", pd.DataFrame())))
+    return payload
 
 
 def _normalize_allowed_values(raw: Any) -> list[str]:
@@ -373,84 +472,21 @@ def _normalize_allowed_values(raw: Any) -> list[str]:
         loaded = json.loads(text)
         if isinstance(loaded, list):
             return [str(v) for v in loaded]
+        if isinstance(loaded, dict):
+            for key in ("options", "values", "choices", "items"):
+                values = loaded.get(key)
+                if isinstance(values, list):
+                    return [str(v) for v in values]
     except Exception:
         pass
     return [piece.strip() for piece in text.split(",") if piece.strip()]
 
 
 def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = None) -> pd.DataFrame:
-    claim_id_q = quote_sql(claim_id)
-    answer_cols = _table_columns(session, ANSWERS_TABLE)
-    question_conf_cols = _table_columns(session, QUESTION_CONFIDENCE_TABLE)
-
-    answer_value_expr = "a.ANSWER_VALUE" if "ANSWER_VALUE" in answer_cols else "NULL"
-    generated_answer_expr = "a.GENERATED_ANSWER" if "GENERATED_ANSWER" in answer_cols else "NULL"
-    reviewed_answer_expr = "a.REVIEWED_ANSWER" if "REVIEWED_ANSWER" in answer_cols else "NULL"
-
-    qc_level_expr = "qc.CONFIDENCE_LEVEL" if "CONFIDENCE_LEVEL" in question_conf_cols else "NULL"
-    qc_reason_expr = "qc.CONFIDENCE_REASON" if "CONFIDENCE_REASON" in question_conf_cols else "NULL"
-
-    question_key_join_predicates = ["a.QUESTION_ID = q.QUESTION_ID"]
-    if "QUESTION_KEY" in answer_cols:
-        question_key_join_predicates.append("a.QUESTION_KEY = q.QUESTION_KEY")
-    if "FIELD_NAME" in answer_cols:
-        question_key_join_predicates.append("a.FIELD_NAME = q.QUESTION_KEY")
-    if "PDF_FIELD_NAME" in answer_cols:
-        question_key_join_predicates.append("a.PDF_FIELD_NAME = q.QUESTION_KEY")
-    question_join_predicate = " OR ".join(question_key_join_predicates)
-
-    claim_join_predicates = [f"a.CLAIM_ID = '{claim_id_q}'"]
-    if "FILE_NO" in answer_cols:
-        claim_join_predicates.append(f"TRIM(a.FILE_NO) = '{claim_id_q}'")
-    if "FILE_NUMBER" in answer_cols:
-        claim_join_predicates.append(f"TRIM(a.FILE_NUMBER) = '{claim_id_q}'")
-    answer_claim_join_predicate = " OR ".join(claim_join_predicates)
-
-    sql = f"""
-      SELECT
-          s.SECTION_ID,
-          s.SECTION_KEY,
-          s.SECTION_NAME,
-          s.DISPLAY_ORDER AS SECTION_ORDER,
-          q.QUESTION_ID,
-          q.QUESTION_KEY,
-          q.PARENT_QUESTION_ID,
-          q.DISPLAY_ORDER AS QUESTION_ORDER,
-          q.QUESTION_TEXT,
-          q.ANSWER_TYPE,
-          q.ALLOWED_VALUES,
-          q.VISIBILITY_RULE,
-          a.ANSWER_ID,
-          a.CLAIM_ID,
-          a.DEFENDANT_ID,
-          a.ANSWER_TEXT,
-          a.ANSWER_JSON,
-          {answer_value_expr} AS ANSWER_VALUE,
-          {generated_answer_expr} AS GENERATED_ANSWER,
-          {reviewed_answer_expr} AS REVIEWED_ANSWER,
-          a.CONFIDENCE_SCORE,
-          a.STATUS AS ANSWER_STATUS,
-          a.IS_CURRENT,
-          {qc_level_expr} AS CONFIDENCE_LEVEL,
-          {qc_reason_expr} AS CONFIDENCE_REASON
-      FROM {SECTIONS_TABLE} s
-      JOIN {QUESTIONS_TABLE} q
-          ON q.SECTION_ID = s.SECTION_ID
-         AND q.FORM_KEY = s.FORM_KEY
-      LEFT JOIN {ANSWERS_TABLE} a
-          ON ({question_join_predicate})
-         AND ({answer_claim_join_predicate})
-         AND a.IS_CURRENT = TRUE
-      LEFT JOIN {QUESTION_CONFIDENCE_TABLE} qc
-          ON qc.QUESTION_ID = q.QUESTION_ID
-         AND qc.CLAIM_ID = '{claim_id_q}'
-      WHERE s.FORM_KEY = 'MFQ_V1'
-        AND s.IS_ACTIVE = TRUE
-        AND q.IS_ACTIVE = TRUE
-        AND q.IS_CURRENT = TRUE
-      ORDER BY s.DISPLAY_ORDER, q.DISPLAY_ORDER
-    """
-    return safe_collect_df(session, sql)
+    """Backward-compatible dataframe workspace built from the updated MFQ tables."""
+    del defendant_id
+    payload = get_mfq_form_payload(session, claim_id)
+    return payload.get("sections", pd.DataFrame())
 
 
 @st.cache_data(ttl=300, show_spinner=False)
@@ -512,7 +548,17 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
             session,
             FORM_VIEW,
             f"""
-            SELECT *
+            SELECT
+                SECTION_ID,
+                SECTION_NAME,
+                SECTION_ORDER,
+                QUESTION_ID,
+                PARENT_QUESTION_ID,
+                QUESTION_ORDER,
+                QUESTION_TEXT,
+                ANSWER_TYPE,
+                ANSWER_TEXT,
+                CONFIDENCE_SCORE
             FROM {FORM_VIEW}
             WHERE CLAIM_ID = '{claim_id_q}'
             ORDER BY SECTION_ORDER, QUESTION_ORDER
@@ -950,6 +996,7 @@ def save_mfq_answer(
     question_id: str,
     answer_value: Any,
     user_id: str,
+    section_id: str | None = None,
 ) -> None:
     if not (claim_id and question_id):
         return
@@ -957,6 +1004,7 @@ def save_mfq_answer(
     cols = _table_columns(session, ANSWERS_TABLE)
     claim_q = quote_sql(claim_id)
     question_q = quote_sql(question_id)
+    section_q = quote_sql(section_id) if section_id else ""
     defendant_q = quote_sql(defendant_id) if defendant_id else ""
     user_q = quote_sql(user_id)
 
@@ -972,8 +1020,12 @@ def save_mfq_answer(
     answer_json_q = quote_sql(json.dumps({"value": answer_value}))
 
     has_defendant = "DEFENDANT_ID" in cols
+    has_section = "SECTION_ID" in cols
+    has_answer_value = "ANSWER_VALUE" in cols
     has_answer_json = "ANSWER_JSON" in cols
-    has_status = "STATUS" in cols
+    has_raw_response_json = "RAW_RESPONSE_JSON" in cols
+    status_column = "ANSWER_STATUS" if "ANSWER_STATUS" in cols else "STATUS" if "STATUS" in cols else ""
+    has_status = bool(status_column)
     has_created_ts = "CREATED_TS" in cols
     has_last_updated = "LAST_UPDATED_TS" in cols
     has_created_at = "CREATED_AT" in cols
@@ -982,6 +1034,8 @@ def save_mfq_answer(
     has_user_reviewed = "USER_REVIEWED" in cols
 
     src_columns = [f"'{claim_q}' AS CLAIM_ID", f"'{question_q}' AS QUESTION_ID", f"'{answer_text_q}' AS ANSWER_TEXT"]
+    if has_section and section_id:
+        src_columns.append(f"'{section_q}' AS SECTION_ID")
     if has_defendant and defendant_id:
         src_columns.append(f"'{defendant_q}' AS DEFENDANT_ID")
 
@@ -990,10 +1044,16 @@ def save_mfq_answer(
         merge_on += " AND tgt.DEFENDANT_ID = src.DEFENDANT_ID"
 
     update_set = ["tgt.ANSWER_TEXT = src.ANSWER_TEXT"]
+    if has_section and section_id:
+        update_set.append("tgt.SECTION_ID = src.SECTION_ID")
+    if has_answer_value:
+        update_set.append("tgt.ANSWER_VALUE = src.ANSWER_TEXT")
     if has_answer_json:
         update_set.append(f"tgt.ANSWER_JSON = PARSE_JSON('{answer_json_q}')")
+    if has_raw_response_json:
+        update_set.append(f"tgt.RAW_RESPONSE_JSON = PARSE_JSON('{answer_json_q}')")
     if has_status:
-        update_set.append("tgt.STATUS = 'USER_REVIEWED'")
+        update_set.append(f"tgt.{status_column} = 'USER_REVIEWED'")
     if has_user_reviewed:
         update_set.append("tgt.USER_REVIEWED = TRUE")
     if has_last_updated:
@@ -1011,14 +1071,23 @@ def save_mfq_answer(
         "src.ANSWER_TEXT",
         "TRUE",
     ]
+    if has_section and section_id:
+        insert_columns.append("SECTION_ID")
+        insert_values.append("src.SECTION_ID")
     if has_defendant and defendant_id:
         insert_columns.insert(2, "DEFENDANT_ID")
         insert_values.insert(2, "src.DEFENDANT_ID")
+    if has_answer_value:
+        insert_columns.append("ANSWER_VALUE")
+        insert_values.append("src.ANSWER_TEXT")
     if has_answer_json:
         insert_columns.append("ANSWER_JSON")
         insert_values.append(f"PARSE_JSON('{answer_json_q}')")
+    if has_raw_response_json:
+        insert_columns.append("RAW_RESPONSE_JSON")
+        insert_values.append(f"PARSE_JSON('{answer_json_q}')")
     if has_status:
-        insert_columns.append("STATUS")
+        insert_columns.append(status_column)
         insert_values.append("'USER_REVIEWED'")
     if has_user_reviewed:
         insert_columns.append("USER_REVIEWED")
