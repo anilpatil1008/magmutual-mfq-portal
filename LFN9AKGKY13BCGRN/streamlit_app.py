@@ -38,6 +38,8 @@ if "current_view" not in st.session_state:
     st.session_state.current_view = DASHBOARD_VIEW
 if "selected_claim_id" not in st.session_state:
     st.session_state.selected_claim_id = None
+if "show_claim_details_nav" not in st.session_state:
+    st.session_state.show_claim_details_nav = False
 
 
 def _query_param_value(name: str) -> str:
@@ -97,11 +99,16 @@ notifications = get_user_notifications(session, ctx.username, limit=6)
 render_header(session, ctx, notifications)
 render_sidebar(ctx)
 
-current_view = str(st.session_state.get("current_view") or "").strip().lower()
-if current_view == CLAIM_DETAILS_VIEW and str(st.session_state.get("selected_claim_id") or "").strip():
+current_view = str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
+selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
+
+if current_view == CLAIM_DETAILS_VIEW and selected_claim_id:
     claim_details.render(session=session, ctx=ctx)
-elif current_view == REPORTS_VIEW:
+    st.stop()
+
+if current_view == REPORTS_VIEW:
     reports.render(session=session, ctx=ctx)
-else:
-    dashboard.render(session=session, ctx=ctx)
+    st.stop()
+
+dashboard.render(session=session, ctx=ctx)
 st.stop()

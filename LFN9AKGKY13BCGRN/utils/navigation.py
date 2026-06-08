@@ -17,6 +17,7 @@ def navigate_to_dashboard() -> None:
     st.session_state["current_view"] = DASHBOARD_VIEW
     st.session_state["active_page"] = DASHBOARD_PAGE
     st.session_state["claim_detail_view"] = False
+    st.session_state["show_claim_details_nav"] = False
     st.session_state["page"] = DASHBOARD_PAGE
 
 
@@ -27,6 +28,7 @@ def navigate_to_reports() -> None:
     st.session_state["current_view"] = REPORTS_VIEW
     st.session_state["active_page"] = REPORTS_PAGE
     st.session_state["claim_detail_view"] = False
+    st.session_state["show_claim_details_nav"] = False
     st.session_state["page"] = REPORTS_PAGE
 
 
@@ -42,6 +44,7 @@ def navigate_to_claim_details(claim_id: str) -> None:
     st.session_state["current_view"] = CLAIM_DETAILS_VIEW
     st.session_state["active_page"] = CLAIM_DETAILS_PAGE
     st.session_state["claim_detail_view"] = True
+    st.session_state["show_claim_details_nav"] = True
     st.session_state["page"] = CLAIM_DETAILS_PAGE
 
 
