@@ -266,10 +266,116 @@ def get_available_claim_types(session) -> list[str]:
 
 
 def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
-    df = claims_repository.get_claim_detail(session, claim_id)
-    if df.empty:
-        return None
-    return df.iloc[0].to_dict()
+    return get_claim_detail_by_id(session, claim_id)
+
+
+def get_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
+    started = perf_counter()
+    df = claims_repository.get_claim_detail_by_id(session, claim_id)
+    detail = df.iloc[0].to_dict() if not df.empty else None
+    if detail is not None and _object_exists(session, obj.VW_MFQ_CLAIMS):
+        status_df = claims_repository.get_claim_status_snapshot(session, claim_id)
+        if not status_df.empty:
+            for key, value in status_df.iloc[0].to_dict().items():
+                current_value = detail.get(key)
+                if current_value is None or (isinstance(current_value, float) and pd.isna(current_value)) or str(current_value).strip().lower() in {"", "nan", "none", "null"}:
+                    detail[key] = value
+    if detail is not None and _object_exists(session, obj.MFQ_CLAIM_DEFENDANTS_TABLE):
+        defendant_df = claims_repository.get_claim_defendants(session, claim_id)
+        if not defendant_df.empty:
+            for key, value in defendant_df.iloc[0].to_dict().items():
+                current_value = detail.get(key)
+                if current_value is None or (isinstance(current_value, float) and pd.isna(current_value)) or str(current_value).strip().lower() in {"", "nan", "none", "null"}:
+                    detail[key] = value
+    logger.info("get_claim_detail_by_id_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
+    return detail
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def _get_mfq_sections_cached(_session, cache_scope: str) -> pd.DataFrame:
+    del cache_scope
+    started = perf_counter()
+    df = mfq_repository.get_mfq_sections(_session)
+    logger.info("get_mfq_sections_ms=%d rows=%d", int((perf_counter() - started) * 1000), len(df))
+    return df
+
+
+def get_mfq_sections(session) -> pd.DataFrame:
+    if _in_streamlit_runtime():
+        return _get_mfq_sections_cached(session, _claims_cache_scope())
+    return mfq_repository.get_mfq_sections(session)
+
+
+def get_mfq_answers_by_claim_id(session, claim_id: str) -> pd.DataFrame:
+    started = perf_counter()
+    df = mfq_repository.get_mfq_answers_by_claim_id(session, claim_id)
+    logger.info("get_mfq_answers_by_claim_id_ms=%d claim_id=%s rows=%d", int((perf_counter() - started) * 1000), claim_id, len(df))
+    return df
+
+
+def get_claim_history_by_claim_id(session, claim_id: str) -> pd.DataFrame:
+    started = perf_counter()
+    df = claims_repository.get_claim_history_by_claim_id(session, claim_id)
+    logger.info("get_claim_history_by_claim_id_ms=%d claim_id=%s rows=%d", int((perf_counter() - started) * 1000), claim_id, len(df))
+    return df
+
+
+def get_claim_documents_by_claim_id(session, claim_id: str) -> pd.DataFrame:
+    started = perf_counter()
+    df = claims_repository.get_claim_documents(session, claim_id)
+    logger.info("get_claim_documents_by_claim_id_ms=%d claim_id=%s rows=%d", int((perf_counter() - started) * 1000), claim_id, len(df))
+    return df
+
+
+def get_claim_summaries_by_claim_id(session, claim_id: str) -> dict[str, str]:
+    started = perf_counter()
+    summary_df = mfq_repository.get_claim_summaries(session, claim_id)
+    summary_map: dict[str, str] = {}
+    if not summary_df.empty:
+        for _, row in summary_df.iterrows():
+            summary_type = str(row.get("SUMMARY_TYPE", "")).strip().upper()
+            if summary_type and summary_type not in summary_map:
+                summary_map[summary_type] = str(row.get("SUMMARY_TEXT", "") or "")
+    logger.info("get_claim_summaries_by_claim_id_ms=%d claim_id=%s rows=%d", int((perf_counter() - started) * 1000), claim_id, len(summary_df))
+    return summary_map
+
+
+def build_mfq_workspace_for_claim(session, claim_id: str) -> dict[str, Any]:
+    started = perf_counter()
+    sections_df = get_mfq_sections(session)
+    answers_df = get_mfq_answers_by_claim_id(session, claim_id)
+    if not sections_df.empty:
+        sections_df = sections_df.copy()
+        if not answers_df.empty:
+            sections_df = sections_df.merge(answers_df, on="QUESTION_ID", how="left")
+        else:
+            for column in ("ANSWER_ID", "CLAIM_ID", "DEFENDANT_ID", "ANSWER_TEXT", "ANSWER_JSON", "CONFIDENCE_SCORE", "ANSWER_STATUS", "IS_CURRENT"):
+                sections_df[column] = None
+        if "ALLOWED_VALUES" in sections_df.columns:
+            sections_df["ALLOWED_VALUES_LIST"] = sections_df["ALLOWED_VALUES"].apply(_normalize_allowed_values)
+        else:
+            sections_df["ALLOWED_VALUES_LIST"] = [[] for _ in range(len(sections_df))]
+        sections_df["DISPLAY_ANSWER"] = sections_df.apply(get_answer_value, axis=1)
+    section_confidence = get_claim_section_confidence(session, claim_id, sections_df)
+    logger.info("build_mfq_workspace_for_claim_ms=%d claim_id=%s questions=%d", int((perf_counter() - started) * 1000), claim_id, len(sections_df))
+    return {"sections": sections_df, "section_confidence": section_confidence}
+
+
+def _normalize_allowed_values(raw: Any) -> list[str]:
+    if raw is None:
+        return []
+    if isinstance(raw, list):
+        return [str(v) for v in raw]
+    text = str(raw).strip()
+    if not text:
+        return []
+    try:
+        loaded = json.loads(text)
+        if isinstance(loaded, list):
+            return [str(v) for v in loaded]
+    except Exception:
+        pass
+    return [piece.strip() for piece in text.split(",") if piece.strip()]
 
 
 def get_mfq_form_workspace(session, claim_id: str, defendant_id: str | None = None) -> pd.DataFrame:
@@ -438,25 +544,8 @@ def get_claim_review_workspace(session, claim_id: str) -> dict[str, Any]:
                 summary_map[summary_type] = str(row.get("SUMMARY_TEXT", "") or "")
 
     if not sections_df.empty and "ALLOWED_VALUES" in sections_df.columns:
-
-        def _normalize_allowed(raw: Any) -> list[str]:
-            if raw is None:
-                return []
-            if isinstance(raw, list):
-                return [str(v) for v in raw]
-            text = str(raw).strip()
-            if not text:
-                return []
-            try:
-                loaded = json.loads(text)
-                if isinstance(loaded, list):
-                    return [str(v) for v in loaded]
-            except Exception:
-                pass
-            return [piece.strip() for piece in text.split(",") if piece.strip()]
-
         sections_df = sections_df.copy()
-        sections_df["ALLOWED_VALUES_LIST"] = sections_df["ALLOWED_VALUES"].apply(_normalize_allowed)
+        sections_df["ALLOWED_VALUES_LIST"] = sections_df["ALLOWED_VALUES"].apply(_normalize_allowed_values)
     if not sections_df.empty:
         if "ALLOWED_VALUES_LIST" not in sections_df.columns:
             sections_df = sections_df.copy()

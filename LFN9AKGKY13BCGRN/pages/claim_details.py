@@ -10,8 +10,12 @@ import pandas as pd
 import streamlit as st
 
 from services.claim_service import (
+    build_mfq_workspace_for_claim,
     get_assignable_faculty,
-    get_claim_review_workspace,
+    get_claim_detail_by_id,
+    get_claim_documents_by_claim_id,
+    get_claim_history_by_claim_id,
+    get_claim_summaries_by_claim_id,
     get_editable_section_ids_for_user,
     save_claim_assignment,
     save_mfq_answer,
@@ -22,11 +26,33 @@ from services.rbac_service import can_edit_claim
 logger = logging.getLogger(__name__)
 
 
-@st.cache_data(ttl=120, show_spinner=False)
-def _get_cached_claim_review_workspace(claim_id: str, refresh_nonce: int = 0) -> dict:
-    from services.snowflake_service import get_session
-    _ = refresh_nonce
-    return get_claim_review_workspace(get_session(), claim_id)
+DETAIL_TAB_OPTIONS = ["Summary", "MFQ Form", "History", "Documents", "MedCron", "Legal Memo", "Enquiries", "AI Assist"]
+
+
+def _ensure_claim_cache(cache_name: str) -> dict:
+    cache = st.session_state.get(cache_name)
+    if not isinstance(cache, dict):
+        cache = {}
+        st.session_state[cache_name] = cache
+    return cache
+
+
+def _cached_per_claim(cache_name: str, claim_id: str, loader, *, label: str):
+    cache = _ensure_claim_cache(cache_name)
+    if claim_id in cache:
+        logger.info("%s_cache_hit claim_id=%s", cache_name, claim_id)
+        return cache[claim_id]
+    started = perf_counter()
+    with st.spinner(label):
+        value = loader()
+    cache[claim_id] = value
+    logger.info("%s_load_ms=%d claim_id=%s", cache_name, int((perf_counter() - started) * 1000), claim_id)
+    return value
+
+
+def _invalidate_claim_caches(claim_id: str, *cache_names: str) -> None:
+    for cache_name in cache_names:
+        _ensure_claim_cache(cache_name).pop(str(claim_id), None)
 
 
 def _fmt_conf(value) -> str:
@@ -144,6 +170,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
 
                 if "approve" in actions and st.button("Approve", type="secondary", use_container_width=True):
                     update_claim_status(session, claim_id, "Approved")
+                    _invalidate_claim_caches(claim_id, "claim_details_cache", "claim_history_cache")
                     st.success("Claim approved.")
                     st.rerun()
                 st.markdown("</div>", unsafe_allow_html=True)
@@ -510,6 +537,7 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
         )
         if success:
             st.session_state[f"open_assign_modal_{claim_id}"] = False
+            _invalidate_claim_caches(claim_id, "claim_details_cache", "claim_history_cache", "mfq_answers_cache")
             st.success(message)
             st.rerun()
         st.error(message)
@@ -791,167 +819,179 @@ def _is_debug_mode_enabled() -> bool:
     return str(os.getenv("APP_DEBUG", "")).strip().lower() == "true"
 
 
+def _render_summary_tab(session, claim_id: str, claim: dict) -> None:
+    summaries = _cached_per_claim(
+        "claim_summary_cache",
+        claim_id,
+        lambda: get_claim_summaries_by_claim_id(session, claim_id),
+        label="Loading summary...",
+    )
+    st.markdown("### Claim Summary")
+    detail_cols = st.columns(4)
+    detail_items = [
+        ("Claim Type", _safe_display(claim.get("CLAIM_TYPE"))),
+        ("Workflow Status", _first_safe_display(claim, ("WORKFLOW_STATUS", "MFQ_STATUS", "STATUS"))),
+        ("AI Confidence", _fmt_conf(claim.get("AI_CONFIDENCE"))),
+        ("File Number", _safe_display(claim.get("FILE_NUMBER"))),
+    ]
+    for col, (label, value) in zip(detail_cols, detail_items):
+        col.markdown(
+            f"<div class='claim-detail-mini-card'><span>{escape(label)}</span><strong>{escape(value)}</strong></div>",
+            unsafe_allow_html=True,
+        )
+    _render_text_tab(summaries.get("RECORD_SUMMARY", summaries.get("RECORDS_SUMMARY", "")), "No records summary available.")
+
+
+def _render_mfq_tab(session, ctx, claim_id: str, claim: dict) -> None:
+    workspace = _cached_per_claim(
+        "mfq_answers_cache",
+        claim_id,
+        lambda: build_mfq_workspace_for_claim(session, claim_id),
+        label="Loading MFQ form...",
+    )
+    edit_key = f"mfq_edit_mode_{claim_id}"
+    if edit_key not in st.session_state:
+        st.session_state[edit_key] = False
+    can_edit = can_edit_claim(str(claim.get("STATUS", "")), claim.get("ASSIGNED_TO"), ctx.username)
+    editable_section_ids = get_editable_section_ids_for_user(session, str(claim_id), ctx.username)
+    save_clicked = False
+    with st.container(key="mfq_header_card"):
+        title_col, edit_col = st.columns([7.4, 1.4], vertical_alignment="center")
+        with title_col:
+            st.markdown(
+                "<section class='mfq-page'><div class='mfq-header'><div class='mfq-header-left'><h2>Medical Faculty Questionnaire</h2><p>Complete evaluation based on accepted medical practice standards.</p></div></div></section>",
+                unsafe_allow_html=True,
+            )
+        with edit_col:
+            if not st.session_state[edit_key]:
+                if st.button("✎ Edit", key="mfq_edit_btn", type="secondary", use_container_width=True, disabled=not can_edit):
+                    st.session_state[edit_key] = True
+                    st.rerun()
+                if not can_edit:
+                    st.caption("Read-only")
+            else:
+                save_clicked = st.button("Save Draft", key="mfq_save_btn", type="primary", use_container_width=True)
+                if st.button("Cancel", key="mfq_cancel_btn", type="secondary", use_container_width=True):
+                    st.session_state[edit_key] = False
+                    st.rerun()
+
+    _render_confidence_panel(workspace)
+    rendered_questions = _render_questions(
+        workspace.get("sections", pd.DataFrame()),
+        workspace.get("section_confidence", pd.DataFrame()),
+        can_edit=can_edit,
+        edit_mode=bool(st.session_state[edit_key]),
+        editable_section_ids=editable_section_ids,
+    )
+    if st.session_state[edit_key] and save_clicked:
+        for question in rendered_questions:
+            if not question.get("editable"):
+                continue
+            save_mfq_answer(
+                session=session,
+                claim_id=question["claim_id"] or claim_id,
+                defendant_id=question["defendant_id"],
+                question_id=question["question_id"],
+                answer_value=st.session_state.get(question["widget_key"]),
+                user_id=ctx.username,
+            )
+        _invalidate_claim_caches(claim_id, "mfq_answers_cache")
+        st.session_state[edit_key] = False
+        st.success("MFQ answers saved successfully.")
+        st.rerun()
+
+
+def _render_history_tab(session, claim_id: str) -> None:
+    history_df = _cached_per_claim(
+        "claim_history_cache",
+        claim_id,
+        lambda: get_claim_history_by_claim_id(session, claim_id),
+        label="Loading claim history...",
+    )
+    if history_df.empty:
+        st.info("No history data available for this claim.")
+    else:
+        st.dataframe(history_df, use_container_width=True, hide_index=True)
+
+
+def _render_documents_lazy_tab(session, claim_id: str) -> None:
+    documents_df = _cached_per_claim(
+        "claim_documents_cache",
+        claim_id,
+        lambda: get_claim_documents_by_claim_id(session, claim_id),
+        label="Loading documents...",
+    )
+    _render_docs_tab(documents_df)
+
+
 def render(session, ctx) -> None:
-    claim_id = st.session_state.get("selected_claim_id")
+    claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
     logger.info("render_claim_details called claim_id=%s", claim_id)
     if not claim_id:
         st.warning("No claim is selected. Open a claim from Dashboard or Claims page.")
         return
 
-    _render_breadcrumb(str(claim_id))
-
-    with st.spinner("Loading claim details..."):
-        started = perf_counter()
-        refresh_nonce = int(st.session_state.get(f"mfq_refresh_nonce_{claim_id}", 0))
-        workspace = _get_cached_claim_review_workspace(str(claim_id), refresh_nonce=refresh_nonce)
-        logger.info("claim_details.workspace_load_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
-    claim = workspace.get("claim")
-    missing_objects = workspace.get("missing_objects", [])
+    _render_breadcrumb(claim_id)
+    header_slot = st.empty()
+    claim = _cached_per_claim(
+        "claim_details_cache",
+        claim_id,
+        lambda: get_claim_detail_by_id(session, claim_id),
+        label="Loading claim header...",
+    )
     if not claim:
-        if "MFQ_CLAIM_DETAIL_VW" in missing_objects:
-            st.error("MFQ_CLAIM_DETAIL_VW not found in current Snowflake database/schema.")
-        else:
-            st.error(
-                f"Claim {claim_id} was not found in MFQ_CLAIM_DETAIL_VW.\n"
-                "Please verify CLAIM_ID exists in the source claims table."
-            )
-        _render_missing_objects(missing_objects)
+        st.error(
+            f"Claim {claim_id} was not found in MFQ_CLAIM_DETAIL_VW. "
+            "Please verify CLAIM_ID exists in the source claims table."
+        )
         return
 
-    _render_header(session, ctx, str(claim_id), claim)
+    review_started = st.session_state.get("review_click_started_at")
+    if isinstance(review_started, (int, float)):
+        logger.info("review_click_to_claim_header_ms=%d claim_id=%s", int((perf_counter() - review_started) * 1000), claim_id)
+        st.session_state.pop("review_click_started_at", None)
+
+    with header_slot.container():
+        _render_header(session, ctx, claim_id, claim)
+
     if st.session_state.get(f"open_assign_modal_{claim_id}", False):
+        mfq_workspace = _cached_per_claim(
+            "mfq_answers_cache",
+            claim_id,
+            lambda: build_mfq_workspace_for_claim(session, claim_id),
+            label="Loading assignable MFQ sections...",
+        )
         _render_assign_faculty_modal(
             session=session,
             ctx=ctx,
-            claim_id=str(claim_id),
-            sections_df=workspace.get("sections", pd.DataFrame()),
+            claim_id=claim_id,
+            sections_df=mfq_workspace.get("sections", pd.DataFrame()),
         )
-    _render_missing_objects(workspace.get("missing_objects", []))
-    st.session_state["review_snowflake_objects"] = workspace.get("used_objects", [])
-    st.session_state["review_missing_objects"] = workspace.get("missing_objects", [])
-    debug_enabled = _is_debug_mode_enabled() and bool(st.session_state.get("debug_mfq_binding", False))
-    if _is_debug_mode_enabled():
-        if st.checkbox("Developer debug (MFQ binding)", key="debug_mfq_binding"):
-            debug_enabled = True
-    if debug_enabled:
-        sections_df = workspace.get("sections", pd.DataFrame())
-        display_answer_series = (
-            sections_df["DISPLAY_ANSWER"] if (not sections_df.empty and "DISPLAY_ANSWER" in sections_df.columns) else pd.Series(dtype="object")
-        )
-        non_empty_mask = display_answer_series.astype(str).str.strip() != "" if not display_answer_series.empty else pd.Series(dtype="bool")
-        question_keys = sorted(
-            {
-                str(v).strip()
-                for v in sections_df.get("QUESTION_KEY", pd.Series(dtype="object")).dropna().tolist()
-                if str(v).strip()
-            }
-        ) if not sections_df.empty else []
-        answer_keys = sorted(
-            {
-                str(v).strip()
-                for v in sections_df.loc[non_empty_mask, "QUESTION_KEY"].dropna().tolist()
-            }
-        ) if (not sections_df.empty and "QUESTION_KEY" in sections_df.columns and not non_empty_mask.empty) else []
-        missing_ui_keys = [k for k in question_keys if k not in set(answer_keys)]
-        with st.expander("MFQ binding debug", expanded=False):
-            st.json(
-                {
-                    "selected_claim_id": str(claim_id),
-                    "selected_file_number": claim.get("FILE_NUMBER"),
-                    "answer_table": "MFQ_ANSWERS",
-                    "answer_rows_returned": int(non_empty_mask.sum()) if not non_empty_mask.empty else 0,
-                    "first_10_answer_keys": answer_keys[:10],
-                    "first_10_missing_ui_keys": missing_ui_keys[:10],
-                }
-            )
 
-    tabs = st.tabs(["MFQ Form", "Records Summary", "MedCron", "Legal Memo", "Enquiries", "AI Assist", "Documents"])
-    edit_key = f"mfq_edit_mode_{claim_id}"
-    if edit_key not in st.session_state:
-        st.session_state[edit_key] = False
+    selected_tab = st.radio(
+        "Claim details section",
+        DETAIL_TAB_OPTIONS,
+        key=f"claim_details_active_tab_{claim_id}",
+        horizontal=True,
+        label_visibility="collapsed",
+    )
 
-    with tabs[0]:
-        can_edit = can_edit_claim(
-            str(claim.get("STATUS", "")),
-            claim.get("ASSIGNED_TO"),
-            ctx.username,
-        )
-        editable_section_ids = get_editable_section_ids_for_user(session, str(claim_id), ctx.username)
-        save_clicked = False
-        with st.container(key="mfq_header_card"):
-            title_col, edit_col = st.columns([7.4, 1.4], vertical_alignment="center")
-            with title_col:
-                st.markdown(
-                    (
-                        "<section class='mfq-page'>"
-                        "<div class='mfq-header'>"
-                        "<div class='mfq-header-left'><h2>Medical Faculty Questionnaire</h2>"
-                        "<p>Complete evaluation based on accepted medical practice standards.</p></div>"
-                        "</div>"
-                        "</section>"
-                    ),
-                    unsafe_allow_html=True,
-                )
-            with edit_col:
-                if not st.session_state[edit_key]:
-                    if st.button(
-                        "✎ Edit",
-                        key="mfq_edit_btn",
-                        type="secondary",
-                        use_container_width=True,
-                        disabled=not can_edit,
-                    ):
-                        st.session_state[edit_key] = True
-                        st.rerun()
-                    if not can_edit:
-                        st.caption("Read-only")
-                else:
-                    save_clicked = st.button("Save Draft", key="mfq_save_btn", type="primary", use_container_width=True)
-                    cancel_clicked = st.button("Cancel", key="mfq_cancel_btn", type="secondary", use_container_width=True)
-                    if cancel_clicked:
-                        st.session_state[edit_key] = False
-                        st.rerun()
-
-        _render_confidence_panel(workspace)
-        _render_synopsis_panel(workspace.get("synopsis", {}))
-        rendered_questions = _render_questions(
-            workspace.get("sections", pd.DataFrame()),
-            workspace.get("section_confidence", pd.DataFrame()),
-            can_edit=can_edit,
-            edit_mode=bool(st.session_state[edit_key]),
-            editable_section_ids=editable_section_ids,
-        )
-        if st.session_state[edit_key] and save_clicked:
-            for question in rendered_questions:
-                if not question.get("editable"):
-                    continue
-                value = st.session_state.get(question["widget_key"])
-                save_mfq_answer(
-                    session=session,
-                    claim_id=question["claim_id"],
-                    defendant_id=question["defendant_id"],
-                    question_id=question["question_id"],
-                    answer_value=value,
-                    user_id=ctx.username,
-                )
-            st.session_state[edit_key] = False
-            st.success("MFQ answers saved successfully.")
-            st.rerun()
-
-    with tabs[1]:
-        _render_text_tab(workspace.get("summaries", {}).get("RECORDS_SUMMARY", ""), "No records summary available.")
-    with tabs[2]:
-        _render_text_tab(workspace.get("summaries", {}).get("MEDCRON", ""), "No MedCron summary available.")
-    with tabs[3]:
-        _render_text_tab(workspace.get("summaries", {}).get("LEGAL_MEMO", ""), "No legal memo available.")
-    with tabs[4]:
-        enquiries_df = workspace.get("enquiries", pd.DataFrame())
-        if enquiries_df.empty:
-            st.info("No enquiries data available for this claim.")
-        else:
-            st.dataframe(enquiries_df, use_container_width=True, hide_index=True)
-    with tabs[5]:
+    if selected_tab == "Summary":
+        _render_summary_tab(session, claim_id, claim)
+    elif selected_tab == "MFQ Form":
+        _render_mfq_tab(session, ctx, claim_id, claim)
+    elif selected_tab == "History":
+        _render_history_tab(session, claim_id)
+    elif selected_tab == "Documents":
+        _render_documents_lazy_tab(session, claim_id)
+    elif selected_tab == "MedCron":
+        summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id), label="Loading MedCron...")
+        _render_text_tab(summaries.get("MEDCRON", ""), "No MedCron summary available.")
+    elif selected_tab == "Legal Memo":
+        summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id), label="Loading legal memo...")
+        _render_text_tab(summaries.get("LEGAL_MEMO", ""), "No legal memo available.")
+    elif selected_tab == "Enquiries":
+        _render_history_tab(session, claim_id)
+    elif selected_tab == "AI Assist":
         st.text_area("AI Assist Prompt", placeholder="Ask for claim-level insights from available summaries and MFQ answers")
         st.caption("AI Assist is placeholder UI and requires downstream service wiring.")
-    with tabs[6]:
-        _render_docs_tab(workspace.get("documents", pd.DataFrame()))

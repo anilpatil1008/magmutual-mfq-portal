@@ -3321,3 +3321,42 @@ div[class*="st-key-filter_chip_"][class*="_unselected"] .stButton button:hover {
   border-color: #b7c6d8 !important;
   color: #003a70 !important;
 }
+
+/* Lazy claim details tabs: radio buttons styled as Carbon-like tabs without mounting every tab body. */
+div[data-testid="stRadio"]:has(input[name^="claim_details_active_tab_"]) {
+  margin: 0.75rem 0 1rem;
+}
+div[data-testid="stRadio"]:has(input[name^="claim_details_active_tab_"]) [role="radiogroup"] {
+  gap: 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+div[data-testid="stRadio"]:has(input[name^="claim_details_active_tab_"]) label {
+  border-bottom: 2px solid transparent;
+  padding: 0.65rem 1rem;
+}
+div[data-testid="stRadio"]:has(input[name^="claim_details_active_tab_"]) label:has(input:checked) {
+  border-bottom-color: #0f62fe;
+  color: #0f62fe;
+  font-weight: 600;
+}
+.claim-detail-mini-card {
+  background: #f4f4f4;
+  border-left: 3px solid #0f62fe;
+  min-height: 5rem;
+  padding: 0.8rem 1rem;
+  margin-bottom: 1rem;
+}
+.claim-detail-mini-card span {
+  color: #525252;
+  display: block;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  margin-bottom: 0.35rem;
+  text-transform: uppercase;
+}
+.claim-detail-mini-card strong {
+  color: #161616;
+  display: block;
+  font-size: 1rem;
+  font-weight: 600;
+}

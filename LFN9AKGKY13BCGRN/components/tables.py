@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import datetime
+from time import perf_counter
+import logging
 from html import escape
 from pathlib import Path
 from typing import Any
@@ -9,6 +11,8 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from components.badges import priority_badge, status_badge
+
+logger = logging.getLogger(__name__)
 
 
 _RECENT_CLAIMS_TABLE_COMPONENT = components.declare_component(
@@ -424,12 +428,15 @@ def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.Dat
 
 
 def _open_claim_details(claim_id: str) -> None:
+    started = perf_counter()
     claim_id = str(claim_id).strip()
+    st.session_state["review_click_started_at"] = started
     st.session_state["selected_claim_id"] = claim_id
     st.session_state["active_page"] = "Claim Details"
     st.session_state["current_view"] = "Claim Details"
     st.session_state["last_review_event"] = None
     st.session_state["last_processed_review_claim_id"] = claim_id
+    logger.info("review_click_state_update_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
 
 
 def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:

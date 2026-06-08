@@ -366,17 +366,54 @@ def get_available_claim_types(session) -> list[str]:
     return [str(value).strip() for value in df["CLAIM_TYPE"].dropna().tolist() if str(value).strip()]
 
 
-def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
-    return execute_query_df(
+
+
+CLAIM_DETAIL_COLUMNS = [
+    "CLAIM_ID",
+    "FILE_NUMBER",
+    "PATIENT_NAME",
+    "PATIENT_DEFENDANT",
+    "DEFENDANT_ID",
+    "DEFENDANT_NAME",
+    "DEFENDANT_SPECIALTY",
+    "DEFENDANT_SPECIALITY",
+    "SPECIALTY",
+    "SPECIALITY",
+    "MFQ_STATUS",
+    "WORKFLOW_STATUS",
+    "STATUS",
+    "CLAIM_STATUS",
+    "CLAIM_TYPE",
+    "PRIORITY",
+    "DATE_REQUESTED",
+    "ASSIGNED_TO",
+    "AI_CONFIDENCE",
+    "CREATED_TS",
+    "LAST_UPDATED_TS",
+]
+
+
+def get_claim_detail_by_id(session, claim_id: str) -> pd.DataFrame:
+    """Fetch only lightweight claim detail columns for a single selected claim."""
+    available_columns = table_columns(session, obj.MFQ_CLAIM_DETAIL_VW)
+    select_columns = _select_columns_for_available_view(CLAIM_DETAIL_COLUMNS, available_columns)
+    df = execute_query_df(
         session,
         f"""
-        SELECT *
+        SELECT
+            {select_columns}
         FROM {obj.MFQ_CLAIM_DETAIL_VW}
         WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR(?))
+        LIMIT 1
         """,
         params=[str(claim_id)],
-        query_name="claims.get_claim_detail",
+        query_name="claims.get_claim_detail_by_id",
     )
+    return _normalize_snowflake_dataframe_columns(df)
+
+
+def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
+    return get_claim_detail_by_id(session, claim_id)
 
 
 def get_claim_status_snapshot(session, claim_id: str) -> pd.DataFrame:
@@ -426,8 +463,33 @@ def get_claim_defendants(session, claim_id: str) -> pd.DataFrame:
 
 
 def get_claim_documents(session, claim_id: str) -> pd.DataFrame:
-    claim_q = quote_sql(claim_id)
-    return execute_query_df(session, f"SELECT CLAIM_ID,DOCUMENT_ID,DOCUMENT_NAME,DOCUMENT_TYPE,CREATED_TS FROM {obj.MFQ_DOCUMENTS_TABLE} WHERE CLAIM_ID = '{claim_q}' ORDER BY CREATED_TS DESC", query_name="claims.get_claim_documents")
+    df = execute_query_df(
+        session,
+        f"""
+        SELECT CLAIM_ID, DOCUMENT_ID, DOCUMENT_NAME, DOCUMENT_TYPE, CREATED_TS
+        FROM {obj.MFQ_DOCUMENTS_TABLE}
+        WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR(?))
+        ORDER BY CREATED_TS DESC
+        """,
+        params=[str(claim_id)],
+        query_name="claims.get_claim_documents",
+    )
+    return _normalize_snowflake_dataframe_columns(df)
+
+
+def get_claim_history_by_claim_id(session, claim_id: str) -> pd.DataFrame:
+    df = execute_query_df(
+        session,
+        f"""
+        SELECT CLAIM_ID, STATUS, EVENT_TS, EVENT_NOTE, UPDATED_BY
+        FROM {obj.MFQ_STATUS_HISTORY_TABLE}
+        WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR(?))
+        ORDER BY EVENT_TS DESC
+        """,
+        params=[str(claim_id)],
+        query_name="claims.get_claim_history_by_claim_id",
+    )
+    return _normalize_snowflake_dataframe_columns(df)
 
 
 def get_assignment_queue(session, claim_id: str) -> pd.DataFrame:
@@ -436,8 +498,7 @@ def get_assignment_queue(session, claim_id: str) -> pd.DataFrame:
 
 
 def get_status_history(session, claim_id: str) -> pd.DataFrame:
-    claim_q = quote_sql(claim_id)
-    return execute_query_df(session, f"SELECT CLAIM_ID,STATUS,EVENT_TS,EVENT_NOTE,UPDATED_BY FROM {obj.MFQ_STATUS_HISTORY_TABLE} WHERE CLAIM_ID = '{claim_q}' ORDER BY EVENT_TS DESC", query_name="claims.get_status_history")
+    return get_claim_history_by_claim_id(session, claim_id)
 
 
 def update_claim_status(session, claim_id: str, new_status: str) -> None:
