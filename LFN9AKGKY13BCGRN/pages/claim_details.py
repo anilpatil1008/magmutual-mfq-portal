@@ -30,6 +30,17 @@ logger = logging.getLogger(__name__)
 
 
 DETAIL_TAB_OPTIONS = ["MFQ Form", "Records Summary", "MedCron", "Legal Memo", "Enquiries", "AI Assist", "Documents"]
+DETAIL_TAB_ICONS = {
+    "MFQ Form": "🩺",
+    "Records Summary": "📄",
+    "MedCron": "⏱️",
+    "Legal Memo": "🛡️",
+    "Enquiries": "💬",
+    "AI Assist": "✨",
+    "Documents": "📥",
+}
+SELECTED_CLAIM_DETAIL_TAB_KEY = "selected_claim_detail_tab"
+SELECTED_CLAIM_DETAIL_TAB_CLAIM_KEY = "selected_claim_detail_tab_claim_id"
 
 
 def _ensure_claim_cache(cache_name: str) -> dict:
@@ -1172,6 +1183,56 @@ def _render_documents_lazy_tab(session, claim_id: str) -> None:
     _render_docs_tab(documents_df)
 
 
+def render_claim_detail_tabs(active_tab: str) -> str:
+    """Render the polished claim-detail tab bar without mounting inactive tab content."""
+    selected_tab = active_tab if active_tab in DETAIL_TAB_OPTIONS else DETAIL_TAB_OPTIONS[0]
+
+    with st.container(key="claim_detail_tabs_shell"):
+        columns = st.columns([1.12, 1.45, 1.0, 1.15, 1.0, 1.0, 1.05], gap="small")
+        for column, tab_name in zip(columns, DETAIL_TAB_OPTIONS):
+            state_class = "active" if tab_name == selected_tab else "inactive"
+            button_key = f"claim_detail_tab_{state_class}_{tab_name.lower().replace(' ', '_')}"
+            label = f"{DETAIL_TAB_ICONS[tab_name]}  {tab_name}"
+            with column:
+                if st.button(label, key=button_key, use_container_width=True):
+                    selected_tab = tab_name
+                    st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY] = tab_name
+                    st.rerun()
+
+    return selected_tab
+
+
+def render_mfq_form_tab(session, ctx, claim_id: str, claim: dict) -> None:
+    _render_mfq_tab(session, ctx, claim_id, claim)
+
+
+def render_records_summary_tab(session, claim_id: str, claim: dict) -> None:
+    _render_summary_tab(session, claim_id, claim)
+
+
+def render_medcron_tab(session, claim_id: str) -> None:
+    summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id), label="Loading MedCron...")
+    _render_text_tab(summaries.get("MEDCRON", ""), "No MedCron summary available.")
+
+
+def render_legal_memo_tab(session, claim_id: str) -> None:
+    summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id), label="Loading legal memo...")
+    _render_text_tab(summaries.get("LEGAL_MEMO", ""), "No legal memo available.")
+
+
+def render_enquiries_tab(session, claim_id: str) -> None:
+    _render_history_tab(session, claim_id)
+
+
+def render_ai_assist_tab() -> None:
+    st.text_area("AI Assist Prompt", placeholder="Ask for claim-level insights from available summaries and MFQ answers")
+    st.caption("AI Assist is placeholder UI and requires downstream service wiring.")
+
+
+def render_documents_tab(session, claim_id: str) -> None:
+    _render_documents_lazy_tab(session, claim_id)
+
+
 def render(session, ctx) -> None:
     claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
     logger.info(
@@ -1221,31 +1282,25 @@ def render(session, ctx) -> None:
             sections_df=mfq_workspace.get("sections", pd.DataFrame()),
         )
 
-    tab_key = f"claim_details_active_tab_{claim_id}"
-    if st.session_state.get(tab_key) not in DETAIL_TAB_OPTIONS:
-        st.session_state[tab_key] = DETAIL_TAB_OPTIONS[0]
-    selected_tab = st.radio(
-        "Claim details section",
-        DETAIL_TAB_OPTIONS,
-        key=tab_key,
-        horizontal=True,
-        label_visibility="collapsed",
-    )
+    if st.session_state.get(SELECTED_CLAIM_DETAIL_TAB_CLAIM_KEY) != claim_id:
+        st.session_state[SELECTED_CLAIM_DETAIL_TAB_CLAIM_KEY] = claim_id
+        st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY] = DETAIL_TAB_OPTIONS[0]
+    if st.session_state.get(SELECTED_CLAIM_DETAIL_TAB_KEY) not in DETAIL_TAB_OPTIONS:
+        st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY] = DETAIL_TAB_OPTIONS[0]
+
+    selected_tab = render_claim_detail_tabs(st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY])
 
     if selected_tab == "MFQ Form":
-        _render_mfq_tab(session, ctx, claim_id, claim)
+        render_mfq_form_tab(session, ctx, claim_id, claim)
     elif selected_tab == "Records Summary":
-        _render_summary_tab(session, claim_id, claim)
+        render_records_summary_tab(session, claim_id, claim)
     elif selected_tab == "Documents":
-        _render_documents_lazy_tab(session, claim_id)
+        render_documents_tab(session, claim_id)
     elif selected_tab == "MedCron":
-        summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id), label="Loading MedCron...")
-        _render_text_tab(summaries.get("MEDCRON", ""), "No MedCron summary available.")
+        render_medcron_tab(session, claim_id)
     elif selected_tab == "Legal Memo":
-        summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id), label="Loading legal memo...")
-        _render_text_tab(summaries.get("LEGAL_MEMO", ""), "No legal memo available.")
+        render_legal_memo_tab(session, claim_id)
     elif selected_tab == "Enquiries":
-        _render_history_tab(session, claim_id)
+        render_enquiries_tab(session, claim_id)
     elif selected_tab == "AI Assist":
-        st.text_area("AI Assist Prompt", placeholder="Ask for claim-level insights from available summaries and MFQ answers")
-        st.caption("AI Assist is placeholder UI and requires downstream service wiring.")
+        render_ai_assist_tab()
