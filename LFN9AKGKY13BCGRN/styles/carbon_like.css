@@ -131,12 +131,16 @@ section[data-testid="stSidebar"] .stButton button p {
   color: #161616;
 }
 
-section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button {
+section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button,
+section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button:hover,
+section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button:focus {
   position: relative;
-  background: #edf5ff;
-  border-color: #dde1e6;
-  color: #0f62fe;
+  background: #edf5ff !important;
+  border-color: #78a9ff !important;
+  color: #0043ce !important;
+  font-weight: 700;
   padding-left: 13px;
+  box-shadow: none;
 }
 
 section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
@@ -150,9 +154,11 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button::before {
   background: #0f62fe;
 }
 
-section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
-  color: #161616;
-  font-weight: 600;
+section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p,
+section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button [data-testid="stIconMaterial"],
+section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button .material-symbols-rounded {
+  color: #0043ce !important;
+  font-weight: 700;
 }
 
 

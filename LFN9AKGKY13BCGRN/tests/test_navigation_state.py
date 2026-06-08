@@ -9,6 +9,7 @@ if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
 from utils import navigation
+from components.layout import _sidebar_nav_items
 
 
 def _patch_session_state(monkeypatch, initial=None):
@@ -132,3 +133,42 @@ def test_dashboard_route_instance_is_not_advanced_during_dashboard_normalization
     navigation.set_dashboard_route()
 
     assert state["dashboard_route_instance"] == 7
+
+
+def _sidebar_labels_and_active(current_view, selected_claim_id=None):
+    return [
+        (label, active)
+        for label, _view, _navigate, active in _sidebar_nav_items(
+            current_view,
+            selected_claim_id or "",
+        )
+    ]
+
+
+def test_sidebar_defaults_to_dashboard_and_reports_only():
+    assert _sidebar_labels_and_active("dashboard") == [
+        ("Dashboard", True),
+        ("Reports", False),
+    ]
+
+
+def test_sidebar_shows_active_claim_details_only_for_selected_claim_route():
+    assert _sidebar_labels_and_active("claim_details", "CLM-123") == [
+        ("Dashboard", False),
+        ("Claim Details", True),
+        ("Reports", False),
+    ]
+
+
+def test_sidebar_hides_claim_details_when_claim_id_is_missing():
+    assert _sidebar_labels_and_active("claim_details") == [
+        ("Dashboard", False),
+        ("Reports", False),
+    ]
+
+
+def test_sidebar_reports_active_without_claim_details():
+    assert _sidebar_labels_and_active("reports", "CLM-123") == [
+        ("Dashboard", False),
+        ("Reports", True),
+    ]

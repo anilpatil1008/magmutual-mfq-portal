@@ -185,6 +185,29 @@ def render_header(session, ctx, notifications_df) -> None:
 
 
 
+def _sidebar_nav_items(current_view: str, selected_claim_id: str) -> list[tuple[str, str, object, bool]]:
+    """Build sidebar items with ``current_view`` as the active-state source of truth."""
+    normalized_view = str(current_view or DASHBOARD_VIEW).strip().lower()
+    normalized_claim_id = str(selected_claim_id or "").strip()
+
+    items: list[tuple[str, str, object, bool]] = [
+        (DASHBOARD_PAGE, DASHBOARD_VIEW, navigate_to_dashboard, normalized_view == DASHBOARD_VIEW),
+    ]
+
+    if normalized_view == CLAIM_DETAILS_VIEW and normalized_claim_id:
+        items.append(
+            (
+                CLAIM_DETAILS_PAGE,
+                CLAIM_DETAILS_VIEW,
+                lambda: navigate_to_claim_details(normalized_claim_id),
+                True,
+            )
+        )
+
+    items.append((REPORTS_PAGE, REPORTS_VIEW, navigate_to_reports, normalized_view == REPORTS_VIEW))
+    return items
+
+
 def render_sidebar(ctx) -> None:
     page_icons = {
         DASHBOARD_PAGE: ":material/dashboard:",
@@ -215,27 +238,16 @@ def render_sidebar(ctx) -> None:
 
         current_view = str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
         selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
-        show_claim_details_nav = current_view == CLAIM_DETAILS_VIEW and bool(selected_claim_id)
-        pages = [(DASHBOARD_PAGE, DASHBOARD_VIEW, navigate_to_dashboard)]
-        if show_claim_details_nav:
-            pages.append(
-                (
-                    CLAIM_DETAILS_PAGE,
-                    CLAIM_DETAILS_VIEW,
-                    lambda: navigate_to_claim_details(selected_claim_id),
-                )
-            )
-        pages.append((REPORTS_PAGE, REPORTS_VIEW, navigate_to_reports))
-        for page, view, navigate in pages:
-            active = current_view == view
+        for page, _view, navigate, active in _sidebar_nav_items(current_view, selected_claim_id):
             key_slug = page.lower().replace(" ", "_")
+            key_prefix = "nav_active" if active else "nav"
 
             if st.button(
                 page,
                 icon=page_icons.get(page, ":material/chevron_right:"),
                 use_container_width=True,
-                key=f"nav_{key_slug}",
-                type="primary" if active else "secondary",
+                key=f"{key_prefix}_{key_slug}",
+                type="secondary",
             ):
                 st.query_params.clear()
                 navigate()
