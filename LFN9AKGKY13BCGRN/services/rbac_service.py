@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import logging
+import math
 
 import streamlit as st
 
@@ -101,6 +102,14 @@ def get_session_context_snapshot(session) -> dict[str, str]:
     return _get_session_context_snapshot_cached(session, cache_scope)
 
 
-def can_edit_claim(claim_status: str, assigned_to: str | None, username: str) -> bool:
-    is_assigned_user = (assigned_to or "").upper() == username.upper()
+def _normalize_identifier(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, float) and math.isnan(value):
+        return ""
+    return str(value).strip().upper()
+
+
+def can_edit_claim(claim_status: str, assigned_to: object, username: object) -> bool:
+    is_assigned_user = _normalize_identifier(assigned_to) == _normalize_identifier(username)
     return claim_status in {"MFQ Generated", "Assigned", "Rejected"} or (claim_status == "Assigned" and is_assigned_user)
