@@ -16,6 +16,7 @@ def navigate_to_dashboard() -> None:
     st.session_state["selected_claim_id"] = None
     st.session_state["selected_claim"] = None
     st.session_state["claim_detail_view"] = False
+    st.session_state["show_claim_details_nav"] = False
     st.session_state["page"] = DASHBOARD_PAGE
 
 
@@ -32,6 +33,7 @@ def navigate_to_claim_details(claim_id: str) -> None:
     st.session_state["current_view"] = CLAIM_DETAILS_VIEW
     st.session_state["active_sidebar_item"] = CLAIM_DETAILS_PAGE
     st.session_state["claim_detail_view"] = True
+    st.session_state["show_claim_details_nav"] = True
     st.session_state["page"] = CLAIM_DETAILS_PAGE
 
 
@@ -40,3 +42,8 @@ def is_claim_details_route_active() -> bool:
     current_view = str(st.session_state.get("current_view") or "").strip().lower()
     selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
     return current_view == CLAIM_DETAILS_VIEW and bool(selected_claim_id)
+
+
+def should_show_claim_details_nav() -> bool:
+    """Return True only while the user is actively viewing a selected claim."""
+    return bool(st.session_state.get("show_claim_details_nav")) and is_claim_details_route_active()
