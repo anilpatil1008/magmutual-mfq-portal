@@ -4,12 +4,15 @@ import pandas as pd
 import streamlit as st
 
 from utils.constants import DEFAULT_ROLE
+from utils.navigation import navigate_to_claim_details
 
 
 def init_state() -> None:
     defaults = {
         "active_page": "Dashboard",
         "selected_claim_id": None,
+        "current_view": "dashboard",
+        "active_sidebar_item": "Dashboard",
         "active_role": DEFAULT_ROLE,
         "notifications": 3,
         "mfq_edit_mode": False,
@@ -30,9 +33,7 @@ def set_page(page: str) -> None:
 
 
 def select_claim(claim_id: str) -> None:
-    st.session_state.selected_claim_id = str(claim_id)
-    st.session_state.active_page = "Claim Details"
-    st.session_state.current_view = "Claim Details"
+    navigate_to_claim_details(str(claim_id))
 
 
 def score_bucket(score: float) -> str:
