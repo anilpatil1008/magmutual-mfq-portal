@@ -442,7 +442,8 @@ def _open_claim_details(claim_id: str) -> None:
     st.session_state["review_click_started_at"] = started
     st.session_state["selected_claim_id"] = claim_id
     st.session_state["active_page"] = "Claim Details"
-    st.session_state["current_view"] = "Claim Details"
+    st.session_state["current_view"] = "claim_details"
+    st.session_state["active_sidebar_item"] = "Claim Details"
     st.session_state["last_review_event"] = None
     st.session_state["last_processed_review_claim_id"] = claim_id
     logger.info("review_click_state_update_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)

@@ -28,6 +28,8 @@ if "current_view" not in st.session_state:
     st.session_state.current_view = "dashboard"
 if "selected_claim_id" not in st.session_state:
     st.session_state.selected_claim_id = None
+if "active_sidebar_item" not in st.session_state:
+    st.session_state.active_sidebar_item = st.session_state.active_page
 
 
 def _query_param_value(name: str) -> str:
@@ -43,7 +45,8 @@ def _sync_claim_details_route_from_query_params() -> None:
     if query_page.casefold() == "claim details".casefold() and query_claim_id:
         st.session_state["selected_claim_id"] = query_claim_id
         st.session_state["active_page"] = "Claim Details"
-        st.session_state["current_view"] = "Claim Details"
+        st.session_state["current_view"] = "claim_details"
+        st.session_state["active_sidebar_item"] = "Claim Details"
 
 
 _sync_claim_details_route_from_query_params()
