@@ -9,7 +9,7 @@ import re
 import streamlit as st
 
 from components.notifications import render_notification_center
-from utils.navigation import is_claim_details_route_active, navigate_to_dashboard
+from utils.navigation import navigate_to_dashboard, should_show_claim_details_nav
 
 _HIDE_DEFAULT_STREAMLIT_NAV_CSS = """
 <style>
@@ -206,11 +206,12 @@ def render_sidebar(ctx) -> None:
         st.markdown('<div class="mm-sidebar-divider"></div>', unsafe_allow_html=True)
 
         pages = ["Dashboard", "Claims", "Reports"]
-        if is_claim_details_route_active():
+        show_claim_details_nav = should_show_claim_details_nav()
+        if show_claim_details_nav:
             pages.insert(1, "Claim Details")
         active_sidebar_item = st.session_state.get("active_sidebar_item") or st.session_state.get("active_page")
         for page in pages:
-            active = active_sidebar_item == page or st.session_state.active_page == page
+            active = active_sidebar_item == page or st.session_state.get("active_page") == page
             icon = page_icons.get(page, ":material/chevron_right:")
             key_slug = page.lower().replace(" ", "_")
             key_prefix = "nav_active" if active else "nav"
@@ -218,16 +219,22 @@ def render_sidebar(ctx) -> None:
             if st.button(page, icon=icon, use_container_width=True, key=f"{key_prefix}_{key_slug}"):
                 if page == "Dashboard":
                     navigate_to_dashboard()
+                elif page == "Claim Details":
+                    st.session_state.active_page = page
+                    st.session_state.current_view = page.lower().replace(" ", "_")
+                    st.session_state.active_sidebar_item = page
+                    st.session_state.claim_detail_view = True
+                    st.session_state.show_claim_details_nav = True
                 else:
                     st.session_state.active_page = page
                     st.session_state.current_view = page.lower().replace(" ", "_")
                     st.session_state.active_sidebar_item = page
-                    if page != "Claim Details":
-                        st.session_state.selected_claim_id = None
-                        st.session_state.selected_claim = None
-                        st.session_state.claim_detail_view = False
+                    st.session_state.selected_claim_id = None
+                    st.session_state.selected_claim = None
+                    st.session_state.claim_detail_view = False
+                    st.session_state.show_claim_details_nav = False
                 st.query_params.clear()
                 st.rerun()
 
-        if is_claim_details_route_active():
+        if show_claim_details_nav:
             st.caption(f"Selected claim: {st.session_state.selected_claim_id}")

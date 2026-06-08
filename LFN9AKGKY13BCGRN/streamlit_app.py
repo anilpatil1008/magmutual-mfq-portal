@@ -38,6 +38,8 @@ if "selected_claim_id" not in st.session_state:
     st.session_state.selected_claim_id = None
 if "active_sidebar_item" not in st.session_state:
     st.session_state.active_sidebar_item = st.session_state.active_page
+if "show_claim_details_nav" not in st.session_state:
+    st.session_state.show_claim_details_nav = False
 
 
 def _query_param_value(name: str) -> str:
@@ -91,6 +93,7 @@ def _normalize_navigation_state() -> None:
         st.session_state["selected_claim_id"] = None
         st.session_state["selected_claim"] = None
         st.session_state["claim_detail_view"] = False
+        st.session_state["show_claim_details_nav"] = False
         return
 
     if active_page == "Reports":
@@ -100,6 +103,7 @@ def _normalize_navigation_state() -> None:
         st.session_state["selected_claim_id"] = None
         st.session_state["selected_claim"] = None
         st.session_state["claim_detail_view"] = False
+        st.session_state["show_claim_details_nav"] = False
         return
 
     if active_page == "Admin":
@@ -109,6 +113,7 @@ def _normalize_navigation_state() -> None:
         st.session_state["selected_claim_id"] = None
         st.session_state["selected_claim"] = None
         st.session_state["claim_detail_view"] = False
+        st.session_state["show_claim_details_nav"] = False
         return
 
     navigate_to_dashboard()
@@ -123,7 +128,7 @@ render_sidebar(ctx)
 
 if (
     str(st.session_state.get("current_view") or "").strip().lower() == CLAIM_DETAILS_VIEW
-    and st.session_state.get("selected_claim_id")
+    and str(st.session_state.get("selected_claim_id") or "").strip()
 ):
     claim_details.render(session=session, ctx=ctx)
 elif st.session_state.get("active_page") == "Claims":

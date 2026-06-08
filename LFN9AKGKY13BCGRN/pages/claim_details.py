@@ -395,6 +395,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
 
 def _go_back_to_dashboard() -> None:
     navigate_to_dashboard()
+    st.query_params.clear()
     st.rerun()
 
 
