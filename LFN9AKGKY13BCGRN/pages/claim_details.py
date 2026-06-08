@@ -22,7 +22,7 @@ from services.claim_service import (
     save_mfq_answer,
     update_claim_status,
 )
-from services.rbac_service import can_edit_claim
+from services.rbac_service import can_edit_claim, get_current_role
 
 logger = logging.getLogger(__name__)
 
@@ -102,48 +102,57 @@ def _first_safe_display(claim: dict, keys: tuple[str, ...], fallback: str = "-")
 
 
 def _normalize_for_rule(value) -> str:
-    """Normalize workflow statuses and Snowflake roles for action visibility rules."""
+    """Normalize MFQ statuses and Snowflake role names for visibility rules."""
     return re.sub(r"[\s_]+", " ", _safe_display(value, fallback="")).strip().upper()
 
 
-def _normalized_claim_statuses_for_actions(claim_status, mfq_status) -> list[str]:
-    """Return selected claim-detail statuses in rule priority order.
-
-    The Dashboard can show MFQ status while the detail view can also expose
-    workflow/claim status fields. Approved must always be read-only if any
-    selected detail status says Approved; otherwise MFQ status drives the
-    generated/rejected actions with claim status as a fallback.
-    """
-    statuses: list[str] = []
-    for value in (mfq_status, claim_status):
-        normalized = _normalize_for_rule(value)
-        if normalized and normalized not in statuses:
-            statuses.append(normalized)
-    return statuses
+def _current_role_for_actions(session, ctx) -> str:
+    """Resolve the current role from selected session state, context, or Snowflake."""
+    selected_role = _safe_display(st.session_state.get("selected_sf_role"), fallback="")
+    if selected_role:
+        return selected_role
+    context_role = _safe_display(getattr(ctx, "sf_role", ""), fallback="")
+    if context_role:
+        return context_role
+    return _safe_display(get_current_role(session), fallback="")
 
 
 def get_claim_detail_actions(claim_status, mfq_status, current_role) -> list[str]:
-    statuses = _normalized_claim_statuses_for_actions(claim_status, mfq_status)
-    workflow_status = statuses[0] if statuses else ""
+    """Return top-card actions using MFQ_STATUS only.
+
+    claim_status is retained for backward-compatible call sites/tests, but it
+    must not influence the Claim Details header badge or action decisions.
+    """
+    del claim_status
+    normalized_mfq_status = _normalize_for_rule(mfq_status)
     role = _normalize_for_rule(current_role)
 
-    if "APPROVED" in statuses:
+    if normalized_mfq_status == "APPROVED":
         return []
-    if "REJECTED" in statuses:
+    if normalized_mfq_status == "REJECTED":
         if role in {"CLAIM OPS", "CLAIM ANALYST SUPERVISOR"}:
             return ["assign_to_faculty"]
         return []
-    if workflow_status == "MFQ GENERATED" and role == "CLAIM OPS":
+    if normalized_mfq_status == "MFQ GENERATED" and role == "CLAIM OPS":
         return ["assign_to_faculty", "approve"]
     return []
 
 
 def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     claim_id_display = _safe_display(claim.get("CLAIM_ID"), fallback=_safe_display(claim_id))
-    status = _first_safe_display(claim, ("MFQ_STATUS", "STATUS", "CLAIM_STATUS"), fallback="Unknown")
-    priority = _safe_display(claim.get("PRIORITY"), fallback="Unknown")
-    patient = _safe_display(claim.get("PATIENT_NAME"), fallback="Unknown Patient")
-    defendant = _safe_display(claim.get("DEFENDANT_NAME"), fallback="Unknown")
+    file_number = _safe_display(claim.get("FILE_NUMBER"), fallback=claim_id_display)
+    raw_mfq_status = claim.get("MFQ_STATUS")
+    status = _safe_display(raw_mfq_status, fallback="Unknown")
+    normalized_mfq_status = _normalize_for_rule(raw_mfq_status)
+    priority = _safe_display(claim.get("PRIORITY"), fallback="")
+    patient_defendant = _safe_display(claim.get("PATIENT_DEFENDANT"), fallback="")
+    patient = _safe_display(claim.get("PATIENT_NAME"), fallback="")
+    defendant = _safe_display(claim.get("DEFENDANT_NAME"), fallback="")
+    title = patient_defendant or (
+        f"{patient} / {defendant}"
+        if patient and defendant
+        else patient or defendant or "Unknown Patient vs Unknown Defendant"
+    )
     specialty = _first_safe_display(
         claim,
         ("DEFENDANT_SPECIALTY", "DEFENDANT_SPECIALITY", "SPECIALTY", "SPECIALITY"),
@@ -153,19 +162,19 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     assigned_to_display = assigned_to or "Unassigned"
     assign_label = "Assign"
     claim_action_status = claim.get("CLAIM_STATUS", claim.get("STATUS"))
-    mfq_action_status = claim.get("MFQ_STATUS", claim.get("STATUS"))
-    current_role = getattr(ctx, "sf_role", "")
+    current_role = _current_role_for_actions(session, ctx)
     actions = get_claim_detail_actions(
         claim_status=claim_action_status,
-        mfq_status=mfq_action_status,
+        mfq_status=raw_mfq_status,
         current_role=current_role,
     )
     logger.info(
-        "claim_detail_actions_resolved claim_id=%s claim_status=%s mfq_status=%s current_role=%s actions=%s",
+        "claim_detail_top_card_state selected_claim_id=%s raw_mfq_status=%s normalized_mfq_status=%s current_role=%s normalized_role=%s visible_buttons=%s",
         claim_id,
-        _safe_display(claim_action_status, fallback=""),
-        _safe_display(mfq_action_status, fallback=""),
+        _safe_display(raw_mfq_status, fallback=""),
+        normalized_mfq_status,
         _safe_display(current_role, fallback=""),
+        _normalize_for_rule(current_role),
         actions,
     )
 
@@ -173,18 +182,24 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
         left_col, action_col = st.columns([6.2, 1.3], vertical_alignment="top")
         with left_col:
             st.markdown("<div class='review-headline-wrap'>", unsafe_allow_html=True)
+            priority_badge_html = (
+                f"<span class='review-pill review-priority'>{escape(priority)}</span>"
+                if priority
+                else ""
+            )
+            title_html = escape(title).replace(" / ", " <span class='review-vs'>vs</span> ")
             st.markdown(
                 (
-                    f"<div class='review-headline'>{escape(patient) if defendant == 'Unknown' else escape(patient) + ' <span class=\'review-vs\'>vs</span> ' + escape(defendant)}</div>"
+                    f"<div class='review-headline'>{title_html}</div>"
                     "<div class='review-badges'>"
                     f"<span class='review-pill review-status'>{escape(status)}</span>"
-                    f"<span class='review-pill review-priority'>{escape(priority)}</span>"
+                    f"{priority_badge_html}"
                     "</div>"
                     "<div class='review-meta-grid claim-meta-grid'>"
-                    f"<div><div class='review-meta-label'>Claim ID</div><div>{escape(claim_id_display)}</div></div>"
+                    f"<div><div class='review-meta-label'>File Number</div><div>{escape(file_number)}</div></div>"
                     f"<div><div class='review-meta-label'>Defendant Specialty</div><div>{escape(specialty)}</div></div>"
                     f"<div><div class='review-meta-label'>Date Requested</div><div>{escape(date_requested)}</div></div>"
-                    f"<div><div class='review-meta-label'>Assigned To</div><div>{escape(assigned_to_display)}</div></div>"
+                    f"<div><div class='review-meta-label'>Contact</div><div>{escape(assigned_to_display)}</div></div>"
                     "</div>"
                 ),
                 unsafe_allow_html=True,
@@ -890,7 +905,7 @@ def _render_mfq_tab(session, ctx, claim_id: str, claim: dict) -> None:
     edit_key = f"mfq_edit_mode_{claim_id}"
     if edit_key not in st.session_state:
         st.session_state[edit_key] = False
-    can_edit = can_edit_claim(str(claim.get("STATUS", "")), claim.get("ASSIGNED_TO"), ctx.username)
+    can_edit = can_edit_claim(str(claim.get("MFQ_STATUS", "")), claim.get("ASSIGNED_TO"), ctx.username)
     editable_section_ids = get_editable_section_ids_for_user(session, str(claim_id), ctx.username)
     save_clicked = False
     with st.container(key="mfq_header_card"):
