@@ -239,6 +239,31 @@ def normalize_status(value) -> str:
     return re.sub(r"[\s_]+", " ", _safe_display(value, fallback="")).strip().lower()
 
 
+def _css_token(value, fallback: str = "default") -> str:
+    token = re.sub(r"[^a-z0-9]+", "-", _safe_display(value, fallback="").casefold()).strip("-")
+    return token or fallback
+
+
+def _status_badge_class(mfq_status) -> str:
+    """Return a visual tone class for an MFQ_STATUS-only header badge."""
+    status = normalize_status(mfq_status)
+    if status == "mfq generated":
+        return "generated"
+    if status == "approved":
+        return "approved"
+    if status == "rejected":
+        return "rejected"
+    return _css_token(status)
+
+
+def _priority_badge_class(priority) -> str:
+    """Return a visual tone class for a PRIORITY-only header badge."""
+    normalized_priority = _css_token(priority)
+    if normalized_priority in {"high", "medium", "low", "normal"}:
+        return normalized_priority
+    return "default"
+
+
 def get_claim_action_buttons(mfq_status) -> list[str]:
     """Return Claim Details top-card actions using MFQ_STATUS only."""
     status = normalize_status(mfq_status)
@@ -264,6 +289,7 @@ def get_claim_detail_actions(claim_status=None, mfq_status=None, current_role=No
 
 
 def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
+    del ctx
     raw_mfq_status = claim.get("MFQ_STATUS")
     status = _safe_display(raw_mfq_status, fallback="Unknown")
     normalized_mfq_status = normalize_status(raw_mfq_status)
@@ -287,6 +313,8 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     )
     assign_label = "Assign to Faculty"
     actions = get_claim_action_buttons(raw_mfq_status)
+    status_class = _status_badge_class(raw_mfq_status)
+    priority_class = _priority_badge_class(priority)
     logger.info(
         "claim_detail_top_card_state selected_claim_id=%s raw_mfq_status=%s normalized_mfq_status=%s visible_buttons=%s",
         claim_id,
@@ -299,7 +327,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
         left_col, action_col = st.columns([5.2, 2.1], vertical_alignment="top")
         with left_col:
             priority_badge_html = (
-                f"<span class='review-pill review-priority'>{escape(priority)}</span>"
+                f"<span class='review-pill review-priority review-priority-{escape(priority_class)}'>{escape(priority)}</span>"
                 if priority
                 else ""
             )
@@ -310,7 +338,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
                     "<div class='review-title-row'>"
                     f"<div class='review-headline'>{title_html}</div>"
                     "<div class='review-badges'>"
-                    f"<span class='review-pill review-status'>{escape(status)}</span>"
+                    f"<span class='review-pill review-status review-status-{escape(status_class)}'>{escape(status)}</span>"
                     f"{priority_badge_html}"
                     "</div>"
                     "</div>"
@@ -322,23 +350,31 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
 
         with action_col:
             if actions:
-                st.markdown("<div class='review-header-actions claim-header-actions'>", unsafe_allow_html=True)
-                if "assign_to_faculty" in actions and st.button(assign_label, type="primary", use_container_width=True):
-                    st.session_state[f"open_assign_modal_{claim_id}"] = True
+                with st.container(key="claim_header_actions"):
+                    if "assign_to_faculty" in actions and st.button(
+                        assign_label,
+                        key=f"assign_to_faculty_{claim_id}",
+                        type="primary",
+                        icon=":material/person_add:",
+                        use_container_width=True,
+                    ):
+                        st.session_state[f"open_assign_modal_{claim_id}"] = True
 
-                if "approve" in actions and st.button("Approve", type="secondary", use_container_width=True):
-                    update_claim_status(session, claim_id, "Approved")
-                    _invalidate_claim_caches(claim_id, "claim_details_cache", "claim_history_cache")
-                    st.success("Claim approved.")
-                    st.rerun()
-                st.markdown("</div>", unsafe_allow_html=True)
+                    if "approve" in actions and st.button(
+                        "Approve",
+                        key=f"approve_claim_{claim_id}",
+                        type="secondary",
+                        icon=":material/check_circle:",
+                        use_container_width=True,
+                    ):
+                        update_claim_status(session, claim_id, "Approved")
+                        _invalidate_claim_caches(claim_id, "claim_details_cache", "claim_history_cache")
+                        st.success("Claim approved.")
+                        st.rerun()
 
 
 def _go_back_to_dashboard() -> None:
-    st.session_state["active_page"] = "Dashboard"
-    st.session_state["current_view"] = "dashboard"
-    st.session_state["active_sidebar_item"] = "Dashboard"
-    st.session_state["selected_claim_id"] = None
+    _set_dashboard_navigation_state(clear_selected_claim=True)
     st.session_state["last_review_event"] = None
     st.session_state["last_processed_review_claim_id"] = None
     for key in list(st.session_state.keys()):
@@ -348,11 +384,20 @@ def _go_back_to_dashboard() -> None:
     st.rerun()
 
 
+def _set_dashboard_navigation_state(*, clear_selected_claim: bool = True) -> None:
+    """Synchronize all app navigation keys for a safe Dashboard transition."""
+    st.session_state["active_page"] = "Dashboard"
+    st.session_state["current_view"] = "dashboard"
+    st.session_state["active_sidebar_item"] = "Dashboard"
+    if clear_selected_claim:
+        st.session_state["selected_claim_id"] = None
+
+
 def _render_breadcrumb(claim_id: str) -> None:
     with st.container(key="review_breadcrumb_row"):
         st.markdown("<div class='review-breadcrumb'>", unsafe_allow_html=True)
         st.button(
-            f"← Back to Dashboard / {escape(str(claim_id))}",
+            f"← Back to Dashboard / {claim_id}",
             key="review_back_to_dashboard",
             on_click=_go_back_to_dashboard,
             type="tertiary",

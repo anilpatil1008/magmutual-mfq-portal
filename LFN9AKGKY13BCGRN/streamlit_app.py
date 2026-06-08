@@ -52,6 +52,20 @@ def _sync_claim_details_route_from_query_params() -> None:
 _sync_claim_details_route_from_query_params()
 
 
+def _normalize_navigation_state() -> None:
+    """Keep detail/dashboard session keys aligned before rendering a page."""
+    active_page = str(st.session_state.get("active_page") or "Dashboard")
+    selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
+    if active_page == "Claim Details" and not selected_claim_id:
+        st.session_state["active_page"] = "Dashboard"
+        st.session_state["current_view"] = "dashboard"
+        st.session_state["active_sidebar_item"] = "Dashboard"
+        st.query_params.clear()
+
+
+_normalize_navigation_state()
+
+
 page_map = {
     "Dashboard": dashboard.render,
     "Claims": claims.render,
@@ -64,6 +78,7 @@ notifications = get_user_notifications(session, ctx.username, limit=6)
 render_header(session, ctx, notifications)
 render_sidebar(ctx)
 _sync_claim_details_route_from_query_params()
+_normalize_navigation_state()
 
 render_fn = page_map.get(st.session_state.active_page, dashboard.render)
 render_fn(session=session, ctx=ctx)
