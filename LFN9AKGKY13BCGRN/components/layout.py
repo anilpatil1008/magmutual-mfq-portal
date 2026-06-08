@@ -229,14 +229,13 @@ def render_sidebar(ctx) -> None:
         for page, view, navigate in pages:
             active = current_view == view
             key_slug = page.lower().replace(" ", "_")
-            key_prefix = "nav_active" if active else "nav"
 
             if st.button(
                 page,
                 icon=page_icons.get(page, ":material/chevron_right:"),
                 use_container_width=True,
-                key=f"{key_prefix}_{key_slug}",
+                key=f"nav_{key_slug}",
+                type="primary" if active else "secondary",
             ):
-                navigate()
                 st.query_params.clear()
-                st.rerun()
+                navigate()

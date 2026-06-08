@@ -441,10 +441,10 @@ def _open_claim_details(claim_id: str) -> None:
     claim_id = str(claim_id).strip()
     _discard_selected_claim_detail_cache(claim_id)
     st.session_state["review_click_started_at"] = started
-    navigate_to_claim_details(claim_id)
     st.session_state["last_review_event"] = None
     st.session_state["last_processed_review_claim_id"] = claim_id
     logger.info("review_click_state_update_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
+    navigate_to_claim_details(claim_id)
 
 
 def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
@@ -472,7 +472,6 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
         btn_key = f"{key_prefix}_open_{claim_id}"
         if st.button(f"Review {claim_id}", key=btn_key):
             _open_claim_details(str(claim_id))
-            st.rerun()
 
         row_html = "".join([f"<td>{value}</td>" for value in row.values])
         rows.append(f"<tr>{row_html}</tr>")
@@ -501,7 +500,11 @@ def render_recent_claims_table(
     page: int | None = None,
     page_size: int = 10,
     pagination_state_key: str | None = None,
+    table_key: str | None = None,
+    component_key: str | None = None,
 ) -> None:
+    stable_table_key = table_key or f"{key_prefix}_recent_claims_table"
+    stable_component_key = component_key or f"{stable_table_key}_component"
     pagination_key_base = f"{key_prefix}_recent_claims_pagination"
     page_state_key = pagination_state_key or f"{pagination_key_base}_page"
     if page_state_key not in st.session_state:
@@ -533,7 +536,7 @@ def render_recent_claims_table(
         st.info(empty_message)
         return
 
-    with st.container(key=f"{key_prefix}_recent_claims_table"):
+    with st.container(key=f"{stable_table_key}_container"):
         header_cells: list[str] = []
         for column in RECENT_CLAIMS_COLUMNS:
             col_key = column["key"]
@@ -615,7 +618,7 @@ def render_recent_claims_table(
         review_event = _RECENT_CLAIMS_TABLE_COMPONENT(
             html=table_html,
             height=600,
-            key=f"{key_prefix}_recent_claims_table_component",
+            key=stable_component_key,
             default=None,
         )
         if isinstance(review_event, dict):
@@ -629,8 +632,6 @@ def render_recent_claims_table(
                 st.session_state[last_event_key] = event_id
                 st.session_state["last_review_event"] = None
                 _open_claim_details(claim_id)
-                st.rerun()
-                st.stop()
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
         pager_cols = st.columns([3, 1], vertical_alignment="center")
         pager_cols[0].markdown(f"<div class='recent-claims-pagination-summary'>{summary_text}</div>", unsafe_allow_html=True)
