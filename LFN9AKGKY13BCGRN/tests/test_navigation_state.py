@@ -13,7 +13,13 @@ from utils import navigation
 
 def _patch_session_state(monkeypatch, initial=None):
     session_state = dict(initial or {})
-    monkeypatch.setattr(navigation, "st", SimpleNamespace(session_state=session_state))
+    rerun_calls = {"count": 0}
+
+    def _rerun():
+        rerun_calls["count"] += 1
+
+    monkeypatch.setattr(navigation, "st", SimpleNamespace(session_state=session_state, rerun=_rerun))
+    session_state["_rerun_calls"] = rerun_calls
     return session_state
 
 
@@ -38,6 +44,7 @@ def test_navigate_to_dashboard_clears_claim_details_state(monkeypatch):
     assert state["selected_claim"] is None
     assert state["claim_detail_view"] is False
     assert state["show_claim_details_nav"] is False
+    assert state["_rerun_calls"]["count"] == 1
 
 
 def test_navigate_to_claim_details_sets_single_claim_details_route(monkeypatch):
@@ -51,6 +58,7 @@ def test_navigate_to_claim_details_sets_single_claim_details_route(monkeypatch):
     assert state["claim_detail_view"] is True
     assert state["show_claim_details_nav"] is True
     assert navigation.is_claim_details_route_active() is True
+    assert state["_rerun_calls"]["count"] == 1
 
 
 def test_stale_selected_claim_does_not_route_without_claim_details_view(monkeypatch):
@@ -86,3 +94,4 @@ def test_navigate_to_reports_clears_selected_claim(monkeypatch):
     assert state["selected_claim"] is None
     assert state["claim_detail_view"] is False
     assert state["show_claim_details_nav"] is False
+    assert state["_rerun_calls"]["count"] == 1

@@ -12,8 +12,8 @@ from utils.navigation import (
     DASHBOARD_VIEW,
     REPORTS_VIEW,
     navigate_to_claim_details,
-    navigate_to_dashboard,
-    navigate_to_reports,
+    set_dashboard_route,
+    set_reports_route,
 )
 
 st.set_page_config(
@@ -73,23 +73,30 @@ def _sync_claim_details_route_from_query_params() -> None:
     navigate_to_claim_details(query_claim_id)
 
 
+
 def _normalize_navigation_state() -> None:
-    """Keep the single routing source of truth aligned before rendering once."""
+    """Normalize legacy state without rendering or rerunning.
+
+    ``current_view`` is the only router selector. A stale ``selected_claim_id``
+    must not route by itself, and an incomplete Claim Details route is folded
+    back to Dashboard before any page body is rendered.
+    """
     current_view = str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
     selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
 
-    if current_view == CLAIM_DETAILS_VIEW:
-        if selected_claim_id:
-            navigate_to_claim_details(selected_claim_id)
-        else:
-            navigate_to_dashboard()
+    if current_view == CLAIM_DETAILS_VIEW and selected_claim_id:
+        st.session_state["current_view"] = CLAIM_DETAILS_VIEW
+        st.session_state["selected_claim_id"] = selected_claim_id
+        st.session_state["active_page"] = CLAIM_DETAILS_PAGE
+        st.session_state["show_claim_details_nav"] = True
+        st.session_state["claim_detail_view"] = True
         return
 
     if current_view == REPORTS_VIEW:
-        navigate_to_reports()
+        set_reports_route()
         return
 
-    navigate_to_dashboard()
+    set_dashboard_route()
 
 
 _sync_claim_details_route_from_query_params()

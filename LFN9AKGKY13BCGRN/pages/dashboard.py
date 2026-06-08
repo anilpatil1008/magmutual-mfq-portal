@@ -424,8 +424,8 @@ def _render_dashboard_view(session, ctx) -> None:
     logger.info("dashboard_metrics_ms=%d", int((perf_counter() - t0) * 1000))
     render_kpi_cards(metrics)
 
-    card_key = "dash_recent_claims"
-    selected_bucket_for_search = str(st.session_state.get(f"{card_key}_bucket") or CLAIM_BUCKET_OPTIONS[0])
+    card_key = "dashboard_claims"
+    selected_bucket_for_search = str(st.session_state.get("dashboard_claims_tab") or CLAIM_BUCKET_OPTIONS[0])
     if selected_bucket_for_search not in CLAIM_BUCKET_OPTIONS:
         selected_bucket_for_search = CLAIM_BUCKET_OPTIONS[0]
     search_state_key = _claims_search_state_key(selected_bucket_for_search)
@@ -448,7 +448,7 @@ def _render_dashboard_view(session, ctx) -> None:
                 with st.container(key="recent_claims_search"):
                     live_search = render_live_claims_search(
                         value=search,
-                        table_key=search_state_key,
+                        table_key="dashboard_claims_search",
                         placeholder="Search by patient, defendant, claim ID, file #, or status...",
                     )
                     if live_search is not None and live_search != search:
@@ -469,7 +469,7 @@ def _render_dashboard_view(session, ctx) -> None:
             "Recent Claims Tabs",
             CLAIM_BUCKET_OPTIONS,
             horizontal=True,
-            key=f"{card_key}_bucket",
+            key="dashboard_claims_tab",
             format_func=lambda bucket: _claim_bucket_label(bucket, claim_counts),
             label_visibility="collapsed",
         )
@@ -515,6 +515,8 @@ def _render_dashboard_view(session, ctx) -> None:
             page=current_page,
             page_size=DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
             pagination_state_key="claims_page_number",
+            table_key="recent_claims_table",
+            component_key="recent_claims_table",
         )
 
 

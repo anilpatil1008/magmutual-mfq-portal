@@ -10,8 +10,8 @@ REPORTS_VIEW = "reports"
 CLAIM_DETAILS_VIEW = "claim_details"
 
 
-def navigate_to_dashboard() -> None:
-    """Synchronize session state for the Dashboard route."""
+def set_dashboard_route() -> None:
+    """Synchronize session state for the Dashboard route without rerunning."""
     st.session_state["selected_claim_id"] = None
     st.session_state["selected_claim"] = None
     st.session_state["current_view"] = DASHBOARD_VIEW
@@ -21,8 +21,8 @@ def navigate_to_dashboard() -> None:
     st.session_state["page"] = DASHBOARD_PAGE
 
 
-def navigate_to_reports() -> None:
-    """Synchronize session state for the Reports route."""
+def set_reports_route() -> None:
+    """Synchronize session state for the Reports route without rerunning."""
     st.session_state["selected_claim_id"] = None
     st.session_state["selected_claim"] = None
     st.session_state["current_view"] = REPORTS_VIEW
@@ -32,11 +32,11 @@ def navigate_to_reports() -> None:
     st.session_state["page"] = REPORTS_PAGE
 
 
-def navigate_to_claim_details(claim_id: str) -> None:
-    """Synchronize session state for the temporary Claim Details route."""
+def set_claim_details_route(claim_id: str) -> None:
+    """Synchronize session state for the temporary Claim Details route without rerunning."""
     normalized_claim_id = str(claim_id or "").strip()
     if not normalized_claim_id:
-        navigate_to_dashboard()
+        set_dashboard_route()
         return
 
     st.session_state["selected_claim_id"] = normalized_claim_id
@@ -46,6 +46,24 @@ def navigate_to_claim_details(claim_id: str) -> None:
     st.session_state["claim_detail_view"] = True
     st.session_state["show_claim_details_nav"] = True
     st.session_state["page"] = CLAIM_DETAILS_PAGE
+
+
+def navigate_to_dashboard() -> None:
+    """Navigate to Dashboard and immediately restart Streamlit from the single router."""
+    set_dashboard_route()
+    st.rerun()
+
+
+def navigate_to_reports() -> None:
+    """Navigate to Reports and immediately restart Streamlit from the single router."""
+    set_reports_route()
+    st.rerun()
+
+
+def navigate_to_claim_details(claim_id: str) -> None:
+    """Navigate to Claim Details and immediately restart Streamlit from the single router."""
+    set_claim_details_route(claim_id)
+    st.rerun()
 
 
 def is_claim_details_route_active() -> bool:
