@@ -17,67 +17,50 @@ snowflake_module.snowpark = snowpark_module
 sys.modules.setdefault("snowflake", snowflake_module)
 sys.modules.setdefault("snowflake.snowpark", snowpark_module)
 
-from pages.claim_details import get_claim_detail_actions
+from pages.claim_details import get_claim_action_buttons, get_claim_detail_actions, normalize_status
 
 
-def test_mfq_generated_claim_ops_sees_assign_and_approve_with_role_underscores():
-    assert get_claim_detail_actions(
-        claim_status="Open",
-        mfq_status=" mfq generated ",
-        current_role="CLAIM_OPS",
-    ) == ["assign_to_faculty", "approve"]
+def test_normalize_status_is_case_whitespace_and_underscore_safe():
+    assert normalize_status(" MFQ_GENERATED ") == "mfq generated"
+    assert normalize_status("MFQ   Generated") == "mfq generated"
+    assert normalize_status("mfq generated") == "mfq generated"
 
 
-def test_approved_mfq_status_hides_actions_for_any_role():
-    assert get_claim_detail_actions(
-        claim_status="Open",
-        mfq_status="approved",
-        current_role="CLAIM_ANALYST_SUPERVISOR",
-    ) == []
+def test_mfq_generated_shows_assign_and_approve_without_role_check():
+    assert get_claim_action_buttons(" mfq generated ") == ["assign_to_faculty", "approve"]
+    assert get_claim_action_buttons("MFQ GENERATED") == ["assign_to_faculty", "approve"]
+    assert get_claim_action_buttons("MFQ_Generated") == ["assign_to_faculty", "approve"]
 
 
-def test_claim_status_does_not_override_mfq_status_for_actions():
+def test_rejected_shows_assign_only_without_role_check():
+    assert get_claim_action_buttons(" rejected ") == ["assign_to_faculty"]
+    assert get_claim_action_buttons("REJECTED") == ["assign_to_faculty"]
+
+
+def test_approved_hides_actions():
+    assert get_claim_action_buttons("approved") == []
+    assert get_claim_action_buttons(" APPROVED ") == []
+
+
+def test_other_statuses_hide_actions():
+    assert get_claim_action_buttons("Open") == []
+    assert get_claim_action_buttons("Assigned") == []
+    assert get_claim_action_buttons(None) == []
+
+
+def test_claim_status_and_current_role_are_ignored_for_top_card_actions():
     assert get_claim_detail_actions(
         claim_status=" Approved ",
         mfq_status="MFQ GENERATED",
-        current_role="CLAIM_OPS",
+        current_role="role that previously could not act",
     ) == ["assign_to_faculty", "approve"]
     assert get_claim_detail_actions(
         claim_status="Rejected",
         mfq_status="Approved",
         current_role="CLAIM_OPS",
     ) == []
-
-
-def test_rejected_claim_ops_and_supervisor_see_assign_only():
-    assert get_claim_detail_actions(
-        claim_status="Open",
-        mfq_status=" rejected ",
-        current_role="Claim Ops",
-    ) == ["assign_to_faculty"]
-    assert get_claim_detail_actions(
-        claim_status="Open",
-        mfq_status="REJECTED",
-        current_role="CLAIM_ANALYST_SUPERVISOR",
-    ) == ["assign_to_faculty"]
-
-
-def test_rejected_other_role_sees_no_actions():
     assert get_claim_detail_actions(
         claim_status="Open",
         mfq_status="Rejected",
-        current_role="CLAIM_ANALYST",
-    ) == []
-
-
-def test_claims_analyst_and_accountadmin_can_act_on_generated_claim():
-    assert get_claim_detail_actions(
-        claim_status="Open",
-        mfq_status="MFQ Generated",
-        current_role="Claims Analyst",
-    ) == ["assign_to_faculty", "approve"]
-    assert get_claim_detail_actions(
-        claim_status="Open",
-        mfq_status="MFQ Generated",
-        current_role="ACCOUNTADMIN",
-    ) == ["assign_to_faculty", "approve"]
+        current_role=None,
+    ) == ["assign_to_faculty"]
