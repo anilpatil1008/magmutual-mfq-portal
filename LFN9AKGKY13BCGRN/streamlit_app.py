@@ -1,7 +1,7 @@
 import streamlit as st
 
 from components.layout import load_css, render_header, render_sidebar
-from pages import admin, claim_details, claims, dashboard, reports
+from pages import claim_details, dashboard, reports
 from services.notification_service import get_user_notifications
 from services.rbac_service import get_available_roles, get_current_user_context, get_selected_sf_role
 from services.snowflake_service import get_session
@@ -10,8 +10,10 @@ from utils.navigation import (
     CLAIM_DETAILS_VIEW,
     DASHBOARD_PAGE,
     DASHBOARD_VIEW,
+    REPORTS_VIEW,
     navigate_to_claim_details,
     navigate_to_dashboard,
+    navigate_to_reports,
 )
 
 st.set_page_config(
@@ -36,10 +38,6 @@ if "current_view" not in st.session_state:
     st.session_state.current_view = DASHBOARD_VIEW
 if "selected_claim_id" not in st.session_state:
     st.session_state.selected_claim_id = None
-if "active_sidebar_item" not in st.session_state:
-    st.session_state.active_sidebar_item = st.session_state.active_page
-if "show_claim_details_nav" not in st.session_state:
-    st.session_state.show_claim_details_nav = False
 
 
 def _query_param_value(name: str) -> str:
@@ -74,9 +72,8 @@ def _sync_claim_details_route_from_query_params() -> None:
 
 
 def _normalize_navigation_state() -> None:
-    """Keep session navigation keys aligned before a single page render."""
+    """Keep the single routing source of truth aligned before rendering once."""
     current_view = str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
-    active_page = str(st.session_state.get("active_page") or DASHBOARD_PAGE).strip()
     selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
 
     if current_view == CLAIM_DETAILS_VIEW:
@@ -86,34 +83,8 @@ def _normalize_navigation_state() -> None:
             navigate_to_dashboard()
         return
 
-    if active_page == "Claims":
-        st.session_state["active_page"] = "Claims"
-        st.session_state["current_view"] = "claims"
-        st.session_state["active_sidebar_item"] = "Claims"
-        st.session_state["selected_claim_id"] = None
-        st.session_state["selected_claim"] = None
-        st.session_state["claim_detail_view"] = False
-        st.session_state["show_claim_details_nav"] = False
-        return
-
-    if active_page == "Reports":
-        st.session_state["active_page"] = "Reports"
-        st.session_state["current_view"] = "reports"
-        st.session_state["active_sidebar_item"] = "Reports"
-        st.session_state["selected_claim_id"] = None
-        st.session_state["selected_claim"] = None
-        st.session_state["claim_detail_view"] = False
-        st.session_state["show_claim_details_nav"] = False
-        return
-
-    if active_page == "Admin":
-        st.session_state["active_page"] = "Admin"
-        st.session_state["current_view"] = "admin"
-        st.session_state["active_sidebar_item"] = "Admin"
-        st.session_state["selected_claim_id"] = None
-        st.session_state["selected_claim"] = None
-        st.session_state["claim_detail_view"] = False
-        st.session_state["show_claim_details_nav"] = False
+    if current_view == REPORTS_VIEW:
+        navigate_to_reports()
         return
 
     navigate_to_dashboard()
@@ -126,18 +97,11 @@ notifications = get_user_notifications(session, ctx.username, limit=6)
 render_header(session, ctx, notifications)
 render_sidebar(ctx)
 
-if (
-    str(st.session_state.get("current_view") or "").strip().lower() == CLAIM_DETAILS_VIEW
-    and str(st.session_state.get("selected_claim_id") or "").strip()
-):
+current_view = str(st.session_state.get("current_view") or "").strip().lower()
+if current_view == CLAIM_DETAILS_VIEW and str(st.session_state.get("selected_claim_id") or "").strip():
     claim_details.render(session=session, ctx=ctx)
-elif st.session_state.get("active_page") == "Claims":
-    claims.render(session=session, ctx=ctx)
-elif st.session_state.get("active_page") == "Reports":
+elif current_view == REPORTS_VIEW:
     reports.render(session=session, ctx=ctx)
-elif st.session_state.get("active_page") == "Admin":
-    admin.render(session=session, ctx=ctx)
 else:
-    navigate_to_dashboard()
     dashboard.render(session=session, ctx=ctx)
 st.stop()

@@ -7,11 +7,9 @@ PRIORITIES = ["Critical", "High", "Medium", "Low"]
 
 NAV_ITEMS = [
     "Dashboard",
-    "Claims",
-    "Claim Details",
-    "Reports Dashboard",
-    "Admin / RBAC",
+    "Reports",
 ]
+
 
 STATUS_COLORS = {
     "Approved": "badge-success",
