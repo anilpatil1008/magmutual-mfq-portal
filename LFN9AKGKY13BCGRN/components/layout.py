@@ -9,6 +9,7 @@ import re
 import streamlit as st
 
 from components.notifications import render_notification_center
+from utils.navigation import is_claim_details_route_active, navigate_to_dashboard
 
 _HIDE_DEFAULT_STREAMLIT_NAV_CSS = """
 <style>
@@ -205,7 +206,7 @@ def render_sidebar(ctx) -> None:
         st.markdown('<div class="mm-sidebar-divider"></div>', unsafe_allow_html=True)
 
         pages = ["Dashboard", "Claims", "Reports"]
-        if st.session_state.get("selected_claim_id"):
+        if is_claim_details_route_active():
             pages.insert(1, "Claim Details")
         active_sidebar_item = st.session_state.get("active_sidebar_item") or st.session_state.get("active_page")
         for page in pages:
@@ -215,13 +216,18 @@ def render_sidebar(ctx) -> None:
             key_prefix = "nav_active" if active else "nav"
 
             if st.button(page, icon=icon, use_container_width=True, key=f"{key_prefix}_{key_slug}"):
-                st.session_state.active_page = page
-                st.session_state.current_view = page.lower().replace(" ", "_")
-                st.session_state.active_sidebar_item = page
-                if page != "Claim Details":
-                    st.session_state.selected_claim_id = None
+                if page == "Dashboard":
+                    navigate_to_dashboard()
+                else:
+                    st.session_state.active_page = page
+                    st.session_state.current_view = page.lower().replace(" ", "_")
+                    st.session_state.active_sidebar_item = page
+                    if page != "Claim Details":
+                        st.session_state.selected_claim_id = None
+                        st.session_state.selected_claim = None
+                        st.session_state.claim_detail_view = False
                 st.query_params.clear()
                 st.rerun()
 
-        if st.session_state.get("selected_claim_id"):
+        if is_claim_details_route_active():
             st.caption(f"Selected claim: {st.session_state.selected_claim_id}")

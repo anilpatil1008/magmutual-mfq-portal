@@ -24,6 +24,7 @@ from services.claim_service import (
     update_claim_status,
 )
 from services.rbac_service import can_edit_claim
+from utils.navigation import navigate_to_claim_details, navigate_to_dashboard
 
 logger = logging.getLogger(__name__)
 
@@ -374,7 +375,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
 
 
 def _go_back_to_dashboard() -> None:
-    _set_dashboard_navigation_state(clear_selected_claim=True)
+    navigate_to_dashboard()
     st.session_state["last_review_event"] = None
     st.session_state["last_processed_review_claim_id"] = None
     for key in list(st.session_state.keys()):
@@ -382,15 +383,6 @@ def _go_back_to_dashboard() -> None:
             st.session_state.pop(key, None)
     st.query_params.clear()
     st.rerun()
-
-
-def _set_dashboard_navigation_state(*, clear_selected_claim: bool = True) -> None:
-    """Synchronize all app navigation keys for a safe Dashboard transition."""
-    st.session_state["active_page"] = "Dashboard"
-    st.session_state["current_view"] = "dashboard"
-    st.session_state["active_sidebar_item"] = "Dashboard"
-    if clear_selected_claim:
-        st.session_state["selected_claim_id"] = None
 
 
 def _render_breadcrumb(claim_id: str) -> None:
@@ -1170,9 +1162,7 @@ def _render_documents_lazy_tab(session, claim_id: str) -> None:
 def render(session, ctx) -> None:
     claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
     if claim_id:
-        st.session_state["active_page"] = "Claim Details"
-        st.session_state["current_view"] = "claim_details"
-        st.session_state["active_sidebar_item"] = "Claim Details"
+        navigate_to_claim_details(claim_id)
     logger.info("render_claim_details called claim_id=%s", claim_id)
     if not claim_id:
         st.warning("No claim is selected. Open a claim from Dashboard or Claims page.")

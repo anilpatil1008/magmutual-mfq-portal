@@ -9,7 +9,6 @@ import streamlit as st
 
 from components.cards import render_kpi_cards
 from components.tables import render_live_claims_search, render_recent_claims_table
-from pages import claim_details
 from services.claim_service import (
     get_available_claim_statuses,
     get_available_claim_types,
@@ -19,6 +18,7 @@ from services.claim_service import (
 )
 from services.dashboard_service import get_dashboard_metrics
 from services.rbac_service import get_session_context_snapshot
+from utils.navigation import navigate_to_dashboard
 
 logger = logging.getLogger(__name__)
 
@@ -408,19 +408,7 @@ def _resolve_user_display_name(ctx) -> str:
     return str(getattr(ctx, "username", "") or "").strip()
 
 
-def _is_claim_details_active() -> bool:
-    return (
-        st.session_state.get("active_page") == "Claim Details"
-        or st.session_state.get("current_view") in {"Claim Details", "claim_details"}
-    ) and bool(st.session_state.get("selected_claim_id"))
-
-
 def _render_dashboard_view(session, ctx) -> None:
-    if _is_claim_details_active():
-        logger.info("dashboard_render_skipped_for_claim_details claim_id=%s", st.session_state.get("selected_claim_id"))
-        claim_details.render(session=session, ctx=ctx)
-        return
-
     logger.info("render_dashboard called")
     _init_dashboard_filter_state()
     display_name = _resolve_user_display_name(ctx)
@@ -534,17 +522,11 @@ def render(session, ctx) -> None:
     if "current_view" not in st.session_state:
         st.session_state["current_view"] = "dashboard"
 
-    if _is_claim_details_active():
-        logger.info("render_claim_details called claim_id=%s", st.session_state.get("selected_claim_id"))
-        claim_details.render(session=session, ctx=ctx)
-        st.stop()
-
     if st.session_state.get("current_view") in {"dashboard", "Dashboard"}:
         _render_dashboard_view(session=session, ctx=ctx)
         st.stop()
 
     # Fallback to dashboard when state is unknown.
-    st.session_state["active_page"] = "Dashboard"
-    st.session_state["current_view"] = "dashboard"
+    navigate_to_dashboard()
     _render_dashboard_view(session=session, ctx=ctx)
     st.stop()
