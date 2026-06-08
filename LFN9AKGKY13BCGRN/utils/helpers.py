@@ -12,7 +12,6 @@ def init_state() -> None:
         "active_page": "Dashboard",
         "selected_claim_id": None,
         "current_view": "dashboard",
-        "active_sidebar_item": "Dashboard",
         "active_role": DEFAULT_ROLE,
         "notifications": 3,
         "mfq_edit_mode": False,

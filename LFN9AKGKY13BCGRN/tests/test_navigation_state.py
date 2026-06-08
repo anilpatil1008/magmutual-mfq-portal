@@ -23,11 +23,9 @@ def test_navigate_to_dashboard_clears_claim_details_state(monkeypatch):
         {
             "active_page": "Claim Details",
             "current_view": "claim_details",
-            "active_sidebar_item": "Claim Details",
             "selected_claim_id": "CLM-123",
             "selected_claim": {"CLAIM_ID": "CLM-123"},
             "claim_detail_view": True,
-            "show_claim_details_nav": True,
         },
     )
 
@@ -35,12 +33,9 @@ def test_navigate_to_dashboard_clears_claim_details_state(monkeypatch):
 
     assert state["active_page"] == "Dashboard"
     assert state["current_view"] == "dashboard"
-    assert state["active_sidebar_item"] == "Dashboard"
     assert state["selected_claim_id"] is None
     assert state["selected_claim"] is None
     assert state["claim_detail_view"] is False
-    assert state["show_claim_details_nav"] is False
-    assert navigation.should_show_claim_details_nav() is False
 
 
 def test_navigate_to_claim_details_sets_single_claim_details_route(monkeypatch):
@@ -51,22 +46,38 @@ def test_navigate_to_claim_details_sets_single_claim_details_route(monkeypatch):
     assert state["selected_claim_id"] == "CLM-456"
     assert state["active_page"] == "Claim Details"
     assert state["current_view"] == "claim_details"
-    assert state["active_sidebar_item"] == "Claim Details"
     assert state["claim_detail_view"] is True
-    assert state["show_claim_details_nav"] is True
     assert navigation.is_claim_details_route_active() is True
-    assert navigation.should_show_claim_details_nav() is True
 
 
-def test_claim_details_nav_stays_hidden_for_stale_selected_claim(monkeypatch):
+def test_stale_selected_claim_does_not_route_without_claim_details_view(monkeypatch):
     _patch_session_state(
         monkeypatch,
         {
             "current_view": "dashboard",
             "selected_claim_id": "CLM-789",
-            "show_claim_details_nav": True,
         },
     )
 
     assert navigation.is_claim_details_route_active() is False
-    assert navigation.should_show_claim_details_nav() is False
+
+
+def test_navigate_to_reports_clears_selected_claim(monkeypatch):
+    state = _patch_session_state(
+        monkeypatch,
+        {
+            "current_view": "claim_details",
+            "active_page": "Claim Details",
+            "selected_claim_id": "CLM-789",
+            "selected_claim": {"CLAIM_ID": "CLM-789"},
+            "claim_detail_view": True,
+        },
+    )
+
+    navigation.navigate_to_reports()
+
+    assert state["active_page"] == "Reports"
+    assert state["current_view"] == "reports"
+    assert state["selected_claim_id"] is None
+    assert state["selected_claim"] is None
+    assert state["claim_detail_view"] is False

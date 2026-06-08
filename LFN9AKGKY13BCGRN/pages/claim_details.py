@@ -1182,7 +1182,7 @@ def render(session, ctx) -> None:
     )
     if not is_claim_details_route_active():
         navigate_to_dashboard()
-        st.warning("No claim is selected. Open a claim from Dashboard or Claims page.")
+        st.warning("No claim is selected. Open a claim from Dashboard.")
         return
 
     _render_breadcrumb(claim_id)
