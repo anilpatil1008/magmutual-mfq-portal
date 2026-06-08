@@ -9,7 +9,17 @@ import re
 import streamlit as st
 
 from components.notifications import render_notification_center
-from utils.navigation import navigate_to_dashboard, navigate_to_reports
+from utils.navigation import (
+    CLAIM_DETAILS_PAGE,
+    CLAIM_DETAILS_VIEW,
+    DASHBOARD_PAGE,
+    DASHBOARD_VIEW,
+    REPORTS_PAGE,
+    REPORTS_VIEW,
+    navigate_to_claim_details,
+    navigate_to_dashboard,
+    navigate_to_reports,
+)
 
 _HIDE_DEFAULT_STREAMLIT_NAV_CSS = """
 <style>
@@ -177,8 +187,9 @@ def render_header(session, ctx, notifications_df) -> None:
 
 def render_sidebar(ctx) -> None:
     page_icons = {
-        "Dashboard": ":material/dashboard:",
-        "Reports": ":material/bar_chart:",
+        DASHBOARD_PAGE: ":material/dashboard:",
+        CLAIM_DETAILS_PAGE: ":material/assignment:",
+        REPORTS_PAGE: ":material/bar_chart:",
     }
 
     with st.sidebar:
@@ -202,8 +213,19 @@ def render_sidebar(ctx) -> None:
         )
         st.markdown('<div class="mm-sidebar-divider"></div>', unsafe_allow_html=True)
 
-        current_view = str(st.session_state.get("current_view") or "dashboard").strip().lower()
-        pages = [("Dashboard", "dashboard", navigate_to_dashboard), ("Reports", "reports", navigate_to_reports)]
+        current_view = str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
+        selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
+        show_claim_details_nav = current_view == CLAIM_DETAILS_VIEW and bool(selected_claim_id)
+        pages = [(DASHBOARD_PAGE, DASHBOARD_VIEW, navigate_to_dashboard)]
+        if show_claim_details_nav:
+            pages.append(
+                (
+                    CLAIM_DETAILS_PAGE,
+                    CLAIM_DETAILS_VIEW,
+                    lambda: navigate_to_claim_details(selected_claim_id),
+                )
+            )
+        pages.append((REPORTS_PAGE, REPORTS_VIEW, navigate_to_reports))
         for page, view, navigate in pages:
             active = current_view == view
             key_slug = page.lower().replace(" ", "_")

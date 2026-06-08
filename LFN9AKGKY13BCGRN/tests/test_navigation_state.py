@@ -26,6 +26,7 @@ def test_navigate_to_dashboard_clears_claim_details_state(monkeypatch):
             "selected_claim_id": "CLM-123",
             "selected_claim": {"CLAIM_ID": "CLM-123"},
             "claim_detail_view": True,
+            "show_claim_details_nav": True,
         },
     )
 
@@ -36,6 +37,7 @@ def test_navigate_to_dashboard_clears_claim_details_state(monkeypatch):
     assert state["selected_claim_id"] is None
     assert state["selected_claim"] is None
     assert state["claim_detail_view"] is False
+    assert state["show_claim_details_nav"] is False
 
 
 def test_navigate_to_claim_details_sets_single_claim_details_route(monkeypatch):
@@ -47,6 +49,7 @@ def test_navigate_to_claim_details_sets_single_claim_details_route(monkeypatch):
     assert state["active_page"] == "Claim Details"
     assert state["current_view"] == "claim_details"
     assert state["claim_detail_view"] is True
+    assert state["show_claim_details_nav"] is True
     assert navigation.is_claim_details_route_active() is True
 
 
@@ -71,6 +74,7 @@ def test_navigate_to_reports_clears_selected_claim(monkeypatch):
             "selected_claim_id": "CLM-789",
             "selected_claim": {"CLAIM_ID": "CLM-789"},
             "claim_detail_view": True,
+            "show_claim_details_nav": True,
         },
     )
 
@@ -81,3 +85,4 @@ def test_navigate_to_reports_clears_selected_claim(monkeypatch):
     assert state["selected_claim_id"] is None
     assert state["selected_claim"] is None
     assert state["claim_detail_view"] is False
+    assert state["show_claim_details_nav"] is False
