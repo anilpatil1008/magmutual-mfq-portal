@@ -16,8 +16,7 @@ def navigate_to_dashboard() -> None:
     st.session_state["selected_claim_id"] = None
     st.session_state["selected_claim"] = None
     st.session_state["claim_detail_view"] = False
-    if "page" in st.session_state:
-        st.session_state["page"] = DASHBOARD_PAGE
+    st.session_state["page"] = DASHBOARD_PAGE
 
 
 def navigate_to_claim_details(claim_id: str) -> None:
@@ -33,8 +32,7 @@ def navigate_to_claim_details(claim_id: str) -> None:
     st.session_state["current_view"] = CLAIM_DETAILS_VIEW
     st.session_state["active_sidebar_item"] = CLAIM_DETAILS_PAGE
     st.session_state["claim_detail_view"] = True
-    if "page" in st.session_state:
-        st.session_state["page"] = CLAIM_DETAILS_PAGE
+    st.session_state["page"] = CLAIM_DETAILS_PAGE
 
 
 def is_claim_details_route_active() -> bool:

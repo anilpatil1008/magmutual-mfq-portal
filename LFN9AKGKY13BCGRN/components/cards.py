@@ -45,7 +45,7 @@ def render_claim_header(claim: dict) -> None:
             <h3>{html.escape(str(claim.get('CLAIM_ID', 'Unknown Claim')))} · {html.escape(str(claim.get('PATIENT_NAME', 'Unknown Patient')))}</h3>
             <div class="mm-claim-grid">
                 <div><strong>Defendant</strong><br>{html.escape(str(claim.get('DEFENDANT_NAME', '-')))}</div>
-                <div><strong>File Number</strong><br>{html.escape(str(claim.get('FILE_NUMBER', '-')))}</div>
+                <div><strong>Claim Number</strong><br>{html.escape(str(claim.get('CLAIM_NUMBER') or claim.get('FILE_NUMBER', '-')))}</div>
                 <div><strong>Specialty</strong><br>{html.escape(str(claim.get('SPECIALTY', '-')))}</div>
                 <div><strong>Date Requested</strong><br>{html.escape(str(claim.get('DATE_REQUESTED', '-')))}</div>
                 <div><strong>Assigned To</strong><br>{html.escape(str(claim.get('ASSIGNED_TO', '-')))}</div>

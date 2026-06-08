@@ -133,6 +133,7 @@ CLAIM_FILTER_SELECT_COLUMNS = [
     "MFQ_STATUS",
     "WORKFLOW_STATUS",
     "PRIORITY",
+    "CLAIM_PRIORITY",
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
     "CLAIM_TYPE",
@@ -270,6 +271,7 @@ def build_claim_filter_where_clause(
                 "MFQ_STATUS",
                 "WORKFLOW_STATUS",
                 "PRIORITY",
+                "CLAIM_PRIORITY",
                 "CLAIM_TYPE",
                 "CLAIM_STATUS",
             )
@@ -389,6 +391,7 @@ CLAIM_DETAIL_COLUMNS = [
     "CLAIM_STATUS",
     "CLAIM_TYPE",
     "PRIORITY",
+    "CLAIM_PRIORITY",
     "DATE_REQUESTED",
     "MAGMUTUAL_CONTACT",
     "MAGMUTUAL_CONTACT_NAME",
@@ -442,17 +445,25 @@ def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
 
 
 def get_claim_status_snapshot(session, claim_id: str) -> pd.DataFrame:
+    available_columns = table_columns(session, obj.VW_MFQ_CLAIMS)
+    select_columns = _select_columns_for_available_view(
+        [
+            "CLAIM_ID",
+            "PATIENT_DEFENDANT",
+            "MFQ_STATUS",
+            "CLAIM_STATUS",
+            "PRIORITY",
+            "CLAIM_PRIORITY",
+            "CLAIM_TYPE",
+            "DATE_REQUESTED",
+        ],
+        available_columns,
+    )
     df = execute_query_df(
         session,
         f"""
         SELECT
-            CLAIM_ID,
-            PATIENT_DEFENDANT,
-            MFQ_STATUS,
-            CLAIM_STATUS,
-            PRIORITY,
-            CLAIM_TYPE,
-            DATE_REQUESTED
+            {select_columns}
         FROM {obj.VW_MFQ_CLAIMS}
         WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR(?))
         """,
