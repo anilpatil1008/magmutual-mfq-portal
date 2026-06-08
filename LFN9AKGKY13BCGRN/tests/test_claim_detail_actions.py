@@ -17,7 +17,16 @@ snowflake_module.snowpark = snowpark_module
 sys.modules.setdefault("snowflake", snowflake_module)
 sys.modules.setdefault("snowflake.snowpark", snowpark_module)
 
-from pages.claim_details import get_claim_action_buttons, get_claim_detail_actions, normalize_status
+from pages.claim_details import (
+    _display_label_for_claim_key,
+    _format_display_date,
+    _priority_badge_class,
+    _safe_display,
+    _status_badge_class,
+    get_claim_action_buttons,
+    get_claim_detail_actions,
+    normalize_status,
+)
 
 
 def test_normalize_status_is_case_whitespace_and_underscore_safe():
@@ -64,3 +73,20 @@ def test_claim_status_and_current_role_are_ignored_for_top_card_actions():
         mfq_status="Rejected",
         current_role=None,
     ) == ["assign_to_faculty"]
+
+
+def test_header_badge_helpers_use_mfq_status_and_priority_independently():
+    assert _status_badge_class(" MFQ Generated ") == "generated"
+    assert _status_badge_class("approved") == "approved"
+    assert _status_badge_class("Rejected") == "rejected"
+    assert _priority_badge_class(" HIGH ") == "high"
+    assert _priority_badge_class("Medium") == "medium"
+    assert _priority_badge_class(None) == "default"
+
+
+def test_claim_header_safe_display_labels_and_dates():
+    assert _display_label_for_claim_key("FILE_NUMBER") == "CLAIM NUMBER"
+    assert _display_label_for_claim_key("CLAIM_NUMBER") == "CLAIM NUMBER"
+    assert _safe_display(float("nan"), fallback="") == ""
+    assert _safe_display(" null ", fallback="") == ""
+    assert _format_display_date("2026-01-02 13:45:00") == "Jan 2, 2026"
