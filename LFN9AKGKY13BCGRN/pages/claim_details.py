@@ -22,7 +22,7 @@ from services.claim_service import (
     save_mfq_answer,
     update_claim_status,
 )
-from services.rbac_service import can_edit_claim, get_current_role
+from services.rbac_service import can_edit_claim
 
 logger = logging.getLogger(__name__)
 
@@ -101,58 +101,33 @@ def _first_safe_display(claim: dict, keys: tuple[str, ...], fallback: str = "-")
     return fallback
 
 
-def _normalize_for_rule(value) -> str:
-    """Normalize MFQ statuses and Snowflake role names for visibility rules."""
-    return re.sub(r"[\s_]+", " ", _safe_display(value, fallback="")).strip().upper()
+def normalize_status(value) -> str:
+    """Normalize status values for case-insensitive, whitespace-safe comparisons."""
+    return re.sub(r"[\s_]+", " ", _safe_display(value, fallback="")).strip().lower()
 
 
-def _current_role_for_actions(session, ctx) -> str:
-    """Resolve the current role from selected session state, context, or Snowflake."""
-    selected_role = _safe_display(st.session_state.get("selected_sf_role"), fallback="")
-    if selected_role:
-        return selected_role
-    context_role = _safe_display(getattr(ctx, "sf_role", ""), fallback="")
-    if context_role:
-        return context_role
-    return _safe_display(get_current_role(session), fallback="")
+def get_claim_action_buttons(mfq_status) -> list[str]:
+    """Return Claim Details top-card actions using MFQ_STATUS only."""
+    status = normalize_status(mfq_status)
 
-
-CLAIM_DETAIL_ACTION_ROLES = {
-    "CLAIM OPS",
-    "CLAIMS OPS",
-    "CLAIM OPERATIONS",
-    "CLAIMS OPERATIONS",
-    "CLAIMS ANALYST",
-    "CLAIM ANALYST SUPERVISOR",
-    "CLAIMS ANALYST SUPERVISOR",
-    "ADMIN",
-    "ACCOUNTADMIN",
-}
-
-
-def _can_show_claim_detail_actions(current_role) -> bool:
-    """Return whether the active app/Snowflake role may act on claim-detail reviews."""
-    return _normalize_for_rule(current_role) in CLAIM_DETAIL_ACTION_ROLES
-
-
-def get_claim_detail_actions(claim_status, mfq_status, current_role) -> list[str]:
-    """Return top-card actions using MFQ_STATUS only.
-
-    claim_status is retained for backward-compatible call sites/tests, but it
-    must not influence the Claim Details header badge or action decisions.
-    """
-    del claim_status
-    normalized_mfq_status = _normalize_for_rule(mfq_status)
-
-    if not _can_show_claim_detail_actions(current_role):
-        return []
-    if normalized_mfq_status == "APPROVED":
-        return []
-    if normalized_mfq_status == "REJECTED":
-        return ["assign_to_faculty"]
-    if normalized_mfq_status == "MFQ GENERATED":
+    if status == "mfq generated":
         return ["assign_to_faculty", "approve"]
+    if status == "rejected":
+        return ["assign_to_faculty"]
+    if status == "approved":
+        return []
     return []
+
+
+def get_claim_detail_actions(claim_status=None, mfq_status=None, current_role=None) -> list[str]:
+    """Backward-compatible wrapper for Claim Details action visibility.
+
+    Only MFQ_STATUS controls visibility. claim_status/current_role are ignored
+    so CLAIM_STATUS, WORKFLOW_STATUS, RBAC, app roles, and Snowflake roles do
+    not affect these top-card buttons.
+    """
+    del claim_status, current_role
+    return get_claim_action_buttons(mfq_status)
 
 
 def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
@@ -160,7 +135,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     file_number = _safe_display(claim.get("FILE_NUMBER"), fallback=claim_id_display)
     raw_mfq_status = claim.get("MFQ_STATUS")
     status = _safe_display(raw_mfq_status, fallback="Unknown")
-    normalized_mfq_status = _normalize_for_rule(raw_mfq_status)
+    normalized_mfq_status = normalize_status(raw_mfq_status)
     priority = _safe_display(claim.get("PRIORITY"), fallback="")
     patient_defendant = _safe_display(claim.get("PATIENT_DEFENDANT"), fallback="")
     patient = _safe_display(claim.get("PATIENT_NAME"), fallback="")
@@ -178,20 +153,12 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     assigned_to = _safe_display(claim.get("ASSIGNED_TO"), fallback="")
     assigned_to_display = assigned_to or "Unassigned"
     assign_label = "Assign to Faculty"
-    claim_action_status = claim.get("CLAIM_STATUS", claim.get("STATUS"))
-    current_role = _current_role_for_actions(session, ctx)
-    actions = get_claim_detail_actions(
-        claim_status=claim_action_status,
-        mfq_status=raw_mfq_status,
-        current_role=current_role,
-    )
+    actions = get_claim_action_buttons(raw_mfq_status)
     logger.info(
-        "claim_detail_top_card_state selected_claim_id=%s raw_mfq_status=%s normalized_mfq_status=%s current_role=%s normalized_role=%s visible_buttons=%s",
+        "claim_detail_top_card_state selected_claim_id=%s raw_mfq_status=%s normalized_mfq_status=%s visible_buttons=%s",
         claim_id,
         _safe_display(raw_mfq_status, fallback=""),
         normalized_mfq_status,
-        _safe_display(current_role, fallback=""),
-        _normalize_for_rule(current_role),
         actions,
     )
 
