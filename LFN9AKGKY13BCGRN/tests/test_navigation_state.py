@@ -44,6 +44,7 @@ def test_navigate_to_dashboard_clears_claim_details_state(monkeypatch):
     assert state["selected_claim"] is None
     assert state["claim_detail_view"] is False
     assert state["show_claim_details_nav"] is False
+    assert state["dashboard_route_instance"] == 1
     assert state["_rerun_calls"]["count"] == 1
 
 
@@ -95,3 +96,39 @@ def test_navigate_to_reports_clears_selected_claim(monkeypatch):
     assert state["claim_detail_view"] is False
     assert state["show_claim_details_nav"] is False
     assert state["_rerun_calls"]["count"] == 1
+
+
+def test_dashboard_route_instance_advances_only_when_reentering_dashboard(monkeypatch):
+    state = _patch_session_state(
+        monkeypatch,
+        {
+            "current_view": "claim_details",
+            "active_page": "Claim Details",
+            "selected_claim_id": "CLM-123",
+            "dashboard_route_instance": 2,
+        },
+    )
+
+    navigation.set_dashboard_route()
+
+    assert state["dashboard_route_instance"] == 3
+
+    navigation.set_dashboard_route()
+
+    assert state["dashboard_route_instance"] == 3
+
+
+def test_dashboard_route_instance_is_not_advanced_during_dashboard_normalization(monkeypatch):
+    state = _patch_session_state(
+        monkeypatch,
+        {
+            "current_view": "dashboard",
+            "active_page": "Dashboard",
+            "selected_claim_id": None,
+            "dashboard_route_instance": 7,
+        },
+    )
+
+    navigation.set_dashboard_route()
+
+    assert state["dashboard_route_instance"] == 7

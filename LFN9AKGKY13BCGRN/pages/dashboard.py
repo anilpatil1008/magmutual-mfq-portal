@@ -500,6 +500,7 @@ def _render_dashboard_view(session, ctx) -> None:
             bucket_filters,
         )
 
+        dashboard_route_instance = st.session_state.get("dashboard_route_instance", 0)
         render_recent_claims_table(
             recent_claims,
             key_prefix="dash",
@@ -516,7 +517,7 @@ def _render_dashboard_view(session, ctx) -> None:
             page_size=DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
             pagination_state_key="claims_page_number",
             table_key="recent_claims_table",
-            component_key="recent_claims_table",
+            component_key=f"recent_claims_table_{dashboard_route_instance}",
         )
 
 

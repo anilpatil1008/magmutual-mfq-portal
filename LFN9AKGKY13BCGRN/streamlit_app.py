@@ -109,13 +109,20 @@ render_sidebar(ctx)
 current_view = str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
 selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
 
-if current_view == CLAIM_DETAILS_VIEW and selected_claim_id:
-    claim_details.render(session=session, ctx=ctx)
-    st.stop()
+# Keep the routed page body in a single replaceable slot.  This prevents stale
+# Dashboard elements (especially custom-component iframes from Recent Claims)
+# from remaining mounted when Review navigates to Claim Details and then back
+# to Dashboard in the same browser session.
+with st.container(key="app_main_content"):
+    active_view_slot = st.empty()
+    with active_view_slot.container(key=f"active_view_{current_view}"):
+        if current_view == CLAIM_DETAILS_VIEW and selected_claim_id:
+            claim_details.render(session=session, ctx=ctx)
+            st.stop()
 
-if current_view == REPORTS_VIEW:
-    reports.render(session=session, ctx=ctx)
-    st.stop()
+        if current_view == REPORTS_VIEW:
+            reports.render(session=session, ctx=ctx)
+            st.stop()
 
-dashboard.render(session=session, ctx=ctx)
-st.stop()
+        dashboard.render(session=session, ctx=ctx)
+        st.stop()
