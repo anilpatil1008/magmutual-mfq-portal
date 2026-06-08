@@ -3377,23 +3377,6 @@ div[class*="st-key-filter_chip_"][class*="_unselected"] .stButton button:hover {
   color: #003a70 !important;
 }
 
-/* Lazy claim details tabs: radio buttons styled as Carbon-like tabs without mounting every tab body. */
-div[data-testid="stRadio"]:has(input[name^="claim_details_active_tab_"]) {
-  margin: 0.75rem 0 1rem;
-}
-div[data-testid="stRadio"]:has(input[name^="claim_details_active_tab_"]) [role="radiogroup"] {
-  gap: 0;
-  border-bottom: 1px solid #e0e0e0;
-}
-div[data-testid="stRadio"]:has(input[name^="claim_details_active_tab_"]) label {
-  border-bottom: 2px solid transparent;
-  padding: 0.65rem 1rem;
-}
-div[data-testid="stRadio"]:has(input[name^="claim_details_active_tab_"]) label:has(input:checked) {
-  border-bottom-color: #0f62fe;
-  color: #0f62fe;
-  font-weight: 600;
-}
 .claim-detail-mini-card {
   background: #f4f4f4;
   border-left: 3px solid #0f62fe;
@@ -3461,4 +3444,141 @@ div[class*="st-key-mfq_synopsis_card_"] h3 {
   border-left: 3px solid #8bb8ee;
   padding: .35rem .55rem;
   margin: .45rem 0;
+}
+
+/* Premium Claim Details tab navigation: custom lazy-loaded Streamlit buttons. */
+.claim-detail-tabs,
+.st-key-claim_detail_tabs_shell {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(15, 35, 95, 0.08), 0 2px 6px rgba(15, 35, 95, 0.04);
+  margin: 1rem 0 1.1rem;
+  padding: 0.55rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
+  -webkit-overflow-scrolling: touch;
+}
+
+.st-key-claim_detail_tabs_shell::-webkit-scrollbar {
+  height: 8px;
+}
+
+.st-key-claim_detail_tabs_shell::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.st-key-claim_detail_tabs_shell::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.st-key-claim_detail_tabs_shell > div,
+.st-key-claim_detail_tabs_shell [data-testid="stVerticalBlock"],
+.st-key-claim_detail_tabs_shell [data-testid="stHorizontalBlock"] {
+  overflow: visible !important;
+}
+
+.st-key-claim_detail_tabs_shell [data-testid="stHorizontalBlock"] {
+  align-items: stretch;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0.35rem;
+  min-width: max-content;
+}
+
+.st-key-claim_detail_tabs_shell [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+  flex: 0 0 auto !important;
+  min-width: 132px;
+  padding: 0 !important;
+}
+
+.st-key-claim_detail_tabs_shell .stButton,
+.st-key-claim_detail_tabs_shell .stButton > div,
+.st-key-claim_detail_tabs_shell .stButton button {
+  height: 100%;
+  width: 100%;
+}
+
+.claim-detail-tab,
+.st-key-claim_detail_tabs_shell .stButton button {
+  align-items: center;
+  background: transparent !important;
+  border: 1px solid transparent !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  color: #64748b !important;
+  display: inline-flex !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  gap: 0.5rem;
+  justify-content: center;
+  letter-spacing: -0.01em;
+  min-height: 44px;
+  padding: 0.62rem 0.9rem !important;
+  position: relative;
+  transition: background-color 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  white-space: nowrap;
+}
+
+.claim-detail-tab:hover,
+.st-key-claim_detail_tabs_shell .stButton button:hover,
+.st-key-claim_detail_tabs_shell .stButton button:focus-visible {
+  background: #eff6ff !important;
+  border-color: #dbeafe !important;
+  color: #003a70 !important;
+  transform: translateY(-1px);
+}
+
+.claim-detail-tab.active,
+div[class*="st-key-claim_detail_tab_active_"] .stButton button,
+div[class*="st-key-claim_detail_tab_active_"] .stButton button:hover,
+div[class*="st-key-claim_detail_tab_active_"] .stButton button:focus {
+  background: #ffffff !important;
+  border-color: #d8e7ff !important;
+  box-shadow: 0 8px 20px rgba(0, 58, 112, 0.11), 0 1px 2px rgba(0, 58, 112, 0.08) !important;
+  color: #003a70 !important;
+  font-weight: 700 !important;
+}
+
+.claim-detail-tab.active::after,
+div[class*="st-key-claim_detail_tab_active_"] .stButton button::after {
+  background: linear-gradient(90deg, #003a70 0%, #0f62fe 100%);
+  border-radius: 999px;
+  bottom: 5px;
+  content: "";
+  height: 3px;
+  left: 18px;
+  position: absolute;
+  right: 18px;
+}
+
+.claim-detail-tab-icon,
+.st-key-claim_detail_tabs_shell .stButton button:first-letter {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.claim-detail-tab-label {
+  font-size: 14px;
+  font-weight: inherit;
+}
+
+@media (max-width: 900px) {
+  .st-key-claim_detail_tabs_shell {
+    border-radius: 14px;
+    margin-top: 0.8rem;
+    padding: 0.45rem;
+  }
+
+  .st-key-claim_detail_tabs_shell [data-testid="stHorizontalBlock"] > [data-testid="column"] {
+    min-width: 122px;
+  }
+
+  .st-key-claim_detail_tabs_shell .stButton button {
+    font-size: 13.5px !important;
+    min-height: 42px;
+    padding: 0.55rem 0.75rem !important;
+  }
 }
