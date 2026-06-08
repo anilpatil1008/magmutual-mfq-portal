@@ -3360,3 +3360,50 @@ div[data-testid="stRadio"]:has(input[name^="claim_details_active_tab_"]) label:h
   font-size: 1rem;
   font-weight: 600;
 }
+
+/* Updated Snowflake-backed MFQ form layout */
+.st-key-mfq_header_card {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.st-key-mfq_header_card + div .confidence-card {
+  margin-top: .15rem;
+}
+
+div[class*="st-key-mfq_synopsis_card_"] {
+  background: #ffffff;
+  border: 1px solid #dde1e6;
+  border-radius: 12px;
+  padding: 1rem;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, .04);
+  position: sticky;
+  top: .75rem;
+}
+
+div[class*="st-key-mfq_synopsis_card_"] h3 {
+  color: #022b5e;
+  font-size: 1.05rem;
+  margin-top: 0;
+}
+
+.mfq-sections-root [data-testid="stExpander"] {
+  background: #ffffff;
+  border: 1px solid #d8dee8;
+  border-radius: 12px;
+  margin-bottom: .85rem;
+  overflow: hidden;
+}
+
+.mfq-sections-root [data-testid="stExpander"] details summary {
+  color: #0f2d5c;
+  font-weight: 650;
+}
+
+.mfq-question-header + div[data-testid="stCaptionContainer"],
+.mfq-section-iii-question-group div[data-testid="stCaptionContainer"] {
+  color: #5d6b82;
+  background: #f8fafc;
+  border-left: 3px solid #8bb8ee;
+  padding: .35rem .55rem;
+  margin: .45rem 0;
+}

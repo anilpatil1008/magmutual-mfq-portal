@@ -26,7 +26,7 @@ from services.rbac_service import can_edit_claim
 logger = logging.getLogger(__name__)
 
 
-DETAIL_TAB_OPTIONS = ["Summary", "MFQ Form", "History", "Documents", "MedCron", "Legal Memo", "Enquiries", "AI Assist"]
+DETAIL_TAB_OPTIONS = ["MFQ Form", "Records Summary", "MedCron", "Legal Memo", "Enquiries", "AI Assist", "Documents"]
 
 
 def _ensure_claim_cache(cache_name: str) -> dict:
@@ -332,14 +332,12 @@ def extract_answer_json_value(raw):
 
 
 def _safe_widget_key(prefix: str, claim_id: str, section_id: str, question: pd.Series, index: int) -> str:
-    question_id = question.get("QUESTION_ID") or question.get("question_id")
-    question_key = question.get("QUESTION_KEY") or question.get("question_key")
+    del index
+    question_id = question.get("QUESTION_ID") or question.get("question_id") or "question"
     section_key = question.get("SECTION_KEY") or question.get("section_key")
     section_part = section_id or str(section_key or "section")
-    return (
-        f"{prefix}_{claim_id}_{section_part}_{question_id or 'question'}_"
-        f"{question_key or 'question_key'}_{index}"
-    )
+    safe_parts = [str(part).strip().replace(" ", "_").replace("/", "_") for part in (prefix, claim_id, section_part, question_id)]
+    return "_".join(safe_parts)
 
 
 def _is_visible(row: pd.Series, answer_by_question: dict[str, str]) -> bool:
@@ -537,7 +535,7 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
         )
         if success:
             st.session_state[f"open_assign_modal_{claim_id}"] = False
-            _invalidate_claim_caches(claim_id, "claim_details_cache", "claim_history_cache", "mfq_answers_cache")
+            _invalidate_claim_caches(claim_id, "claim_details_cache", "claim_history_cache", "mfq_answers_cache", "mfq_form_cache")
             st.success(message)
             st.rerun()
         st.error(message)
@@ -549,6 +547,7 @@ def _render_questions(
     can_edit: bool,
     edit_mode: bool,
     editable_section_ids: set[str] | None,
+    claim_id: str,
 ) -> list[dict]:
     if sections_df.empty:
         st.info("MFQ form is unavailable for this claim.")
@@ -599,7 +598,8 @@ def _render_questions(
         nonlocal question_index
         question_id = str(row.get("QUESTION_ID", ""))
         answer_id = str(row.get("ANSWER_ID", "") or "")
-        claim_id = str(row.get("CLAIM_ID", "") or "")
+        row_claim_id = str(row.get("CLAIM_ID", "") or "")
+        effective_claim_id = row_claim_id or str(claim_id)
         defendant_id = str(row.get("DEFENDANT_ID", "") or "")
         section_id_value = str(row.get("SECTION_ID", "") or section_id or row.get("SECTION_KEY", "") or "")
         answer_text = row.get("ANSWER_TEXT")
@@ -608,7 +608,9 @@ def _render_questions(
         confidence_score = _confidence_for_question(row, section_confidence_by_name)
 
         visibility_match = _is_visible(row, answer_by_question)
-        question_order = escape(str(row.get("QUESTION_ORDER", "")))
+        question_number = row.get("QUESTION_NUMBER")
+        question_order_value = question_number if _safe_display(question_number, fallback="") else row.get("QUESTION_ORDER", "")
+        question_order = escape(str(question_order_value))
         question_text = str(row.get("QUESTION_TEXT", "") or "").strip() or "Question text not available"
 
         if is_child:
@@ -626,10 +628,11 @@ def _render_questions(
                 "</div>",
                 unsafe_allow_html=True,
             )
-            if row.get("CONFIDENCE_REASON"):
-                st.caption(str(row.get("CONFIDENCE_REASON")))
+            rationale_text = row.get("RATIONALE_TEXT") or row.get("CONFIDENCE_REASON")
+            if rationale_text:
+                st.caption(str(rationale_text))
 
-            answer_value = answer_text or extract_answer_json_value(row.get("ANSWER_JSON")) or ""
+            answer_value = row.get("DISPLAY_ANSWER") or row.get("ANSWER_VALUE") or answer_text or extract_answer_json_value(row.get("ANSWER_JSON")) or ""
             text_value = _normalize_answer_value(answer_value)
             is_editable = _question_is_editable(
                 can_edit=can_edit,
@@ -639,25 +642,29 @@ def _render_questions(
                 visibility_match=visibility_match,
             )
             is_disabled = not is_editable
-            answer_widget_key = _safe_widget_key("ans", claim_id, section_id_value, row, idx)
+            answer_widget_key = _safe_widget_key("ans", effective_claim_id, section_id_value, row, idx)
 
             st.markdown("<div class='mfq-answer-wrap'></div>", unsafe_allow_html=True)
             with st.container(border=False):
-                if answer_type in {"YES_NO", "YES_NO_UNCLEAR", "YES_NO_UNCLEAR_NA"}:
+                if answer_type in {"BOOLEAN", "YES_NO", "YES_NO_UNCLEAR", "YES_NO_UNCLEAR_NA"}:
                     type_options = {
+                        "BOOLEAN": ["Yes", "No"],
                         "YES_NO": ["YES", "NO"],
                         "YES_NO_UNCLEAR": ["YES", "NO", "UNCLEAR"],
                         "YES_NO_UNCLEAR_NA": ["YES", "NO", "UNCLEAR", "N/A"],
                     }
-                    safe_values = [str(v).upper() for v in allowed_values] or type_options[answer_type]
-                    current_value = str(text_value).upper()
+                    safe_values = [str(v) for v in allowed_values] or type_options[answer_type]
+                    current_value = str(text_value)
+                    upper_index = {value.upper(): value for value in safe_values}
+                    if current_value not in safe_values and current_value.upper() in upper_index:
+                        current_value = upper_index[current_value.upper()]
                     if current_value not in safe_values:
                         safe_values = ["", *safe_values]
                         selected_idx = 0
                     else:
                         selected_idx = safe_values.index(current_value)
                     new_value = st.radio("Answer", safe_values, index=selected_idx, horizontal=True, key=answer_widget_key, label_visibility="collapsed", disabled=is_disabled)
-                elif answer_type in {"CHOICE"} and allowed_values:
+                elif answer_type in {"RADIO", "SINGLE_SELECT", "CHOICE"} and allowed_values:
                     safe_values = [str(v) for v in allowed_values]
                     current_value = str(text_value)
                     if current_value not in safe_values:
@@ -666,7 +673,7 @@ def _render_questions(
                     else:
                         selected_idx = safe_values.index(current_value)
                     new_value = st.radio("Answer", safe_values, index=selected_idx, horizontal=True, key=answer_widget_key, label_visibility="collapsed", disabled=is_disabled)
-                elif answer_type in {"MULTISELECT"} and allowed_values:
+                elif answer_type in {"MULTI_SELECT", "MULTISELECT"} and allowed_values:
                     existing = text_value if isinstance(text_value, list) else extract_answer_json_value(row.get("ANSWER_JSON"))
                     existing_values = existing if isinstance(existing, list) else []
                     new_value = st.multiselect("Answer", options=[str(v) for v in allowed_values], default=[str(v) for v in existing_values], key=answer_widget_key, label_visibility="collapsed", disabled=is_disabled)
@@ -697,13 +704,15 @@ def _render_questions(
                     else:
                         selected_idx = options.index(current_value)
                     new_value = st.selectbox("Answer", options=options, index=selected_idx, key=answer_widget_key, label_visibility="collapsed", disabled=is_disabled)
+                elif answer_type in {"TEXT"}:
+                    new_value = st.text_input("Answer", value=str(text_value), key=answer_widget_key, placeholder="No answer currently extracted", label_visibility="collapsed", disabled=is_disabled)
                 else:
                     new_value = st.text_area("Answer", value=str(text_value), key=answer_widget_key, placeholder="No answer currently extracted", label_visibility="collapsed", disabled=is_disabled)
 
         answer_by_question[question_id] = ", ".join(new_value) if isinstance(new_value, list) else str(new_value)
         rendered_questions.append({
             "answer_id": answer_id,
-            "claim_id": claim_id,
+            "claim_id": effective_claim_id,
             "defendant_id": defendant_id,
             "question_id": question_id,
             "section_id": section_id_value,
@@ -844,7 +853,7 @@ def _render_summary_tab(session, claim_id: str, claim: dict) -> None:
 
 def _render_mfq_tab(session, ctx, claim_id: str, claim: dict) -> None:
     workspace = _cached_per_claim(
-        "mfq_answers_cache",
+        "mfq_form_cache",
         claim_id,
         lambda: build_mfq_workspace_for_claim(session, claim_id),
         label="Loading MFQ form...",
@@ -875,14 +884,43 @@ def _render_mfq_tab(session, ctx, claim_id: str, claim: dict) -> None:
                     st.session_state[edit_key] = False
                     st.rerun()
 
+    if workspace.get("missing_objects"):
+        st.error(
+            "MFQ Form tables are missing or not authorized. "
+            "Please verify access to MFQ_SECTIONS, MFQ_QUESTIONS, and MFQ_ANSWERS."
+        )
+        _render_missing_objects(workspace.get("missing_objects", []))
+        return
+
     _render_confidence_panel(workspace)
-    rendered_questions = _render_questions(
-        workspace.get("sections", pd.DataFrame()),
-        workspace.get("section_confidence", pd.DataFrame()),
-        can_edit=can_edit,
-        edit_mode=bool(st.session_state[edit_key]),
-        editable_section_ids=editable_section_ids,
-    )
+    synopsis_fields = {
+        key: claim.get(key)
+        for key in ("BRIEF_SYNOPSIS", "ALLEGED_INJURY_TERMS", "ALLEGATION_SUMMARY")
+        if _safe_display(claim.get(key), fallback="")
+    }
+    if synopsis_fields:
+        synopsis_col, questions_col = st.columns([1, 2.15], gap="large")
+        with synopsis_col:
+            with st.container(key=f"mfq_synopsis_card_{claim_id}"):
+                _render_synopsis_panel(claim)
+        with questions_col:
+            rendered_questions = _render_questions(
+                workspace.get("sections", pd.DataFrame()),
+                workspace.get("section_confidence", pd.DataFrame()),
+                can_edit=can_edit,
+                edit_mode=bool(st.session_state[edit_key]),
+                editable_section_ids=editable_section_ids,
+                claim_id=claim_id,
+            )
+    else:
+        rendered_questions = _render_questions(
+            workspace.get("sections", pd.DataFrame()),
+            workspace.get("section_confidence", pd.DataFrame()),
+            can_edit=can_edit,
+            edit_mode=bool(st.session_state[edit_key]),
+            editable_section_ids=editable_section_ids,
+            claim_id=claim_id,
+        )
     if st.session_state[edit_key] and save_clicked:
         for question in rendered_questions:
             if not question.get("editable"):
@@ -894,8 +932,9 @@ def _render_mfq_tab(session, ctx, claim_id: str, claim: dict) -> None:
                 question_id=question["question_id"],
                 answer_value=st.session_state.get(question["widget_key"]),
                 user_id=ctx.username,
+                section_id=question.get("section_id"),
             )
-        _invalidate_claim_caches(claim_id, "mfq_answers_cache")
+        _invalidate_claim_caches(claim_id, "mfq_answers_cache", "mfq_form_cache")
         st.session_state[edit_key] = False
         st.success("MFQ answers saved successfully.")
         st.rerun()
@@ -956,7 +995,7 @@ def render(session, ctx) -> None:
 
     if st.session_state.get(f"open_assign_modal_{claim_id}", False):
         mfq_workspace = _cached_per_claim(
-            "mfq_answers_cache",
+            "mfq_form_cache",
             claim_id,
             lambda: build_mfq_workspace_for_claim(session, claim_id),
             label="Loading assignable MFQ sections...",
@@ -968,20 +1007,21 @@ def render(session, ctx) -> None:
             sections_df=mfq_workspace.get("sections", pd.DataFrame()),
         )
 
+    tab_key = f"claim_details_active_tab_{claim_id}"
+    if st.session_state.get(tab_key) not in DETAIL_TAB_OPTIONS:
+        st.session_state[tab_key] = DETAIL_TAB_OPTIONS[0]
     selected_tab = st.radio(
         "Claim details section",
         DETAIL_TAB_OPTIONS,
-        key=f"claim_details_active_tab_{claim_id}",
+        key=tab_key,
         horizontal=True,
         label_visibility="collapsed",
     )
 
-    if selected_tab == "Summary":
-        _render_summary_tab(session, claim_id, claim)
-    elif selected_tab == "MFQ Form":
+    if selected_tab == "MFQ Form":
         _render_mfq_tab(session, ctx, claim_id, claim)
-    elif selected_tab == "History":
-        _render_history_tab(session, claim_id)
+    elif selected_tab == "Records Summary":
+        _render_summary_tab(session, claim_id, claim)
     elif selected_tab == "Documents":
         _render_documents_lazy_tab(session, claim_id)
     elif selected_tab == "MedCron":
