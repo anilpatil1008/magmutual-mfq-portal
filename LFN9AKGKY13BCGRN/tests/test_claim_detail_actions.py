@@ -68,3 +68,16 @@ def test_rejected_other_role_sees_no_actions():
         mfq_status="Rejected",
         current_role="CLAIM_ANALYST",
     ) == []
+
+
+def test_claims_analyst_and_accountadmin_can_act_on_generated_claim():
+    assert get_claim_detail_actions(
+        claim_status="Open",
+        mfq_status="MFQ Generated",
+        current_role="Claims Analyst",
+    ) == ["assign_to_faculty", "approve"]
+    assert get_claim_detail_actions(
+        claim_status="Open",
+        mfq_status="MFQ Generated",
+        current_role="ACCOUNTADMIN",
+    ) == ["assign_to_faculty", "approve"]

@@ -117,6 +117,24 @@ def _current_role_for_actions(session, ctx) -> str:
     return _safe_display(get_current_role(session), fallback="")
 
 
+CLAIM_DETAIL_ACTION_ROLES = {
+    "CLAIM OPS",
+    "CLAIMS OPS",
+    "CLAIM OPERATIONS",
+    "CLAIMS OPERATIONS",
+    "CLAIMS ANALYST",
+    "CLAIM ANALYST SUPERVISOR",
+    "CLAIMS ANALYST SUPERVISOR",
+    "ADMIN",
+    "ACCOUNTADMIN",
+}
+
+
+def _can_show_claim_detail_actions(current_role) -> bool:
+    """Return whether the active app/Snowflake role may act on claim-detail reviews."""
+    return _normalize_for_rule(current_role) in CLAIM_DETAIL_ACTION_ROLES
+
+
 def get_claim_detail_actions(claim_status, mfq_status, current_role) -> list[str]:
     """Return top-card actions using MFQ_STATUS only.
 
@@ -125,15 +143,14 @@ def get_claim_detail_actions(claim_status, mfq_status, current_role) -> list[str
     """
     del claim_status
     normalized_mfq_status = _normalize_for_rule(mfq_status)
-    role = _normalize_for_rule(current_role)
 
+    if not _can_show_claim_detail_actions(current_role):
+        return []
     if normalized_mfq_status == "APPROVED":
         return []
     if normalized_mfq_status == "REJECTED":
-        if role in {"CLAIM OPS", "CLAIM ANALYST SUPERVISOR"}:
-            return ["assign_to_faculty"]
-        return []
-    if normalized_mfq_status == "MFQ GENERATED" and role == "CLAIM OPS":
+        return ["assign_to_faculty"]
+    if normalized_mfq_status == "MFQ GENERATED":
         return ["assign_to_faculty", "approve"]
     return []
 
@@ -160,7 +177,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     date_requested = _safe_display(claim.get("DATE_REQUESTED"))
     assigned_to = _safe_display(claim.get("ASSIGNED_TO"), fallback="")
     assigned_to_display = assigned_to or "Unassigned"
-    assign_label = "Assign"
+    assign_label = "Assign to Faculty"
     claim_action_status = claim.get("CLAIM_STATUS", claim.get("STATUS"))
     current_role = _current_role_for_actions(session, ctx)
     actions = get_claim_detail_actions(
@@ -179,7 +196,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     )
 
     with st.container(key="review_header_card"):
-        left_col, action_col = st.columns([6.2, 1.3], vertical_alignment="top")
+        left_col, action_col = st.columns([5.2, 2.1], vertical_alignment="top")
         with left_col:
             st.markdown("<div class='review-headline-wrap'>", unsafe_allow_html=True)
             priority_badge_html = (
