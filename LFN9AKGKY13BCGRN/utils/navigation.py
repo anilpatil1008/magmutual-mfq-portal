@@ -10,8 +10,29 @@ REPORTS_VIEW = "reports"
 CLAIM_DETAILS_VIEW = "claim_details"
 
 
+def _is_dashboard_route_active() -> bool:
+    """Return True when session state already represents the Dashboard route."""
+    current_view = str(st.session_state.get("current_view") or "").strip().lower()
+    selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
+    return current_view == DASHBOARD_VIEW and not selected_claim_id
+
+
+def _advance_dashboard_route_instance_if_needed() -> None:
+    """Rotate Dashboard component keys only when entering Dashboard from another route."""
+    if _is_dashboard_route_active():
+        return
+
+    current_instance = st.session_state.get("dashboard_route_instance", 0)
+    try:
+        current_instance = int(current_instance)
+    except (TypeError, ValueError):
+        current_instance = 0
+    st.session_state["dashboard_route_instance"] = current_instance + 1
+
+
 def set_dashboard_route() -> None:
     """Synchronize session state for the Dashboard route without rerunning."""
+    _advance_dashboard_route_instance_if_needed()
     st.session_state["selected_claim_id"] = None
     st.session_state["selected_claim"] = None
     st.session_state["current_view"] = DASHBOARD_VIEW
