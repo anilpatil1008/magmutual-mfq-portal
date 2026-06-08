@@ -280,7 +280,12 @@ def get_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
     if detail is not None and _object_exists(session, obj.VW_MFQ_CLAIMS):
         status_df = claims_repository.get_claim_status_snapshot(session, claim_id)
         if not status_df.empty:
-            for key, value in status_df.iloc[0].to_dict().items():
+            snapshot = status_df.iloc[0].to_dict()
+            if not _is_blank_value(snapshot.get("MFQ_STATUS")):
+                detail["MFQ_STATUS"] = snapshot.get("MFQ_STATUS")
+            for key, value in snapshot.items():
+                if key == "MFQ_STATUS":
+                    continue
                 if _is_blank_value(detail.get(key)):
                     detail[key] = value
     if detail is not None and _object_exists(session, obj.MFQ_CLAIM_DEFENDANTS_TABLE):
@@ -289,7 +294,12 @@ def get_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
             for key, value in defendant_df.iloc[0].to_dict().items():
                 if _is_blank_value(detail.get(key)):
                     detail[key] = value
-    logger.info("get_claim_detail_by_id_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
+    logger.info(
+        "get_claim_detail_by_id_ms=%d selected_claim_id=%s raw_mfq_status=%s",
+        int((perf_counter() - started) * 1000),
+        claim_id,
+        "" if detail is None else str(detail.get("MFQ_STATUS") or "").strip(),
+    )
     return detail
 
 

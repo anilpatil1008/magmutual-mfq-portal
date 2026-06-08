@@ -110,6 +110,14 @@ def _normalize_identifier(value: object) -> str:
     return str(value).strip().upper()
 
 
+def _normalize_status(value: object) -> str:
+    return " ".join(str(value or "").replace("_", " ").split()).upper()
+
+
 def can_edit_claim(claim_status: str, assigned_to: object, username: object) -> bool:
+    """Return MFQ form editability from MFQ_STATUS, case/whitespace-insensitively."""
+    normalized_status = _normalize_status(claim_status)
     is_assigned_user = _normalize_identifier(assigned_to) == _normalize_identifier(username)
-    return claim_status in {"MFQ Generated", "Assigned", "Rejected"} or (claim_status == "Assigned" and is_assigned_user)
+    return normalized_status in {"MFQ GENERATED", "REJECTED"} or (
+        normalized_status == "ASSIGNED" and is_assigned_user
+    )

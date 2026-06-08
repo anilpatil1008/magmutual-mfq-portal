@@ -28,16 +28,24 @@ def test_mfq_generated_claim_ops_sees_assign_and_approve_with_role_underscores()
     ) == ["assign_to_faculty", "approve"]
 
 
-def test_approved_claim_hides_actions_for_any_role():
-    assert get_claim_detail_actions(
-        claim_status=" Approved ",
-        mfq_status="MFQ GENERATED",
-        current_role="CLAIM_OPS",
-    ) == []
+def test_approved_mfq_status_hides_actions_for_any_role():
     assert get_claim_detail_actions(
         claim_status="Open",
         mfq_status="approved",
         current_role="CLAIM_ANALYST_SUPERVISOR",
+    ) == []
+
+
+def test_claim_status_does_not_override_mfq_status_for_actions():
+    assert get_claim_detail_actions(
+        claim_status=" Approved ",
+        mfq_status="MFQ GENERATED",
+        current_role="CLAIM_OPS",
+    ) == ["assign_to_faculty", "approve"]
+    assert get_claim_detail_actions(
+        claim_status="Rejected",
+        mfq_status="Approved",
+        current_role="CLAIM_OPS",
     ) == []
 
 
