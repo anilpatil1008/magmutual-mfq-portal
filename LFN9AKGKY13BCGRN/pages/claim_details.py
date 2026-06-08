@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import re
+from datetime import date, datetime
 from html import escape
 from time import perf_counter
 
@@ -101,6 +102,138 @@ def _first_safe_display(claim: dict, keys: tuple[str, ...], fallback: str = "-")
     return fallback
 
 
+
+
+def _format_display_date(value) -> str:
+    """Format date/datetime values for the claim header without a time component."""
+    if value is None:
+        return "-"
+    try:
+        if pd.isna(value):
+            return "-"
+    except (TypeError, ValueError):
+        pass
+
+    if isinstance(value, datetime):
+        parsed = value
+    elif isinstance(value, date):
+        parsed = datetime.combine(value, datetime.min.time())
+    else:
+        raw = str(value).strip()
+        if not raw or raw.casefold() in {"nan", "none", "null"}:
+            return "-"
+        parsed = pd.to_datetime(raw, errors="coerce")
+        if pd.isna(parsed):
+            return raw.split()[0] if raw.split() else "-"
+        parsed = parsed.to_pydatetime()
+
+    return f"{parsed.strftime('%b')} {parsed.day}, {parsed.year}"
+
+
+def _display_label_for_claim_key(key: str) -> str:
+    label_overrides = {
+        "CLAIM_NUMBER": "CLAIM NUMBER",
+        "FILE_NUMBER": "CLAIM NUMBER",
+        "CLAIM_ID": "CLAIM ID",
+        "DEFENDANT_SPECIALTY": "DEFENDANT SPECIALTY",
+        "DEFENDANT_SPECIALITY": "DEFENDANT SPECIALTY",
+        "DATE_REQUESTED": "DATE REQUESTED",
+        "MAGMUTUAL_CONTACT": "MAGMUTUAL CONTACT",
+        "MAGMUTUAL_CONTACT_EMAIL": "CONTACT EMAIL",
+        "CONTACT_EMAIL": "CONTACT EMAIL",
+        "MAGMUTUAL_CONTACT_PHONE": "CONTACT PHONE",
+        "AI_CONFIDENCE": "AI CONFIDENCE",
+        "MFQ_STATUS": "MFQ STATUS",
+    }
+    return label_overrides.get(key, key.replace("_", " ").upper())
+
+
+def _format_claim_meta_value(key: str, value) -> str:
+    if key in {"DATE_REQUESTED", "CREATED_AT", "CREATED_TS", "UPDATED_AT", "UPDATED_TS", "LAST_UPDATED_TS", "LAST_SYNCED_AT", "FIRST_DOCUMENT_DATE", "LAST_DOCUMENT_DATE"}:
+        return _format_display_date(value)
+    if key == "AI_CONFIDENCE":
+        return _fmt_conf(value)
+    return _safe_display(value)
+
+
+def _claim_meta_items(claim_id: str, claim: dict) -> list[tuple[str, str]]:
+    """Build a comprehensive, non-empty set of claim header fields from the selected claim payload."""
+    claim_id_display = _safe_display(claim.get("CLAIM_ID"), fallback=_safe_display(claim_id))
+    claim_number = _first_safe_display(claim, ("CLAIM_NUMBER", "FILE_NUMBER"), fallback=claim_id_display)
+    specialty = _first_safe_display(
+        claim,
+        ("DEFENDANT_SPECIALTY", "DEFENDANT_SPECIALITY", "SPECIALTY", "SPECIALITY"),
+    )
+    contact = _first_safe_display(
+        claim,
+        ("MAGMUTUAL_CONTACT", "MAGMUTUAL_CONTACT_NAME", "CONTACT", "CONTACT_NAME", "ASSIGNED_TO"),
+        fallback="-",
+    )
+    contact_email = _first_safe_display(
+        claim,
+        ("MAGMUTUAL_CONTACT_EMAIL", "CONTACT_EMAIL", "MAGMUTUAL_EMAIL", "EMAIL"),
+        fallback="-",
+    )
+    primary_keys = [
+        ("FILE_NUMBER", claim_number),
+        ("DEFENDANT_SPECIALTY", specialty),
+        ("DATE_REQUESTED", _format_display_date(claim.get("DATE_REQUESTED"))),
+        ("MAGMUTUAL_CONTACT", contact),
+        ("CONTACT_EMAIL", contact_email),
+    ]
+
+    used_keys = {
+        "CLAIM_NUMBER",
+        "FILE_NUMBER",
+        "DEFENDANT_SPECIALTY",
+        "DEFENDANT_SPECIALITY",
+        "SPECIALTY",
+        "SPECIALITY",
+        "DATE_REQUESTED",
+        "MAGMUTUAL_CONTACT",
+        "MAGMUTUAL_CONTACT_NAME",
+        "CONTACT",
+        "CONTACT_NAME",
+        "ASSIGNED_TO",
+        "MAGMUTUAL_CONTACT_EMAIL",
+        "CONTACT_EMAIL",
+        "MAGMUTUAL_EMAIL",
+        "EMAIL",
+    }
+    title_and_badge_keys = {
+        "PATIENT_DEFENDANT",
+        "PATIENT_NAME",
+        "DEFENDANT_NAME",
+        "MFQ_STATUS",
+        "PRIORITY",
+        "STATUS",
+        "CLAIM_STATUS",
+        "WORKFLOW_STATUS",
+    }
+    hidden_or_large_keys = {
+        "DEFENDANTS_JSON",
+        "MINIMUM_GATE_DETAILS",
+        "BRIEF_SYNOPSIS",
+        "ALLEGED_INJURY_TERMS",
+        "ALLEGATION_SUMMARY",
+        "_CLAIMS_SEARCH_TEXT",
+    }
+
+    items = [(key, value) for key, value in primary_keys if _safe_display(value, fallback="")]
+    for key, raw_value in claim.items():
+        normalized_key = str(key or "").strip().upper()
+        if normalized_key in used_keys or normalized_key in title_and_badge_keys or normalized_key in hidden_or_large_keys:
+            continue
+        display_value = _format_claim_meta_value(normalized_key, raw_value)
+        if not _safe_display(display_value, fallback=""):
+            continue
+        if len(display_value) > 80:
+            continue
+        items.append((normalized_key, display_value))
+        used_keys.add(normalized_key)
+
+    return items
+
 def normalize_status(value) -> str:
     """Normalize status values for case-insensitive, whitespace-safe comparisons."""
     return re.sub(r"[\s_]+", " ", _safe_display(value, fallback="")).strip().lower()
@@ -131,8 +264,6 @@ def get_claim_detail_actions(claim_status=None, mfq_status=None, current_role=No
 
 
 def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
-    claim_id_display = _safe_display(claim.get("CLAIM_ID"), fallback=_safe_display(claim_id))
-    file_number = _safe_display(claim.get("FILE_NUMBER"), fallback=claim_id_display)
     raw_mfq_status = claim.get("MFQ_STATUS")
     status = _safe_display(raw_mfq_status, fallback="Unknown")
     normalized_mfq_status = normalize_status(raw_mfq_status)
@@ -140,18 +271,20 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     patient_defendant = _safe_display(claim.get("PATIENT_DEFENDANT"), fallback="")
     patient = _safe_display(claim.get("PATIENT_NAME"), fallback="")
     defendant = _safe_display(claim.get("DEFENDANT_NAME"), fallback="")
-    title = patient_defendant or (
-        f"{patient} / {defendant}"
-        if patient and defendant
-        else patient or defendant or "Unknown Patient vs Unknown Defendant"
+    if patient and defendant:
+        title = f"{patient} vs {defendant}"
+    elif patient_defendant:
+        title = re.sub(r"\s*/\s*", " vs ", patient_defendant)
+    else:
+        title = patient or defendant or "Unknown Patient vs Unknown Defendant"
+
+    meta_html = "".join(
+        "<div>"
+        f"<div class='review-meta-label'>{escape(_display_label_for_claim_key(key))}</div>"
+        f"<div>{escape(value)}</div>"
+        "</div>"
+        for key, value in _claim_meta_items(claim_id, claim)
     )
-    specialty = _first_safe_display(
-        claim,
-        ("DEFENDANT_SPECIALTY", "DEFENDANT_SPECIALITY", "SPECIALTY", "SPECIALITY"),
-    )
-    date_requested = _safe_display(claim.get("DATE_REQUESTED"))
-    assigned_to = _safe_display(claim.get("ASSIGNED_TO"), fallback="")
-    assigned_to_display = assigned_to or "Unassigned"
     assign_label = "Assign to Faculty"
     actions = get_claim_action_buttons(raw_mfq_status)
     logger.info(
@@ -165,30 +298,27 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     with st.container(key="review_header_card"):
         left_col, action_col = st.columns([5.2, 2.1], vertical_alignment="top")
         with left_col:
-            st.markdown("<div class='review-headline-wrap'>", unsafe_allow_html=True)
             priority_badge_html = (
                 f"<span class='review-pill review-priority'>{escape(priority)}</span>"
                 if priority
                 else ""
             )
-            title_html = escape(title).replace(" / ", " <span class='review-vs'>vs</span> ")
+            title_html = escape(title)
             st.markdown(
                 (
+                    "<div class='review-headline-wrap'>"
+                    "<div class='review-title-row'>"
                     f"<div class='review-headline'>{title_html}</div>"
                     "<div class='review-badges'>"
                     f"<span class='review-pill review-status'>{escape(status)}</span>"
                     f"{priority_badge_html}"
                     "</div>"
-                    "<div class='review-meta-grid claim-meta-grid'>"
-                    f"<div><div class='review-meta-label'>File Number</div><div>{escape(file_number)}</div></div>"
-                    f"<div><div class='review-meta-label'>Defendant Specialty</div><div>{escape(specialty)}</div></div>"
-                    f"<div><div class='review-meta-label'>Date Requested</div><div>{escape(date_requested)}</div></div>"
-                    f"<div><div class='review-meta-label'>Contact</div><div>{escape(assigned_to_display)}</div></div>"
+                    "</div>"
+                    f"<div class='review-meta-grid claim-meta-grid'>{meta_html}</div>"
                     "</div>"
                 ),
                 unsafe_allow_html=True,
             )
-            st.markdown("</div>", unsafe_allow_html=True)
 
         with action_col:
             if actions:
@@ -206,7 +336,8 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
 
 def _go_back_to_dashboard() -> None:
     st.session_state["active_page"] = "Dashboard"
-    st.session_state["current_view"] = "Dashboard"
+    st.session_state["current_view"] = "dashboard"
+    st.session_state["active_sidebar_item"] = "Dashboard"
     st.session_state["selected_claim_id"] = None
     st.session_state["last_review_event"] = None
     st.session_state["last_processed_review_claim_id"] = None
@@ -993,6 +1124,10 @@ def _render_documents_lazy_tab(session, claim_id: str) -> None:
 
 def render(session, ctx) -> None:
     claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
+    if claim_id:
+        st.session_state["active_page"] = "Claim Details"
+        st.session_state["current_view"] = "claim_details"
+        st.session_state["active_sidebar_item"] = "Claim Details"
     logger.info("render_claim_details called claim_id=%s", claim_id)
     if not claim_id:
         st.warning("No claim is selected. Open a claim from Dashboard or Claims page.")

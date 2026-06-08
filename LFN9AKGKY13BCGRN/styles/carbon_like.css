@@ -1177,7 +1177,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
 }
 
@@ -1694,14 +1694,15 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   padding: 1.2rem 1.3rem;
   margin-bottom: .75rem;
 }
-.review-headline { font-size: 2rem; font-weight: 700; color: #102a43; }
+.review-title-row { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.review-headline { font-size: 2rem; font-weight: 700; color: #102a43; line-height: 1.15; }
 .review-vs { font-size: 1.3rem; color: #556; margin: 0 .3rem; }
-.review-badges { display: flex; gap: .5rem; margin: .4rem 0 .8rem; }
-.review-pill { font-size: .78rem; padding: .2rem .6rem; border-radius: 999px; border: 1px solid #d0d7e2; }
+.review-badges { display: inline-flex; align-items: center; gap: .5rem; margin: 0; }
+.review-pill { display: inline-flex; align-items: center; min-height: 24px; font-size: .78rem; padding: .2rem .6rem; border-radius: 999px; border: 1px solid #d0d7e2; white-space: nowrap; }
 .review-status { background: #edf5ff; color: #1243a7; }
 .review-priority { background: #fff1db; color: #8a4b00; }
-.review-meta-grid { display: grid; grid-template-columns: repeat(4, minmax(130px,1fr)); gap: 1rem; }
-.claim-meta-grid { display: grid; grid-template-columns: repeat(4, minmax(130px, 1fr)); gap: 20px; }
+.review-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; }
+.claim-meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 18px; }
 .review-meta-label { text-transform: uppercase; letter-spacing: .05em; font-size: .7rem; color: #667085; margin-bottom: .15rem; }
 
 .st-key-review_header_card {
@@ -1733,8 +1734,8 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 }
 
 .st-key-review_header_card [data-testid="column"]:last-child {
-  min-width: 300px;
-  max-width: 340px;
+  min-width: 250px;
+  max-width: 300px;
   margin-left: auto;
 }
 
@@ -1743,10 +1744,10 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
   flex-direction: row;
   justify-content: flex-end;
   align-items: stretch;
-  gap: 12px;
+  gap: 10px;
   width: 100%;
-  min-width: 300px;
-  max-width: 340px;
+  min-width: 250px;
+  max-width: 300px;
   margin-left: auto;
 }
 
@@ -1757,11 +1758,12 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button p {
 
 .st-key-review_header_card [data-testid="column"]:last-child .stButton button {
   width: 100%;
-  min-height: 40px;
-  height: 40px;
+  min-height: 36px;
+  height: 36px;
   white-space: nowrap;
-  padding: 0 .75rem;
-  font-size: .88rem;
+  padding: 8px 16px;
+  font-size: .85rem;
+  border-radius: 8px;
 }
 
 .st-key-review_header_card button[kind="primary"] {
