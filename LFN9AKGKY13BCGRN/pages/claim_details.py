@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from html import escape
 from time import perf_counter
 
@@ -101,17 +102,34 @@ def _first_safe_display(claim: dict, keys: tuple[str, ...], fallback: str = "-")
 
 
 def _normalize_for_rule(value) -> str:
-    return _safe_display(value, fallback="").replace("_", " ").strip().upper()
+    """Normalize workflow statuses and Snowflake roles for action visibility rules."""
+    return re.sub(r"[\s_]+", " ", _safe_display(value, fallback="")).strip().upper()
+
+
+def _normalized_claim_statuses_for_actions(claim_status, mfq_status) -> list[str]:
+    """Return selected claim-detail statuses in rule priority order.
+
+    The Dashboard can show MFQ status while the detail view can also expose
+    workflow/claim status fields. Approved must always be read-only if any
+    selected detail status says Approved; otherwise MFQ status drives the
+    generated/rejected actions with claim status as a fallback.
+    """
+    statuses: list[str] = []
+    for value in (mfq_status, claim_status):
+        normalized = _normalize_for_rule(value)
+        if normalized and normalized not in statuses:
+            statuses.append(normalized)
+    return statuses
 
 
 def get_claim_detail_actions(claim_status, mfq_status, current_role) -> list[str]:
-    workflow_status = _normalize_for_rule(mfq_status) or _normalize_for_rule(claim_status)
-    claim_status_normalized = _normalize_for_rule(claim_status)
+    statuses = _normalized_claim_statuses_for_actions(claim_status, mfq_status)
+    workflow_status = statuses[0] if statuses else ""
     role = _normalize_for_rule(current_role)
 
-    if "APPROVED" in {workflow_status, claim_status_normalized}:
+    if "APPROVED" in statuses:
         return []
-    if "REJECTED" in {workflow_status, claim_status_normalized}:
+    if "REJECTED" in statuses:
         if role in {"CLAIM OPS", "CLAIM ANALYST SUPERVISOR"}:
             return ["assign_to_faculty"]
         return []
@@ -133,11 +151,22 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     date_requested = _safe_display(claim.get("DATE_REQUESTED"))
     assigned_to = _safe_display(claim.get("ASSIGNED_TO"), fallback="")
     assigned_to_display = assigned_to or "Unassigned"
-    assign_label = "Reassign to Faculty" if assigned_to else "Assign to Faculty"
+    assign_label = "Assign"
+    claim_action_status = claim.get("CLAIM_STATUS", claim.get("STATUS"))
+    mfq_action_status = claim.get("MFQ_STATUS", claim.get("STATUS"))
+    current_role = getattr(ctx, "sf_role", "")
     actions = get_claim_detail_actions(
-        claim_status=claim.get("CLAIM_STATUS", claim.get("STATUS")),
-        mfq_status=claim.get("MFQ_STATUS", claim.get("STATUS")),
-        current_role=getattr(ctx, "sf_role", ""),
+        claim_status=claim_action_status,
+        mfq_status=mfq_action_status,
+        current_role=current_role,
+    )
+    logger.info(
+        "claim_detail_actions_resolved claim_id=%s claim_status=%s mfq_status=%s current_role=%s actions=%s",
+        claim_id,
+        _safe_display(claim_action_status, fallback=""),
+        _safe_display(mfq_action_status, fallback=""),
+        _safe_display(current_role, fallback=""),
+        actions,
     )
 
     with st.container(key="review_header_card"):

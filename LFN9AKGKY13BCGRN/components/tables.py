@@ -427,9 +427,18 @@ def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.Dat
     return df[mask]
 
 
+def _discard_selected_claim_detail_cache(claim_id: str) -> None:
+    """Force a fresh selected-claim header/status read after Dashboard Review."""
+    for cache_name in ("claim_details_cache",):
+        cache = st.session_state.get(cache_name)
+        if isinstance(cache, dict):
+            cache.pop(str(claim_id).strip(), None)
+
+
 def _open_claim_details(claim_id: str) -> None:
     started = perf_counter()
     claim_id = str(claim_id).strip()
+    _discard_selected_claim_detail_cache(claim_id)
     st.session_state["review_click_started_at"] = started
     st.session_state["selected_claim_id"] = claim_id
     st.session_state["active_page"] = "Claim Details"
