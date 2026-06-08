@@ -24,7 +24,7 @@ from services.claim_service import (
     update_claim_status,
 )
 from services.rbac_service import can_edit_claim
-from utils.navigation import navigate_to_claim_details, navigate_to_dashboard
+from utils.navigation import is_claim_details_route_active, navigate_to_dashboard
 
 logger = logging.getLogger(__name__)
 
@@ -103,6 +103,24 @@ def _first_safe_display(claim: dict, keys: tuple[str, ...], fallback: str = "-")
     return fallback
 
 
+def _normalize_priority_display(value) -> str:
+    """Return a user-visible PRIORITY badge label or an empty string for null-like values."""
+    text = _safe_display(value, fallback="")
+    if not text or text.casefold() in {"n/a", "na", "not applicable", "unknown"}:
+        return ""
+
+    normalized = re.sub(r"[\s_]+", " ", text).strip().casefold()
+    priority_labels = {"high": "High", "medium": "Medium", "low": "Low"}
+    return priority_labels.get(normalized, "")
+
+
+def _priority_from_claim(claim: dict) -> str:
+    """Read priority only from priority-specific fields, never status fields."""
+    for key in ("PRIORITY", "CLAIM_PRIORITY"):
+        priority = _normalize_priority_display(claim.get(key))
+        if priority:
+            return priority
+    return ""
 
 
 def _format_display_date(value) -> str:
@@ -176,7 +194,7 @@ def _claim_meta_items(claim_id: str, claim: dict) -> list[tuple[str, str]]:
         fallback="-",
     )
     primary_keys = [
-        ("FILE_NUMBER", claim_number),
+        ("CLAIM_NUMBER", claim_number),
         ("DEFENDANT_SPECIALTY", specialty),
         ("DATE_REQUESTED", _format_display_date(claim.get("DATE_REQUESTED"))),
         ("MAGMUTUAL_CONTACT", contact),
@@ -207,6 +225,7 @@ def _claim_meta_items(claim_id: str, claim: dict) -> list[tuple[str, str]]:
         "DEFENDANT_NAME",
         "MFQ_STATUS",
         "PRIORITY",
+        "CLAIM_PRIORITY",
         "STATUS",
         "CLAIM_STATUS",
         "WORKFLOW_STATUS",
@@ -294,7 +313,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     raw_mfq_status = claim.get("MFQ_STATUS")
     status = _safe_display(raw_mfq_status, fallback="Unknown")
     normalized_mfq_status = normalize_status(raw_mfq_status)
-    priority = _safe_display(claim.get("PRIORITY"), fallback="")
+    priority = _priority_from_claim(claim)
     patient_defendant = _safe_display(claim.get("PATIENT_DEFENDANT"), fallback="")
     patient = _safe_display(claim.get("PATIENT_NAME"), fallback="")
     defendant = _safe_display(claim.get("DEFENDANT_NAME"), fallback="")
@@ -377,10 +396,9 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
 def _go_back_to_dashboard() -> None:
     navigate_to_dashboard()
     st.session_state["last_review_event"] = None
-    st.session_state["last_processed_review_claim_id"] = None
-    for key in list(st.session_state.keys()):
-        if key.endswith("_recent_claims_last_review_event_id"):
-            st.session_state.pop(key, None)
+    # Preserve recent-claims de-dupe keys. Custom components can replay their
+    # last Review payload when Dashboard remounts; clearing these keys here
+    # makes that stale payload look new and immediately reopens Claim Details.
     st.query_params.clear()
     st.rerun()
 
@@ -1037,7 +1055,7 @@ def _render_summary_tab(session, claim_id: str, claim: dict) -> None:
         ("Claim Type", _safe_display(claim.get("CLAIM_TYPE"))),
         ("Workflow Status", _first_safe_display(claim, ("WORKFLOW_STATUS", "MFQ_STATUS", "STATUS"))),
         ("AI Confidence", _fmt_conf(claim.get("AI_CONFIDENCE"))),
-        ("File Number", _safe_display(claim.get("FILE_NUMBER"))),
+        ("Claim Number", _first_safe_display(claim, ("CLAIM_NUMBER", "FILE_NUMBER"))),
     ]
     for col, (label, value) in zip(detail_cols, detail_items):
         col.markdown(
@@ -1161,10 +1179,13 @@ def _render_documents_lazy_tab(session, claim_id: str) -> None:
 
 def render(session, ctx) -> None:
     claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
-    if claim_id:
-        navigate_to_claim_details(claim_id)
-    logger.info("render_claim_details called claim_id=%s", claim_id)
-    if not claim_id:
+    logger.info(
+        "render_claim_details called current_view=%s claim_id=%s",
+        st.session_state.get("current_view"),
+        claim_id,
+    )
+    if not is_claim_details_route_active():
+        navigate_to_dashboard()
         st.warning("No claim is selected. Open a claim from Dashboard or Claims page.")
         return
 

@@ -70,8 +70,9 @@ def _normalize_navigation_state() -> None:
         st.query_params.clear()
         return
 
-    if active_page == CLAIM_DETAILS_PAGE and selected_claim_id:
-        navigate_to_claim_details(selected_claim_id)
+    if active_page == CLAIM_DETAILS_PAGE and current_view != CLAIM_DETAILS_VIEW:
+        navigate_to_dashboard()
+        st.query_params.clear()
         return
 
     if active_page not in {DASHBOARD_PAGE, "Claims", "Reports", "Admin"}:

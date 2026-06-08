@@ -75,11 +75,12 @@ def test_dashboard_claim_search_where_clause_includes_live_search_columns():
         "MFQ_STATUS",
         "WORKFLOW_STATUS",
         "PRIORITY",
+        "CLAIM_PRIORITY",
         "CLAIM_TYPE",
         "CLAIM_STATUS",
     ):
         assert f"TO_VARCHAR({column}) ILIKE ?" in where_clause
-    assert params == ["%smith%"] * 9
+    assert params == ["%smith%"] * 10
 
 
 def test_dashboard_claim_search_where_clause_skips_columns_missing_from_deployed_view():

@@ -21,6 +21,7 @@ from pages.claim_details import (
     _display_label_for_claim_key,
     _format_display_date,
     _priority_badge_class,
+    _priority_from_claim,
     _safe_display,
     _status_badge_class,
     get_claim_action_buttons,
@@ -82,6 +83,14 @@ def test_header_badge_helpers_use_mfq_status_and_priority_independently():
     assert _priority_badge_class(" HIGH ") == "high"
     assert _priority_badge_class("Medium") == "medium"
     assert _priority_badge_class(None) == "default"
+
+
+def test_priority_display_uses_priority_fields_only_and_hides_null_like_values():
+    assert _priority_from_claim({"PRIORITY": "High", "MFQ_STATUS": "Rejected"}) == "High"
+    assert _priority_from_claim({"PRIORITY": None, "CLAIM_PRIORITY": "medium"}) == "Medium"
+    assert _priority_from_claim({"PRIORITY": "N/A", "CLAIM_PRIORITY": "low"}) == "Low"
+    assert _priority_from_claim({"PRIORITY": "nan", "MFQ_STATUS": "High"}) == ""
+    assert _priority_from_claim({"CLAIM_STATUS": "High", "WORKFLOW_STATUS": "Medium"}) == ""
 
 
 def test_claim_header_safe_display_labels_and_dates():
