@@ -445,7 +445,6 @@ def _discard_selected_claim_detail_cache(claim_id: str) -> None:
 def _open_claim_details(claim_id: str) -> None:
     started = perf_counter()
     claim_id = str(claim_id).strip()
-    _discard_selected_claim_detail_cache(claim_id)
     st.session_state["review_click_started_at"] = started
     st.session_state["last_review_event"] = None
     st.session_state["last_processed_review_claim_id"] = claim_id
