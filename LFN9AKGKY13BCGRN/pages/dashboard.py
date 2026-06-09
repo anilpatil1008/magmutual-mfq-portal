@@ -8,7 +8,7 @@ from time import perf_counter
 import streamlit as st
 
 from components.cards import render_kpi_cards
-from components.tables import render_live_claims_search, render_recent_claims_table
+from components.tables import render_recent_claims_table
 from services.claim_service import (
     get_available_claim_statuses,
     get_available_claim_types,
@@ -54,14 +54,26 @@ def _init_dashboard_filter_state() -> None:
         "date_requested_from_widget": None,
         "date_requested_to_widget": None,
         "claims_page_number": 1,
-        "dash_recent_claims_search": "",
-        "dash_ongoing_claims_search": "",
-        "dash_history_claims_search": "",
+        "claims_live_search": "",
         "claim_scope": CLAIM_BUCKET_OPTIONS[0],
     }
+    legacy_search = ""
+    for legacy_search_key in (
+        "dash_recent_claims_search",
+        "dash_ongoing_claims_search",
+        "dash_history_claims_search",
+    ):
+        legacy_value = st.session_state.pop(legacy_search_key, "")
+        for legacy_suffix in ("_draft", "_apply", "_clear"):
+            st.session_state.pop(f"{legacy_search_key}{legacy_suffix}", None)
+        if not legacy_search and str(legacy_value or "").strip():
+            legacy_search = str(legacy_value)
+
     for key, value in defaults.items():
         if key not in st.session_state:
-            st.session_state[key] = value
+            st.session_state[key] = (
+                legacy_search if key == "claims_live_search" and legacy_search else value
+            )
 
     legacy_scope = st.session_state.pop("dashboard_claims_tab", None)
     current_scope = str(st.session_state.get("claim_scope") or CLAIM_BUCKET_OPTIONS[0])
@@ -263,17 +275,6 @@ def _dashboard_filters(search_text: str = "") -> dict[str, object]:
     }
 
 
-def _claims_search_state_key(claim_bucket: str) -> str:
-    bucket_key = str(claim_bucket or "recent").strip().lower()
-    if bucket_key in {"ongoing", "history"}:
-        return f"dash_{bucket_key}_claims_search"
-    return "dash_recent_claims_search"
-
-
-def _claims_search_text(claim_bucket: str) -> str:
-    return str(st.session_state.get(_claims_search_state_key(claim_bucket)) or "")
-
-
 def _claim_bucket_filters(filters: dict[str, object], claim_bucket: str, search_text: str | None = None) -> dict[str, object]:
     bucket_filters = dict(filters)
     bucket_filters["claim_bucket"] = claim_bucket
@@ -438,8 +439,7 @@ def _render_dashboard_view(session, ctx) -> None:
     selected_bucket_for_search = str(st.session_state.get("claim_scope") or CLAIM_BUCKET_OPTIONS[0])
     if selected_bucket_for_search not in CLAIM_BUCKET_OPTIONS:
         selected_bucket_for_search = CLAIM_BUCKET_OPTIONS[0]
-    search_state_key = _claims_search_state_key(selected_bucket_for_search)
-    search = _claims_search_text(selected_bucket_for_search)
+    search = str(st.session_state.get("claims_live_search") or "")
 
     with st.container(key="recent_claims_card"):
         with st.container(key="recent_claims_toolbar"):
@@ -456,41 +456,19 @@ def _render_dashboard_view(session, ctx) -> None:
                 )
             with header_right:
                 with st.container(key="recent_claims_search"):
-                    draft_search_key = f"{search_state_key}_draft"
-                    if draft_search_key not in st.session_state:
-                        st.session_state[draft_search_key] = search
-                    live_search = render_live_claims_search(
-                        value=str(st.session_state.get(draft_search_key) or ""),
-                        table_key="dashboard_claims_search",
+                    search = st.text_input(
+                        "Search Recent Claims",
+                        key="claims_live_search",
                         placeholder="Search by patient, defendant, claim ID, file #, or status...",
+                        label_visibility="collapsed",
                     )
-                    if live_search is not None and live_search != st.session_state.get(draft_search_key):
-                        # Keep keystrokes local to session_state; Snowflake search runs only after Search is pressed.
-                        st.session_state[draft_search_key] = live_search
-                    search_cols = st.columns([1, 1])
-                    with search_cols[0]:
-                        if st.button("Search", key=f"{search_state_key}_apply", use_container_width=True):
-                            committed_search = str(st.session_state.get(draft_search_key) or "")
-                            if committed_search != search:
-                                st.session_state[search_state_key] = committed_search
-                                search = committed_search
-                                _reset_recent_claims_pagination()
-                                st.rerun()
-                    with search_cols[1]:
-                        if st.button("Clear", key=f"{search_state_key}_clear", use_container_width=True):
-                            if search or st.session_state.get(draft_search_key):
-                                st.session_state[draft_search_key] = ""
-                                st.session_state[search_state_key] = ""
-                                search = ""
-                                _reset_recent_claims_pagination()
-                                st.rerun()
 
         filters = _dashboard_filters(search)
         t1 = perf_counter()
         claim_counts = {
             bucket: get_filtered_claims_count(
                 session,
-                _claim_bucket_filters(_dashboard_filters(_claims_search_text(bucket)), bucket),
+                _claim_bucket_filters(_dashboard_filters(search), bucket),
             )
             for bucket in CLAIM_BUCKET_OPTIONS
         }
@@ -504,7 +482,6 @@ def _render_dashboard_view(session, ctx) -> None:
             label_visibility="collapsed",
         )
         if selected_bucket != selected_bucket_for_search:
-            search = _claims_search_text(selected_bucket)
             filters = _dashboard_filters(search)
         _reset_claims_page_on_context_change(card_key, selected_bucket, search)
 
