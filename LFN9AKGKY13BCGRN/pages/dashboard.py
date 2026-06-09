@@ -58,10 +58,18 @@ def _init_dashboard_filter_state() -> None:
         "dash_recent_claims_search": "",
         "dash_ongoing_claims_search": "",
         "dash_history_claims_search": "",
+        "claim_scope": CLAIM_BUCKET_OPTIONS[0],
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
+
+    legacy_scope = st.session_state.pop("dashboard_claims_tab", None)
+    current_scope = str(st.session_state.get("claim_scope") or CLAIM_BUCKET_OPTIONS[0])
+    if legacy_scope in CLAIM_BUCKET_OPTIONS and current_scope not in CLAIM_BUCKET_OPTIONS:
+        st.session_state["claim_scope"] = legacy_scope
+    elif current_scope not in CLAIM_BUCKET_OPTIONS:
+        st.session_state["claim_scope"] = CLAIM_BUCKET_OPTIONS[0]
 
     legacy_migrations = (
         (legacy_status, "All Statuses", "selected_statuses"),
@@ -305,7 +313,11 @@ def _values_from_claims(claims, column_name: str) -> list[str]:
     if column_name not in claims.columns:
         return []
     values = claims[column_name].dropna().astype(str).str.strip()
-    return sorted({value for value in values.tolist() if value}, key=str.upper)
+    null_like = {"", "nan", "none", "null", "n/a", "na"}
+    return sorted(
+        {value for value in values.tolist() if value and value.casefold() not in null_like},
+        key=str.upper,
+    )
 
 
 def _render_dashboard_filter_controls(session, claims=None) -> None:
@@ -425,7 +437,7 @@ def _render_dashboard_view(session, ctx) -> None:
     render_kpi_cards(metrics)
 
     card_key = "dashboard_claims"
-    selected_bucket_for_search = str(st.session_state.get("dashboard_claims_tab") or CLAIM_BUCKET_OPTIONS[0])
+    selected_bucket_for_search = str(st.session_state.get("claim_scope") or CLAIM_BUCKET_OPTIONS[0])
     if selected_bucket_for_search not in CLAIM_BUCKET_OPTIONS:
         selected_bucket_for_search = CLAIM_BUCKET_OPTIONS[0]
     search_state_key = _claims_search_state_key(selected_bucket_for_search)
@@ -469,7 +481,7 @@ def _render_dashboard_view(session, ctx) -> None:
             "Recent Claims Tabs",
             CLAIM_BUCKET_OPTIONS,
             horizontal=True,
-            key="dashboard_claims_tab",
+            key="claim_scope",
             format_func=lambda bucket: _claim_bucket_label(bucket, claim_counts),
             label_visibility="collapsed",
         )

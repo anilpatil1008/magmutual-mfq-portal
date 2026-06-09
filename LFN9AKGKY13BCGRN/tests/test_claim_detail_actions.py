@@ -94,8 +94,8 @@ def test_priority_display_uses_priority_fields_only_and_hides_null_like_values()
 
 
 def test_claim_header_safe_display_labels_and_dates():
-    assert _display_label_for_claim_key("FILE_NUMBER") == "CLAIM NUMBER"
-    assert _display_label_for_claim_key("CLAIM_NUMBER") == "CLAIM NUMBER"
+    assert _display_label_for_claim_key("FILE_NUMBER") == "FILE NUMBER"
+    assert _display_label_for_claim_key("CLAIM_NUMBER") == "FILE NUMBER"
     assert _safe_display(float("nan"), fallback="") == ""
     assert _safe_display(" null ", fallback="") == ""
     assert _format_display_date("2026-01-02 13:45:00") == "Jan 2, 2026"
