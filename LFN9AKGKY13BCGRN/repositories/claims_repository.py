@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import pandas as pd
-import streamlit as st
 
 from config import snowflake_objects as obj
 from core.query_executor import execute_query_df
@@ -38,15 +37,13 @@ def _schema_predicate(schema: str | None) -> str:
     return "TABLE_SCHEMA = CURRENT_SCHEMA()"
 
 
-@st.cache_data(ttl=1800, show_spinner=False)
-def _object_exists_cached(_session, object_name: str, cache_scope: str) -> bool:
-    del cache_scope
+def object_exists(session, object_name: str) -> bool:
     database, schema, name = _parse_snowflake_object_name(object_name)
     object_q = quote_sql(name)
     information_schema = _information_schema_prefix(database)
     schema_predicate = _schema_predicate(schema)
     df = execute_query_df(
-        _session,
+        session,
         f"""
         SELECT 1 AS FOUND FROM {information_schema}.TABLES
         WHERE {schema_predicate} AND UPPER(TABLE_NAME) = '{object_q}'
@@ -60,21 +57,15 @@ def _object_exists_cached(_session, object_name: str, cache_scope: str) -> bool:
     return not df.empty
 
 
-def object_exists(session, object_name: str, cache_scope: str = "default") -> bool:
-    return _object_exists_cached(session, object_name, cache_scope)
-
-
-@st.cache_data(ttl=1800, show_spinner=False)
-def _table_columns_cached(_session, table_name: str, cache_scope: str) -> tuple[str, ...]:
-    del cache_scope
-    if not object_exists(_session, table_name):
-        return tuple()
+def table_columns(session, table_name: str) -> set[str]:
+    if not object_exists(session, table_name):
+        return set()
     database, schema, name = _parse_snowflake_object_name(table_name)
     information_schema = _information_schema_prefix(database)
     schema_predicate = _schema_predicate(schema)
     table_q = quote_sql(name)
     df = execute_query_df(
-        _session,
+        session,
         f"""
         SELECT COLUMN_NAME
         FROM {information_schema}.COLUMNS
@@ -83,11 +74,7 @@ def _table_columns_cached(_session, table_name: str, cache_scope: str) -> tuple[
         """,
         query_name=f"claims.table_columns.{table_name}",
     )
-    return tuple(sorted({str(v).upper() for v in df.get("COLUMN_NAME", pd.Series(dtype=str)).dropna().tolist()}))
-
-
-def table_columns(session, table_name: str, cache_scope: str = "default") -> set[str]:
-    return set(_table_columns_cached(session, table_name, cache_scope))
+    return {str(v).upper() for v in df.get("COLUMN_NAME", pd.Series(dtype=str)).dropna().tolist()}
 
 
 CLAIMS_QUEUE_COLUMNS = [
@@ -140,15 +127,40 @@ def get_claims_queue(session) -> pd.DataFrame:
 
 CLAIM_FILTER_SELECT_COLUMNS = [
     "CLAIM_ID",
+    "FILE_NUMBER",
+    "DEFENDANT_NAME",
     "PATIENT_DEFENDANT",
     "MFQ_STATUS",
     "WORKFLOW_STATUS",
     "PRIORITY",
-    "CLAIM_STATUS",
-    "CLAIM_TYPE",
+    "CLAIM_PRIORITY",
     "DATE_REQUESTED",
     "AI_CONFIDENCE",
+    "CLAIM_TYPE",
+    "CLAIM_STATUS",
 ]
+
+
+def get_recent_claims_dataset(session) -> pd.DataFrame:
+    """Return all visible recent-claims rows for cached, in-memory UI filtering."""
+    available_columns = table_columns(session, obj.VW_MFQ_CLAIMS)
+    select_columns = _select_columns_for_available_view(CLAIM_FILTER_SELECT_COLUMNS, available_columns)
+    order_by_clause = (
+        "ORDER BY DATE_REQUESTED DESC NULLS LAST"
+        if "DATE_REQUESTED" in available_columns
+        else "ORDER BY CLAIM_ID"
+    )
+    df = execute_query_df(
+        session,
+        f"""
+        SELECT
+            {select_columns}
+        FROM {obj.VW_MFQ_CLAIMS}
+        {order_by_clause}
+        """,
+        query_name="claims.get_recent_claims_dataset",
+    )
+    return _normalize_snowflake_dataframe_columns(df)
 
 
 def _coerce_filter_values(value: object) -> list[str]:

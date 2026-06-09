@@ -12,8 +12,9 @@ from components.tables import render_live_claims_search, render_recent_claims_ta
 from services.claim_service import (
     get_available_claim_statuses,
     get_available_claim_types,
-    get_filtered_claims_count,
-    get_filtered_recent_claims,
+    get_cached_recent_claims,
+    get_filtered_claims_count_local,
+    get_filtered_recent_claims_local,
 )
 from services.dashboard_service import get_dashboard_metrics
 from services.rbac_service import get_session_context_snapshot
@@ -319,17 +320,17 @@ def _values_from_claims(claims, column_name: str) -> list[str]:
     )
 
 
-def _render_dashboard_filter_controls(session) -> None:
+def _render_dashboard_filter_controls(session, claims=None) -> None:
     if st.session_state.pop("dashboard_filters_clear_requested", False):
         _clear_all_dashboard_filters_before_widgets()
 
     status_options = _merge_filter_options(
         STATUS_FILTER_OPTIONS,
-        get_available_claim_statuses(session),
+        _values_from_claims(claims, "MFQ_STATUS") if claims is not None else get_available_claim_statuses(session),
     )
     claim_type_options = _merge_filter_options(
         [],
-        get_available_claim_types(session),
+        _values_from_claims(claims, "CLAIM_TYPE") if claims is not None else get_available_claim_types(session),
     )
 
     st.markdown(
@@ -354,7 +355,7 @@ def _render_dashboard_filter_controls(session) -> None:
         st.rerun()
 
 
-def _render_dashboard_header(session, display_name: str) -> None:
+def _render_dashboard_header(session, display_name: str, claims=None) -> None:
     header_left, header_right = st.columns([8, 2], vertical_alignment="top")
     with header_left:
         st.title("Dashboard")
@@ -383,10 +384,10 @@ def _render_dashboard_header(session, display_name: str) -> None:
                     width="content",
                     key="dashboard_filters_popover",
                 ):
-                    _render_dashboard_filter_controls(session)
+                    _render_dashboard_filter_controls(session, claims)
             else:
                 with st.expander("Filters", expanded=False):
-                    _render_dashboard_filter_controls(session)
+                    _render_dashboard_filter_controls(session, claims)
             st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -424,7 +425,8 @@ def _render_dashboard_view(session, ctx) -> None:
     _init_dashboard_filter_state()
     display_name = _resolve_user_display_name(ctx)
 
-    _render_dashboard_header(session, display_name)
+    recent_claims_dataset = get_cached_recent_claims(session)
+    _render_dashboard_header(session, display_name, recent_claims_dataset)
 
     t0 = perf_counter()
     session_ctx = get_session_context_snapshot(session)
@@ -456,40 +458,20 @@ def _render_dashboard_view(session, ctx) -> None:
                 )
             with header_right:
                 with st.container(key="recent_claims_search"):
-                    draft_search_key = f"{search_state_key}_draft"
-                    if draft_search_key not in st.session_state:
-                        st.session_state[draft_search_key] = search
                     live_search = render_live_claims_search(
-                        value=str(st.session_state.get(draft_search_key) or ""),
+                        value=search,
                         table_key="dashboard_claims_search",
                         placeholder="Search by patient, defendant, claim ID, file #, or status...",
                     )
-                    if live_search is not None and live_search != st.session_state.get(draft_search_key):
-                        # Keep keystrokes local to session_state; Snowflake search runs only after Search is pressed.
-                        st.session_state[draft_search_key] = live_search
-                    search_cols = st.columns([1, 1])
-                    with search_cols[0]:
-                        if st.button("Search", key=f"{search_state_key}_apply", use_container_width=True):
-                            committed_search = str(st.session_state.get(draft_search_key) or "")
-                            if committed_search != search:
-                                st.session_state[search_state_key] = committed_search
-                                search = committed_search
-                                _reset_recent_claims_pagination()
-                                st.rerun()
-                    with search_cols[1]:
-                        if st.button("Clear", key=f"{search_state_key}_clear", use_container_width=True):
-                            if search or st.session_state.get(draft_search_key):
-                                st.session_state[draft_search_key] = ""
-                                st.session_state[search_state_key] = ""
-                                search = ""
-                                _reset_recent_claims_pagination()
-                                st.rerun()
+                    if live_search is not None and live_search != search:
+                        st.session_state[search_state_key] = live_search
+                        search = live_search
 
         filters = _dashboard_filters(search)
         t1 = perf_counter()
         claim_counts = {
-            bucket: get_filtered_claims_count(
-                session,
+            bucket: get_filtered_claims_count_local(
+                recent_claims_dataset,
                 _claim_bucket_filters(_dashboard_filters(_claims_search_text(bucket)), bucket),
             )
             for bucket in CLAIM_BUCKET_OPTIONS
@@ -515,8 +497,8 @@ def _render_dashboard_view(session, ctx) -> None:
         current_page = min(requested_page, total_pages)
         if current_page != requested_page:
             st.session_state["claims_page_number"] = current_page
-        recent_claims = get_filtered_recent_claims(
-            session,
+        recent_claims = get_filtered_recent_claims_local(
+            recent_claims_dataset,
             bucket_filters,
             current_page,
             DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,

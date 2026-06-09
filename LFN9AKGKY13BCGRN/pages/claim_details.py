@@ -993,7 +993,7 @@ def _render_summary_tab(session, claim_id: str, claim: dict) -> None:
     summaries = _cached_per_claim(
         "claim_summary_cache",
         claim_id,
-        lambda: get_claim_summaries_by_claim_id(session, claim_id, "Records Summary"),
+        lambda: get_claim_summaries_by_claim_id(session, claim_id),
         label="Loading summary...",
     )
     st.markdown("### Claim Summary")
@@ -1126,7 +1126,7 @@ def _render_documents_lazy_tab(session, claim_id: str) -> None:
 
 def render_claim_detail_tabs(active_tab: str) -> str:
     """Render the polished claim-detail tab bar without mounting inactive tab content."""
-    selected_tab = active_tab if active_tab in DETAIL_TAB_OPTIONS else ""
+    selected_tab = active_tab if active_tab in DETAIL_TAB_OPTIONS else DETAIL_TAB_OPTIONS[0]
 
     with st.container(key="claim_detail_tabs_shell"):
         columns = st.columns([1.12, 1.45, 1.0, 1.15, 1.0, 1.0, 1.05], gap="small")
@@ -1152,12 +1152,12 @@ def render_records_summary_tab(session, claim_id: str, claim: dict) -> None:
 
 
 def render_medcron_tab(session, claim_id: str) -> None:
-    summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id, "MedCron"), label="Loading MedCron...")
+    summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id), label="Loading MedCron...")
     _render_text_tab(summaries.get("MEDCRON", ""), "No MedCron summary available.")
 
 
 def render_legal_memo_tab(session, claim_id: str) -> None:
-    summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id, "Legal Memo"), label="Loading legal memo...")
+    summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id), label="Loading legal memo...")
     _render_text_tab(summaries.get("LEGAL_MEMO", ""), "No legal memo available.")
 
 
@@ -1225,16 +1225,13 @@ def render(session, ctx) -> None:
 
     if st.session_state.get(SELECTED_CLAIM_DETAIL_TAB_CLAIM_KEY) != claim_id:
         st.session_state[SELECTED_CLAIM_DETAIL_TAB_CLAIM_KEY] = claim_id
-        # Do not eagerly mount a heavy default tab on Review navigation; load tab data only after the user opens a tab.
-        st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY] = ""
-    if st.session_state.get(SELECTED_CLAIM_DETAIL_TAB_KEY) not in [*DETAIL_TAB_OPTIONS, ""]:
-        st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY] = ""
+        st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY] = DETAIL_TAB_OPTIONS[0]
+    if st.session_state.get(SELECTED_CLAIM_DETAIL_TAB_KEY) not in DETAIL_TAB_OPTIONS:
+        st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY] = DETAIL_TAB_OPTIONS[0]
 
     selected_tab = render_claim_detail_tabs(st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY])
 
-    if not selected_tab:
-        st.info("Select a claim detail tab to load additional claim data.")
-    elif selected_tab == "MFQ Form":
+    if selected_tab == "MFQ Form":
         render_mfq_form_tab(session, ctx, claim_id, claim)
     elif selected_tab == "Records Summary":
         render_records_summary_tab(session, claim_id, claim)
