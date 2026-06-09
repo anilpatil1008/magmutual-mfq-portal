@@ -108,5 +108,7 @@ def test_recent_claims_select_projects_nulls_for_missing_deployed_view_columns()
     assert "CLAIM_ID AS CLAIM_ID" in select_columns
     assert "PATIENT_DEFENDANT AS PATIENT_DEFENDANT" in select_columns
     assert "MFQ_STATUS AS MFQ_STATUS" in select_columns
-    assert "NULL AS FILE_NUMBER" in select_columns
-    assert "NULL AS DEFENDANT_NAME" in select_columns
+    assert "NULL AS FILE_NUMBER" not in select_columns
+    assert "NULL AS DEFENDANT_NAME" not in select_columns
+    assert "NULL AS WORKFLOW_STATUS" in select_columns
+    assert "NULL AS AI_CONFIDENCE" in select_columns
