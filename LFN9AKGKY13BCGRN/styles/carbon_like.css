@@ -3582,3 +3582,90 @@ div[class*="st-key-claim_detail_tab_active_"] .stButton button::after {
     padding: 0.55rem 0.75rem !important;
   }
 }
+
+/* Shared MFQ status badge tones */
+.status-mfq-generated,
+.status-synced {
+  background: #edf5ff !important;
+  color: #0f62fe !important;
+  border-color: #a6c8ff !important;
+}
+
+.status-intake-complete {
+  background: #e5f6ff !important;
+  color: #00539a !important;
+  border-color: #82cfff !important;
+}
+
+.status-ready-for-embedding {
+  background: #f6f2ff !important;
+  color: #6929c4 !important;
+  border-color: #d4bbff !important;
+}
+
+.status-approved {
+  background: #defbe6 !important;
+  color: #24a148 !important;
+  border-color: #a7f0ba !important;
+}
+
+.status-rejected {
+  background: #fff1f1 !important;
+  color: #da1e28 !important;
+  border-color: #ffb3b8 !important;
+}
+
+.status-on-hold {
+  background: #fff4e6 !important;
+  color: #b54708 !important;
+  border-color: #ffd8a8 !important;
+}
+
+.status-insufficient {
+  background: #fff8e1 !important;
+  color: #8a5d00 !important;
+  border-color: #ffd57a !important;
+}
+
+.status-assigned {
+  background: #e8eef5 !important;
+  color: #344054 !important;
+  border-color: #c7d2df !important;
+}
+
+.status-default {
+  background: #f4f4f4 !important;
+  color: #525252 !important;
+  border-color: #e0e0e0 !important;
+}
+
+/* Shared priority badge tones */
+.priority-critical {
+  background: #fde7f3 !important;
+  color: #9f1853 !important;
+  border-color: #ffafd2 !important;
+}
+
+.priority-high {
+  background: #fff1f1 !important;
+  color: #da1e28 !important;
+  border-color: #ffb3b8 !important;
+}
+
+.priority-medium {
+  background: #fff8e1 !important;
+  color: #8a5d00 !important;
+  border-color: #ffd57a !important;
+}
+
+.priority-low {
+  background: #defbe6 !important;
+  color: #24a148 !important;
+  border-color: #a7f0ba !important;
+}
+
+.priority-default {
+  background: #f4f4f4 !important;
+  color: #525252 !important;
+  border-color: #e0e0e0 !important;
+}

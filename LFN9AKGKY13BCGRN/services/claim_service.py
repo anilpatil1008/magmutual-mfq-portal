@@ -61,9 +61,27 @@ def _normalize_search_series(series: pd.Series) -> pd.Series:
     return series.fillna("").astype(str).str.lower()
 
 
+
+
+def _normalize_claim_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Mirror known Snowflake columns to uppercase names without changing queries."""
+    if df.empty:
+        return df
+    normalized = df.copy()
+    case_map = {str(column).casefold(): column for column in normalized.columns}
+    for target in CLAIMS_SEARCHABLE_COLUMNS:
+        actual = case_map.get(target.casefold())
+        if actual is not None and actual != target and target not in normalized.columns:
+            normalized[target] = normalized[actual]
+    if "PRIORITY" not in normalized.columns and "CLAIM_PRIORITY" in normalized.columns:
+        normalized["PRIORITY"] = normalized["CLAIM_PRIORITY"]
+    if "CLAIM_ID" not in normalized.columns and "FILE_NUMBER" in normalized.columns:
+        normalized["CLAIM_ID"] = normalized["FILE_NUMBER"]
+    return normalized
+
 def add_claims_search_index(df: pd.DataFrame, search_columns: tuple[str, ...] = CLAIMS_SEARCHABLE_COLUMNS) -> pd.DataFrame:
     """Copy a claims dataframe and precompute one lowercase string search index per row."""
-    indexed = df.copy()
+    indexed = _normalize_claim_dataframe_columns(df)
     if indexed.empty:
         indexed[CLAIMS_SEARCH_INDEX_COLUMN] = pd.Series(dtype=str)
         return indexed

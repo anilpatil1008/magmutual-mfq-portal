@@ -11,6 +11,15 @@ from time import perf_counter
 import pandas as pd
 import streamlit as st
 
+from components.badges import (
+    format_priority_label,
+    format_status_label,
+    get_case_insensitive_value,
+    get_priority_badge_class,
+    get_status_badge_class,
+    normalize_badge_value,
+    safe_display as badge_safe_display,
+)
 from services.claim_service import (
     build_mfq_workspace_for_claim,
     get_assignable_faculty,
@@ -93,25 +102,12 @@ def _tone_for_conf(value) -> str:
 
 def _safe_display(value, fallback: str = "-") -> str:
     """Return a UI-safe text value, hiding null-like pandas/Python values."""
-    if value is None:
-        return fallback
-    try:
-        if pd.isna(value):
-            return fallback
-    except (TypeError, ValueError):
-        pass
-    text = str(value).strip()
-    if not text or text.casefold() in {"nan", "none", "null"}:
-        return fallback
-    return text
+    return badge_safe_display(value, fallback=fallback)
 
 
 def _first_safe_display(claim: dict, keys: tuple[str, ...], fallback: str = "-") -> str:
-    for key in keys:
-        value = _safe_display(claim.get(key), fallback="")
-        if value:
-            return value
-    return fallback
+    value = get_case_insensitive_value(claim, *keys, fallback=None)
+    return _safe_display(value, fallback=fallback)
 
 
 def _normalize_priority_display(value) -> str:
@@ -120,15 +116,16 @@ def _normalize_priority_display(value) -> str:
     if not text or text.casefold() in {"n/a", "na", "not applicable", "unknown"}:
         return ""
 
-    normalized = re.sub(r"[\s_]+", " ", text).strip().casefold()
-    priority_labels = {"high": "High", "medium": "Medium", "low": "Low"}
-    return priority_labels.get(normalized, "")
+    normalized = normalize_badge_value(text)
+    if normalized in {"critical", "high", "medium", "low"}:
+        return format_priority_label(text)
+    return ""
 
 
 def _priority_from_claim(claim: dict) -> str:
     """Read priority only from priority-specific fields, never status fields."""
-    for key in ("PRIORITY", "CLAIM_PRIORITY"):
-        priority = _normalize_priority_display(claim.get(key))
+    for key in ("PRIORITY", "priority", "CLAIM_PRIORITY", "claim_priority"):
+        priority = _normalize_priority_display(get_case_insensitive_value(claim, key, fallback=None))
         if priority:
             return priority
     return ""
@@ -162,9 +159,9 @@ def _format_display_date(value) -> str:
 
 def _display_label_for_claim_key(key: str) -> str:
     label_overrides = {
-        "CLAIM_NUMBER": "CLAIM NUMBER",
-        "FILE_NUMBER": "CLAIM NUMBER",
-        "CLAIM_ID": "CLAIM ID",
+        "CLAIM_NUMBER": "FILE NUMBER",
+        "FILE_NUMBER": "FILE NUMBER",
+        "CLAIM_ID": "FILE NUMBER",
         "DEFENDANT_SPECIALTY": "DEFENDANT SPECIALTY",
         "DEFENDANT_SPECIALITY": "DEFENDANT SPECIALTY",
         "DATE_REQUESTED": "DATE REQUESTED",
@@ -187,87 +184,39 @@ def _format_claim_meta_value(key: str, value) -> str:
 
 
 def _claim_meta_items(claim_id: str, claim: dict) -> list[tuple[str, str]]:
-    """Build a comprehensive, non-empty set of claim header fields from the selected claim payload."""
-    claim_id_display = _safe_display(claim.get("CLAIM_ID"), fallback=_safe_display(claim_id))
-    claim_number = _first_safe_display(claim, ("CLAIM_NUMBER", "FILE_NUMBER"), fallback=claim_id_display)
+    """Build the five required Claim Details top-card fields only."""
+    file_number = _first_safe_display(
+        claim,
+        ("CLAIM_ID", "FILE_NUMBER", "file_number"),
+        fallback=_safe_display(claim_id),
+    )
     specialty = _first_safe_display(
         claim,
-        ("DEFENDANT_SPECIALTY", "DEFENDANT_SPECIALITY", "SPECIALTY", "SPECIALITY"),
+        ("DEFENDANT_SPECIALTY", "defendant_specialty", "DEFENDANT_SPECIALITY", "SPECIALTY", "SPECIALITY"),
+    )
+    date_requested = _format_display_date(
+        get_case_insensitive_value(claim, "DATE_REQUESTED", "date_requested", fallback=None)
     )
     contact = _first_safe_display(
         claim,
-        ("MAGMUTUAL_CONTACT", "MAGMUTUAL_CONTACT_NAME", "CONTACT", "CONTACT_NAME", "ASSIGNED_TO"),
-        fallback="-",
+        ("MAGMUTUAL_CONTACT", "magmutual_contact", "MAGMUTUAL_CONTACT_NAME", "CONTACT", "CONTACT_NAME", "ASSIGNED_TO"),
     )
     contact_email = _first_safe_display(
         claim,
-        ("MAGMUTUAL_CONTACT_EMAIL", "CONTACT_EMAIL", "MAGMUTUAL_EMAIL", "EMAIL"),
-        fallback="-",
+        ("MAGMUTUAL_CONTACT_EMAIL", "CONTACT_EMAIL", "contact_email", "MAGMUTUAL_EMAIL", "EMAIL"),
     )
-    primary_keys = [
-        ("CLAIM_NUMBER", claim_number),
+
+    return [
+        ("FILE_NUMBER", file_number),
         ("DEFENDANT_SPECIALTY", specialty),
-        ("DATE_REQUESTED", _format_display_date(claim.get("DATE_REQUESTED"))),
+        ("DATE_REQUESTED", date_requested),
         ("MAGMUTUAL_CONTACT", contact),
         ("CONTACT_EMAIL", contact_email),
     ]
 
-    used_keys = {
-        "CLAIM_NUMBER",
-        "FILE_NUMBER",
-        "DEFENDANT_SPECIALTY",
-        "DEFENDANT_SPECIALITY",
-        "SPECIALTY",
-        "SPECIALITY",
-        "DATE_REQUESTED",
-        "MAGMUTUAL_CONTACT",
-        "MAGMUTUAL_CONTACT_NAME",
-        "CONTACT",
-        "CONTACT_NAME",
-        "ASSIGNED_TO",
-        "MAGMUTUAL_CONTACT_EMAIL",
-        "CONTACT_EMAIL",
-        "MAGMUTUAL_EMAIL",
-        "EMAIL",
-    }
-    title_and_badge_keys = {
-        "PATIENT_DEFENDANT",
-        "PATIENT_NAME",
-        "DEFENDANT_NAME",
-        "MFQ_STATUS",
-        "PRIORITY",
-        "CLAIM_PRIORITY",
-        "STATUS",
-        "CLAIM_STATUS",
-        "WORKFLOW_STATUS",
-    }
-    hidden_or_large_keys = {
-        "DEFENDANTS_JSON",
-        "MINIMUM_GATE_DETAILS",
-        "BRIEF_SYNOPSIS",
-        "ALLEGED_INJURY_TERMS",
-        "ALLEGATION_SUMMARY",
-        "_CLAIMS_SEARCH_TEXT",
-    }
-
-    items = [(key, value) for key, value in primary_keys if _safe_display(value, fallback="")]
-    for key, raw_value in claim.items():
-        normalized_key = str(key or "").strip().upper()
-        if normalized_key in used_keys or normalized_key in title_and_badge_keys or normalized_key in hidden_or_large_keys:
-            continue
-        display_value = _format_claim_meta_value(normalized_key, raw_value)
-        if not _safe_display(display_value, fallback=""):
-            continue
-        if len(display_value) > 80:
-            continue
-        items.append((normalized_key, display_value))
-        used_keys.add(normalized_key)
-
-    return items
-
 def normalize_status(value) -> str:
     """Normalize status values for case-insensitive, whitespace-safe comparisons."""
-    return re.sub(r"[\s_]+", " ", _safe_display(value, fallback="")).strip().lower()
+    return normalize_badge_value(value)
 
 
 def _css_token(value, fallback: str = "default") -> str:
@@ -276,23 +225,13 @@ def _css_token(value, fallback: str = "default") -> str:
 
 
 def _status_badge_class(mfq_status) -> str:
-    """Return a visual tone class for an MFQ_STATUS-only header badge."""
-    status = normalize_status(mfq_status)
-    if status == "mfq generated":
-        return "generated"
-    if status == "approved":
-        return "approved"
-    if status == "rejected":
-        return "rejected"
-    return _css_token(status)
+    """Return legacy review status tone token from the shared MFQ_STATUS helper."""
+    return get_status_badge_class(mfq_status).removeprefix("status-").replace("mfq-", "")
 
 
 def _priority_badge_class(priority) -> str:
-    """Return a visual tone class for a PRIORITY-only header badge."""
-    normalized_priority = _css_token(priority)
-    if normalized_priority in {"high", "medium", "low", "normal"}:
-        return normalized_priority
-    return "default"
+    """Return legacy review priority tone token from the shared priority helper."""
+    return get_priority_badge_class(priority).removeprefix("priority-")
 
 
 def get_claim_action_buttons(mfq_status) -> list[str]:
@@ -321,13 +260,15 @@ def get_claim_detail_actions(claim_status=None, mfq_status=None, current_role=No
 
 def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     del ctx
-    raw_mfq_status = claim.get("MFQ_STATUS")
-    status = _safe_display(raw_mfq_status, fallback="Unknown")
+    raw_mfq_status = get_case_insensitive_value(claim, "MFQ_STATUS", "mfq_status", fallback=None)
+    status = format_status_label(raw_mfq_status)
+    if status == "-":
+        status = "Unknown"
     normalized_mfq_status = normalize_status(raw_mfq_status)
     priority = _priority_from_claim(claim)
-    patient_defendant = _safe_display(claim.get("PATIENT_DEFENDANT"), fallback="")
-    patient = _safe_display(claim.get("PATIENT_NAME"), fallback="")
-    defendant = _safe_display(claim.get("DEFENDANT_NAME"), fallback="")
+    patient_defendant = _first_safe_display(claim, ("PATIENT_DEFENDANT", "patient_defendant"), fallback="")
+    patient = _first_safe_display(claim, ("PATIENT_NAME", "patient_name"), fallback="")
+    defendant = _first_safe_display(claim, ("DEFENDANT_NAME", "defendant_name"), fallback="")
     if patient and defendant:
         title = f"{patient} vs {defendant}"
     elif patient_defendant:
@@ -344,8 +285,8 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     )
     assign_label = "Assign to Faculty"
     actions = get_claim_action_buttons(raw_mfq_status)
-    status_class = _status_badge_class(raw_mfq_status)
-    priority_class = _priority_badge_class(priority)
+    status_class = get_status_badge_class(raw_mfq_status)
+    priority_class = get_priority_badge_class(priority)
     logger.info(
         "claim_detail_top_card_state selected_claim_id=%s raw_mfq_status=%s normalized_mfq_status=%s visible_buttons=%s",
         claim_id,
@@ -358,7 +299,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
         left_col, action_col = st.columns([5.2, 2.1], vertical_alignment="top")
         with left_col:
             priority_badge_html = (
-                f"<span class='review-pill review-priority review-priority-{escape(priority_class)}'>{escape(priority)}</span>"
+                f"<span class='review-pill review-priority {escape(priority_class)} review-priority-{escape(_priority_badge_class(priority))}'>{escape(priority)}</span>"
                 if priority
                 else ""
             )
@@ -369,7 +310,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
                     "<div class='review-title-row'>"
                     f"<div class='review-headline'>{title_html}</div>"
                     "<div class='review-badges'>"
-                    f"<span class='review-pill review-status review-status-{escape(status_class)}'>{escape(status)}</span>"
+                    f"<span class='review-pill review-status {escape(status_class)} review-status-{escape(_status_badge_class(raw_mfq_status))}'>{escape(status)}</span>"
                     f"{priority_badge_html}"
                     "</div>"
                     "</div>"

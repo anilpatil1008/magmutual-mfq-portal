@@ -10,7 +10,14 @@ import pandas as pd
 import streamlit as st
 import streamlit.components.v1 as components
 
-from components.badges import priority_badge, status_badge
+from components.badges import (
+    PRIORITY_ORDER,
+    normalize_badge_value,
+    render_priority_badge,
+    render_status_badge,
+    safe_display,
+    status_badge,
+)
 from utils.navigation import navigate_to_claim_details
 
 logger = logging.getLogger(__name__)
@@ -67,19 +74,26 @@ RECENT_CLAIMS_COLUMNS = [
 
 RECENT_CLAIMS_WIDTH_MAP = {c["key"]: c["width"] for c in RECENT_CLAIMS_COLUMNS}
 RECENT_CLAIMS_SORTABLE_KEYS = {c["key"] for c in RECENT_CLAIMS_COLUMNS if c["sortable"]}
-PRIORITY_ORDER = {"high": 0, "medium": 1, "low": 2, "unknown": 3}
+
+
+def _normalize_claim_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Normalize known Snowflake column names to the uppercase names used by renderers."""
+    normalized = df.copy()
+    case_map = {str(column).casefold(): column for column in normalized.columns}
+    for target in set(VISIBLE_COLUMNS + ENTERPRISE_COLUMNS + ["CLAIM_PRIORITY", "STATUS"]):
+        actual = case_map.get(target.casefold())
+        if actual is not None and actual != target and target not in normalized.columns:
+            normalized[target] = normalized[actual]
+    if "PRIORITY" not in normalized.columns and "CLAIM_PRIORITY" in normalized.columns:
+        normalized["PRIORITY"] = normalized["CLAIM_PRIORITY"]
+    if "CLAIM_ID" not in normalized.columns and "FILE_NUMBER" in normalized.columns:
+        normalized["CLAIM_ID"] = normalized["FILE_NUMBER"]
+    return normalized
 
 
 def _display_patient_defendant(value: Any) -> str:
     """Return the Snowflake PATIENT_DEFENDANT value unless it is null or blank."""
-    if value is None or pd.isna(value):
-        return "Unknown Patient"
-
-    display_value = str(value).strip()
-    if not display_value or display_value.lower() in {"nan", "none", "null"}:
-        return "Unknown Patient"
-
-    return display_value
+    return safe_display(value, fallback="Unknown Patient")
 
 
 def _load_recent_claims_table_css() -> str:
@@ -217,18 +231,16 @@ def _recent_claims_sort_script() -> str:
 
 
 def _normalize_slug(value: Any) -> str:
-    text = str(value or "unknown").strip().lower().replace(" ", "-")
-    return "".join(ch for ch in text if ch.isalnum() or ch == "-") or "unknown"
+    text = normalize_badge_value(value).replace(" ", "-")
+    return "".join(ch for ch in text if ch.isalnum() or ch == "-") or "default"
 
 
 def _format_date(value: Any) -> str:
-    if value is None:
+    if safe_display(value, fallback="") == "":
         return "—"
     if hasattr(value, "strftime"):
         return value.strftime("%b %d, %Y")
     as_text = str(value).strip()
-    if not as_text:
-        return "—"
     for fmt in ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%m/%d/%Y"):
         try:
             return datetime.strptime(as_text[:19], fmt).strftime("%b %d, %Y")
@@ -238,30 +250,24 @@ def _format_date(value: Any) -> str:
 
 
 def _display_status_label(status: Any) -> str:
-    label = str(status or "Unknown").strip()
-    if not label:
-        return "Unknown"
+    label = safe_display(status)
+    if label == "-":
+        return "-"
     if "_" in label:
         return label.replace("_", " ").title()
     return label
 
 
 def _status_badge_html(status: Any) -> str:
-    raw_label = str(status or "Unknown").strip() or "Unknown"
-    label = _display_status_label(raw_label)
-    tone = _normalize_slug(raw_label)
-    return f"<span class='status-badge status-{tone}' title='{escape(raw_label)}'>{escape(label)}</span>"
+    return render_status_badge(status)
 
 
 def _priority_badge_html(priority: Any) -> str:
-    raw_label = str(priority or "Unknown").strip() or "Unknown"
-    label = _display_status_label(raw_label)
-    tone = _normalize_slug(raw_label)
-    return f"<span class='priority-badge priority-{tone}' title='{escape(raw_label)}'>{escape(label)}</span>"
+    return render_priority_badge(priority)
 
 
 def _confidence_badge_html(confidence: Any) -> str:
-    if confidence is None or str(confidence).strip() == "":
+    if safe_display(confidence, fallback="") == "":
         return "<span class='confidence-badge confidence-na'>● N/A</span>"
 
     try:
@@ -335,7 +341,7 @@ def _confidence_sort_series(series: pd.Series) -> pd.Series:
 
 
 def _priority_sort_series(series: pd.Series) -> pd.Series:
-    normalized = series.astype(str).str.strip().str.lower()
+    normalized = series.apply(normalize_badge_value)
     return normalized.map(PRIORITY_ORDER).fillna(PRIORITY_ORDER["unknown"])
 
 
@@ -452,7 +458,7 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
         st.info("No claims found for this filter context.")
         return
 
-    show_df = df.copy()
+    show_df = _normalize_claim_columns(df)
     show_df = show_df[[c for c in VISIBLE_COLUMNS if c in show_df.columns]]
 
     if "PATIENT_DEFENDANT" not in show_df.columns:
@@ -461,10 +467,14 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
     else:
         show_df["PATIENT_DEFENDANT"] = show_df["PATIENT_DEFENDANT"].apply(_display_patient_defendant)
 
-    if "STATUS" in show_df.columns:
-        show_df["STATUS"] = show_df["STATUS"].apply(lambda x: status_badge(str(x)))
+    for status_column in ("MFQ_STATUS", "STATUS"):
+        if status_column in show_df.columns:
+            show_df[status_column] = show_df[status_column].apply(status_badge)
     if "PRIORITY" in show_df.columns:
-        show_df["PRIORITY"] = show_df["PRIORITY"].apply(lambda x: priority_badge(str(x)))
+        show_df["PRIORITY"] = show_df["PRIORITY"].apply(render_priority_badge)
+    for text_column in show_df.columns:
+        if text_column not in {"MFQ_STATUS", "STATUS", "PRIORITY"}:
+            show_df[text_column] = show_df[text_column].apply(safe_display)
 
     rows = []
     for _, row in show_df.iterrows():
@@ -514,7 +524,7 @@ def render_recent_claims_table(
         st.info(empty_message)
         return
 
-    show_df = df.copy()
+    show_df = _normalize_claim_columns(df)
     show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
     if "PATIENT_DEFENDANT" not in show_df.columns:
         show_df["PATIENT_DEFENDANT"] = "Unknown Patient"
@@ -561,7 +571,7 @@ def render_recent_claims_table(
 
         rows_html: list[str] = []
         for _, row in show_df.iterrows():
-            claim_id = str(row.get("CLAIM_ID", "")).strip() or "—"
+            claim_id = safe_display(row.get("CLAIM_ID"), fallback="—")
             patient_defendant = _display_patient_defendant(row.get("PATIENT_DEFENDANT"))
             requested = _format_date(row.get("DATE_REQUESTED"))
             requested_ts = pd.to_datetime(row.get("DATE_REQUESTED"), errors="coerce")
@@ -572,7 +582,7 @@ def render_recent_claims_table(
             patient_sort_value = patient_defendant.lower()
             mfq_sort_value = _display_status_label(str(row.get("MFQ_STATUS", "")).strip()).lower()
             workflow_sort_value = _display_status_label(str(row.get("WORKFLOW_STATUS", "")).strip()).lower()
-            priority_sort_value = str(row.get("PRIORITY", "unknown")).strip().lower()
+            priority_sort_value = normalize_badge_value(row.get("PRIORITY"))
             priority_sort_rank = str(PRIORITY_ORDER.get(priority_sort_value, PRIORITY_ORDER["unknown"]))
             claim_status_sort_value = _display_status_label(str(row.get("CLAIM_STATUS", "")).strip()).lower()
             ai_confidence_sort = str(_confidence_sort_series(pd.Series([row.get("AI_CONFIDENCE")])).iloc[0])
@@ -580,10 +590,10 @@ def render_recent_claims_table(
             patient_title = patient_defendant
             patient_html = f"<span class='patient-name' title='{escape(patient_title)}'>{escape(patient_defendant)}</span>"
 
-            mfq_status = str(row.get("MFQ_STATUS", "")).strip()
-            workflow_status = str(row.get("WORKFLOW_STATUS", "")).strip()
-            claim_status = str(row.get("CLAIM_STATUS", "")).strip()
-            claim_type = str(row.get("CLAIM_TYPE", "—")).strip() or "—"
+            mfq_status = safe_display(row.get("MFQ_STATUS"))
+            workflow_status = safe_display(row.get("WORKFLOW_STATUS"))
+            claim_status = safe_display(row.get("CLAIM_STATUS"))
+            claim_type = safe_display(row.get("CLAIM_TYPE"), fallback="—")
             display_claim_type = _display_status_label(claim_type)
             rows_html.append(
                 "<tr>"
