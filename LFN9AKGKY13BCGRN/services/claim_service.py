@@ -398,7 +398,7 @@ def _fetch_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
     return detail
 
 
-@st.cache_data(ttl=300, show_spinner="Loading claim header...")
+@st.cache_data(ttl=300, show_spinner=False)
 def _load_claim_detail_by_id_cached(_session, cache_scope: str, claim_id: str) -> dict[str, Any] | None:
     del cache_scope
     return _fetch_claim_detail_by_id(_session, claim_id)
