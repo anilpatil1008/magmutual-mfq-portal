@@ -52,8 +52,7 @@ def _init_dashboard_filter_state() -> None:
         "selected_claim_types": [],
         "date_requested_from": None,
         "date_requested_to": None,
-        "date_requested_from_widget": None,
-        "date_requested_to_widget": None,
+        "date_requested_widget_version": 0,
         "claims_page_number": 1,
         "dash_recent_claims_search": "",
         "dash_ongoing_claims_search": "",
@@ -84,6 +83,11 @@ def _init_dashboard_filter_state() -> None:
 def _reset_recent_claims_pagination() -> None:
     st.session_state["claims_page_number"] = 1
     st.session_state["dash_recent_claims_pagination_page"] = 1
+
+
+def _refresh_date_requested_widgets() -> None:
+    current_version = int(st.session_state.get("date_requested_widget_version", 0) or 0)
+    st.session_state["date_requested_widget_version"] = current_version + 1
 
 
 def _filter_button_slug(value: str) -> str:
@@ -159,8 +163,7 @@ def _set_date_requested_quick_filter(label: str) -> None:
     if st.session_state.get("date_requested_from") != from_date or st.session_state.get("date_requested_to") != to_date:
         st.session_state["date_requested_from"] = from_date
         st.session_state["date_requested_to"] = to_date
-        st.session_state["date_requested_from_widget"] = from_date
-        st.session_state["date_requested_to_widget"] = to_date
+        _refresh_date_requested_widgets()
         _reset_recent_claims_pagination()
         st.rerun()
 
@@ -194,12 +197,13 @@ def _render_date_requested_filter() -> None:
                 if st.button(label, key=f"{chip_key}_button", use_container_width=True):
                     _set_date_requested_quick_filter(label)
 
+    widget_version = int(st.session_state.get("date_requested_widget_version", 0) or 0)
     from_col, to_col = st.columns(2, gap="small")
     with from_col:
         from_date = st.date_input(
             "From Date",
             value=st.session_state.get("date_requested_from"),
-            key="date_requested_from_widget",
+            key=f"date_requested_from_widget_{widget_version}",
             format="MM/DD/YYYY",
             on_change=_reset_recent_claims_pagination,
         )
@@ -207,7 +211,7 @@ def _render_date_requested_filter() -> None:
         to_date = st.date_input(
             "To Date",
             value=st.session_state.get("date_requested_to"),
-            key="date_requested_to_widget",
+            key=f"date_requested_to_widget_{widget_version}",
             format="MM/DD/YYYY",
             on_change=_reset_recent_claims_pagination,
         )
@@ -227,12 +231,20 @@ def _clear_all_dashboard_filters_before_widgets() -> None:
             "selected_claim_types": [],
             "date_requested_from": None,
             "date_requested_to": None,
-            "date_requested_from_widget": None,
-            "date_requested_to_widget": None,
             "claims_page_number": 1,
             "dash_recent_claims_pagination_page": 1,
         }
     )
+    _refresh_date_requested_widgets()
+
+
+def _clear_all_dashboard_filters() -> None:
+    # Streamlit disallows editing widget-backed session state after that widget
+    # has been instantiated during the same script run. Keep this function wired
+    # as the clear button callback so it runs before widgets are recreated.
+    _clear_all_dashboard_filters_before_widgets()
+    st.session_state.pop("dashboard_filtered_claims_count", None)
+    st.session_state.pop("dashboard_filtered_claims_cache", None)
 
 
 def _active_dashboard_filter_count() -> int:
@@ -350,13 +362,12 @@ def _render_dashboard_filter_controls(session, claims=None) -> None:
     )
     _render_date_requested_filter()
     st.markdown("<div class='mfq-filter-clear-all'></div>", unsafe_allow_html=True)
-    if st.button("Clear All Filters", key="dashboard_clear_all_filters", use_container_width=True):
-        # Reset filter state before rerunning so the very next dashboard render
-        # recomputes the displayed dataframe and count from the cleared state.
-        _clear_all_dashboard_filters_before_widgets()
-        st.session_state.pop("dashboard_filtered_claims_count", None)
-        st.session_state.pop("dashboard_filtered_claims_cache", None)
-        st.rerun()
+    st.button(
+        "Clear All Filters",
+        key="dashboard_clear_all_filters",
+        use_container_width=True,
+        on_click=_clear_all_dashboard_filters,
+    )
 
 
 def _render_dashboard_header(session, display_name: str, claims=None) -> None:
