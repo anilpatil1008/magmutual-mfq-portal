@@ -12,7 +12,6 @@ import pandas as pd
 import streamlit as st
 
 from components.badges import (
-    format_priority_label,
     format_status_label,
     get_case_insensitive_value,
     get_priority_badge_class,
@@ -248,6 +247,16 @@ def _first_unknown_display(claim: dict, keys: tuple[str, ...]) -> str:
     return _unknown_display(get_case_insensitive_value(claim, *keys, fallback=None))
 
 
+def _format_priority_label(priority) -> str:
+    """Format a priority label locally so claim details can load with older badge modules."""
+    text = _safe_display(priority)
+    if text == "-":
+        return "-"
+    normalized = normalize_badge_value(text)
+    labels = {"critical": "Critical", "high": "High", "medium": "Medium", "low": "Low"}
+    return labels.get(normalized, text.replace("_", " ").title() if "_" in text else text)
+
+
 def _normalize_priority_display(value) -> str:
     """Return a user-visible PRIORITY badge label, using Unknown for null-like values."""
     if _is_unknown_like(value):
@@ -260,7 +269,7 @@ def _normalize_priority_display(value) -> str:
 
     normalized = normalize_badge_value(text)
     if normalized in {"critical", "high", "medium", "low"}:
-        return format_priority_label(text)
+        return _format_priority_label(text)
     return text
 
 
