@@ -17,6 +17,12 @@ snowflake_module.snowpark = snowpark_module
 sys.modules.setdefault("snowflake", snowflake_module)
 sys.modules.setdefault("snowflake.snowpark", snowpark_module)
 
+import streamlit as st
+
+for dialog_api_name in ("dialog", "experimental_dialog"):
+    if hasattr(st, dialog_api_name):
+        delattr(st, dialog_api_name)
+
 from pages.claim_details import (
     _claim_meta_items,
     _claim_title,
@@ -33,6 +39,11 @@ from pages.claim_details import (
     get_claim_detail_actions,
     normalize_status,
 )
+
+
+def test_claim_details_imports_without_streamlit_dialog_apis():
+    assert not hasattr(st, "dialog")
+    assert not hasattr(st, "experimental_dialog")
 
 
 def test_normalize_status_is_case_whitespace_and_underscore_safe():
