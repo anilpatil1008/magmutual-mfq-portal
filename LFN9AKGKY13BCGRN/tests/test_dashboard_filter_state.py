@@ -53,6 +53,8 @@ def test_clear_dashboard_filters_resets_recent_claims_view_and_search(monkeypatc
     assert session_state["dash_recent_claims_search"] == ""
     assert session_state["dash_ongoing_claims_search"] == ""
     assert session_state["dash_history_claims_search"] == ""
+    assert session_state["recent_claims_view"] == "ongoing"
+    assert session_state["recent_claims_view_radio"] == "ongoing"
     assert session_state["selected_claim_view"] == "ongoing"
     assert session_state["claim_scope"] == "ongoing"
     assert session_state["date_requested_widget_version"] == 3
@@ -78,3 +80,35 @@ def test_history_claim_view_applies_history_bucket_filter():
     filters = dashboard._claim_bucket_filters({"search_text": ""}, "history", "approved")
 
     assert filters == {"search_text": "approved", "claim_bucket": "history"}
+
+
+def test_recent_claims_view_callback_syncs_radio_aliases_and_resets_pagination(monkeypatch):
+    session_state = {
+        "recent_claims_view": "ongoing",
+        "recent_claims_view_radio": "history",
+        "selected_claim_view": "ongoing",
+        "claim_scope": "ongoing",
+        "claims_page_number": 3,
+        "dash_recent_claims_pagination_page": 3,
+    }
+    monkeypatch.setattr(dashboard, "st", SimpleNamespace(session_state=session_state))
+
+    dashboard._on_recent_claims_view_change()
+
+    assert session_state["recent_claims_view"] == "history"
+    assert session_state["selected_claim_view"] == "history"
+    assert session_state["claim_scope"] == "history"
+    assert session_state["claims_page_number"] == 1
+    assert session_state["dash_recent_claims_pagination_page"] == 1
+
+
+def test_dashboard_filter_state_keeps_radio_key_in_sync_with_recent_claim_view(monkeypatch):
+    session_state = {"recent_claims_view": "history", "recent_claims_view_radio": "ongoing"}
+    monkeypatch.setattr(dashboard, "st", SimpleNamespace(session_state=session_state))
+
+    dashboard._init_dashboard_filter_state()
+
+    assert session_state["recent_claims_view"] == "history"
+    assert session_state["recent_claims_view_radio"] == "history"
+    assert session_state["selected_claim_view"] == "history"
+    assert session_state["claim_scope"] == "history"
