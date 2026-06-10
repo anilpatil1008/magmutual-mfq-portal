@@ -66,11 +66,118 @@ def _cached_per_claim(cache_name: str, claim_id: str, loader, *, label: str):
         logger.info("%s_cache_hit claim_id=%s", cache_name, claim_id)
         return cache[claim_id]
     started = perf_counter()
-    with st.spinner(label):
-        value = loader()
+    value = loader()
     cache[claim_id] = value
-    logger.info("%s_load_ms=%d claim_id=%s", cache_name, int((perf_counter() - started) * 1000), claim_id)
+    logger.info(
+        "%s_load_ms=%d claim_id=%s label=%s",
+        cache_name,
+        int((perf_counter() - started) * 1000),
+        claim_id,
+        label,
+    )
     return value
+
+
+def _render_claim_details_loading_overlay(slot) -> None:
+    slot.markdown(
+        """
+        <style>
+            .claim-details-loading-overlay {
+                position: fixed;
+                inset: 0;
+                z-index: 2147483000;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 24px;
+                background: rgba(15, 23, 42, 0.42);
+                backdrop-filter: blur(3px);
+                pointer-events: all;
+            }
+            .claim-details-loading-card {
+                width: min(420px, calc(100vw - 48px));
+                border: 1px solid rgba(148, 163, 184, 0.28);
+                border-radius: 24px;
+                background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+                box-shadow: 0 24px 70px rgba(15, 23, 42, 0.26);
+                padding: 34px 36px 30px;
+                text-align: center;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            }
+            .claim-details-loading-icon-wrap {
+                position: relative;
+                width: 94px;
+                height: 94px;
+                margin: 0 auto 22px;
+                display: grid;
+                place-items: center;
+            }
+            .claim-details-loading-ring {
+                position: absolute;
+                inset: 0;
+                border-radius: 999px;
+                border: 3px solid rgba(37, 99, 235, 0.14);
+                border-top-color: #2563eb;
+                border-right-color: #60a5fa;
+                animation: claim-details-loader-spin 1.05s linear infinite;
+            }
+            .claim-details-loading-icon {
+                width: 68px;
+                height: 68px;
+                border-radius: 20px;
+                background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+                box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.14);
+                display: grid;
+                place-items: center;
+            }
+            .claim-details-loading-title {
+                margin: 0;
+                color: #0f172a;
+                font-size: 1.22rem;
+                font-weight: 750;
+                letter-spacing: -0.01em;
+            }
+            .claim-details-loading-subtitle {
+                margin: 10px auto 0;
+                color: #475569;
+                font-size: 0.96rem;
+                line-height: 1.48;
+                max-width: 330px;
+            }
+            .claim-details-loading-footer {
+                margin-top: 18px;
+                color: #2563eb;
+                font-size: 0.82rem;
+                font-weight: 650;
+                letter-spacing: 0.02em;
+            }
+            @keyframes claim-details-loader-spin {
+                to { transform: rotate(360deg); }
+            }
+        </style>
+        <div class="claim-details-loading-overlay" role="status" aria-live="polite" aria-label="Loading claim details">
+            <div class="claim-details-loading-card">
+                <div class="claim-details-loading-icon-wrap" aria-hidden="true">
+                    <div class="claim-details-loading-ring"></div>
+                    <div class="claim-details-loading-icon">
+                        <svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M13 5.5H25.2L34 14.3V35C34 36.93 32.43 38.5 30.5 38.5H13C11.07 38.5 9.5 36.93 9.5 35V9C9.5 7.07 11.07 5.5 13 5.5Z" fill="#FFFFFF" stroke="#1D4ED8" stroke-width="2.4"/>
+                            <path d="M25 6V14.5H33.5" stroke="#60A5FA" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M15.5 19H26.5M15.5 25H22" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round"/>
+                            <circle cx="26.5" cy="28" r="4.7" fill="#DBEAFE" stroke="#1D4ED8" stroke-width="2.2"/>
+                            <path d="M30.1 31.6L34.8 36.3" stroke="#0F766E" stroke-width="2.6" stroke-linecap="round"/>
+                            <path d="M24.3 28L25.9 29.6L29 26.5" stroke="#0F766E" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                </div>
+                <p class="claim-details-loading-title">Loading claim details</p>
+                <p class="claim-details-loading-subtitle">Please wait while we prepare the claim information for review.</p>
+                <div class="claim-details-loading-footer">Fetching secure claim data...</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 def _invalidate_claim_caches(claim_id: str, *cache_names: str) -> None:
@@ -1243,12 +1350,19 @@ def render(session, ctx) -> None:
 
     _render_breadcrumb(claim_id)
     header_slot = st.empty()
-    claim = _cached_per_claim(
-        "claim_details_cache",
-        claim_id,
-        lambda: get_claim_detail_by_id(session, claim_id),
-        label="Loading claim header...",
-    )
+    loading_slot = st.empty()
+    show_initial_loader = claim_id not in _ensure_claim_cache("claim_details_cache")
+    if show_initial_loader:
+        _render_claim_details_loading_overlay(loading_slot)
+    try:
+        claim = _cached_per_claim(
+            "claim_details_cache",
+            claim_id,
+            lambda: get_claim_detail_by_id(session, claim_id),
+            label="Loading claim details",
+        )
+    finally:
+        loading_slot.empty()
     if not claim:
         st.error(
             f"Claim {claim_id} was not found in MFQ_CLAIM_DETAIL_VW. "
