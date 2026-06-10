@@ -8,6 +8,8 @@ CLAIM_DETAILS_PAGE = "Claim Details"
 DASHBOARD_VIEW = "dashboard"
 REPORTS_VIEW = "reports"
 CLAIM_DETAILS_VIEW = "claim_details"
+DASHBOARD_CLAIMS_VIEW_STATE_KEY = "claim_scope"
+DASHBOARD_CLAIMS_VIEW_DEFAULT = "ongoing"
 
 
 def _is_dashboard_route_active() -> bool:
@@ -36,6 +38,7 @@ def set_dashboard_route() -> None:
     st.session_state["selected_claim_id"] = None
     st.session_state["selected_claim"] = None
     st.session_state["current_view"] = DASHBOARD_VIEW
+    st.session_state[DASHBOARD_CLAIMS_VIEW_STATE_KEY] = DASHBOARD_CLAIMS_VIEW_DEFAULT
     st.session_state["active_page"] = DASHBOARD_PAGE
     st.session_state["claim_detail_view"] = False
     st.session_state["show_claim_details_nav"] = False
