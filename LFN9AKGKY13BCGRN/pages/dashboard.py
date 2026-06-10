@@ -22,7 +22,7 @@ from utils import navigation
 logger = logging.getLogger(__name__)
 
 DASHBOARD_RECENT_CLAIMS_PAGE_SIZE = 10
-DASHBOARD_CLAIMS_VIEW_FALLBACK_OPTIONS = ("recent", "ongoing", "history")
+DASHBOARD_CLAIMS_VIEW_FALLBACK_OPTIONS = ("ongoing", "history")
 DASHBOARD_CLAIMS_VIEW_FALLBACK_DEFAULT = "ongoing"
 DASHBOARD_VIEW = getattr(navigation, "DASHBOARD_VIEW", "dashboard")
 # Keep dashboard import-safe when an older navigation module is loaded from

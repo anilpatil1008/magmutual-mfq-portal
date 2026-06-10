@@ -10,7 +10,7 @@ REPORTS_VIEW = "reports"
 CLAIM_DETAILS_VIEW = "claim_details"
 DASHBOARD_CLAIMS_VIEW_STATE_KEY = "selected_claim_view"
 DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY = "claim_scope"
-DASHBOARD_CLAIMS_VIEW_OPTIONS = ("recent", "ongoing", "history")
+DASHBOARD_CLAIMS_VIEW_OPTIONS = ("ongoing", "history")
 DASHBOARD_CLAIMS_VIEW_DEFAULT = "ongoing"
 
 
