@@ -12,9 +12,8 @@ from components.tables import render_live_claims_search, render_recent_claims_ta
 from services.claim_service import (
     get_available_claim_statuses,
     get_available_claim_types,
-    get_cached_recent_claims,
-    get_filtered_recent_claims_local,
-    get_recent_claims_by_bucket_local,
+    get_filtered_claims_count,
+    get_filtered_recent_claims,
 )
 from services.dashboard_service import get_dashboard_metrics
 from services.rbac_service import get_session_context_snapshot
@@ -327,28 +326,17 @@ def _merge_filter_options(default_options: list[str], dynamic_options: list[str]
     return merged
 
 
-def _values_from_claims(claims, column_name: str) -> list[str]:
-    if column_name not in claims.columns:
-        return []
-    values = claims[column_name].dropna().astype(str).str.strip()
-    null_like = {"", "nan", "none", "null", "n/a", "na"}
-    return sorted(
-        {value for value in values.tolist() if value and value.casefold() not in null_like},
-        key=str.upper,
-    )
-
-
-def _render_dashboard_filter_controls(session, claims=None) -> None:
+def _render_dashboard_filter_controls(session) -> None:
     if st.session_state.pop("dashboard_filters_clear_requested", False):
         _clear_all_dashboard_filters_before_widgets()
 
     status_options = _merge_filter_options(
         STATUS_FILTER_OPTIONS,
-        _values_from_claims(claims, "MFQ_STATUS") if claims is not None else get_available_claim_statuses(session),
+        get_available_claim_statuses(session),
     )
     claim_type_options = _merge_filter_options(
         [],
-        _values_from_claims(claims, "CLAIM_TYPE") if claims is not None else get_available_claim_types(session),
+        get_available_claim_types(session),
     )
 
     st.markdown(
@@ -376,7 +364,7 @@ def _render_dashboard_filter_controls(session, claims=None) -> None:
     )
 
 
-def _render_dashboard_header(session, display_name: str, claims=None) -> None:
+def _render_dashboard_header(session, display_name: str) -> None:
     header_left, header_right = st.columns([8, 2], vertical_alignment="top")
     with header_left:
         st.title("Dashboard")
@@ -405,10 +393,10 @@ def _render_dashboard_header(session, display_name: str, claims=None) -> None:
                     width="content",
                     key="dashboard_filters_popover",
                 ):
-                    _render_dashboard_filter_controls(session, claims)
+                    _render_dashboard_filter_controls(session)
             else:
                 with st.expander("Filters", expanded=False):
-                    _render_dashboard_filter_controls(session, claims)
+                    _render_dashboard_filter_controls(session)
             st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -446,8 +434,7 @@ def _render_dashboard_view(session, ctx) -> None:
     _init_dashboard_filter_state()
     display_name = _resolve_user_display_name(ctx)
 
-    recent_claims_dataset = get_cached_recent_claims(session)
-    _render_dashboard_header(session, display_name, recent_claims_dataset)
+    _render_dashboard_header(session, display_name)
 
     t0 = perf_counter()
     session_ctx = get_session_context_snapshot(session)
@@ -490,12 +477,14 @@ def _render_dashboard_view(session, ctx) -> None:
 
         filters = _dashboard_filters(search)
         t1 = perf_counter()
-        filtered_claims_by_bucket = get_recent_claims_by_bucket_local(
-            recent_claims_dataset,
-            _dashboard_filters(""),
-            {bucket: _claims_search_text(bucket) for bucket in CLAIM_BUCKET_OPTIONS},
-        )
-        claim_counts = {bucket: len(rows) for bucket, rows in filtered_claims_by_bucket.items()}
+        shared_filters = _dashboard_filters("")
+        claim_counts = {
+            bucket: get_filtered_claims_count(
+                session,
+                _claim_bucket_filters(shared_filters, bucket, _claims_search_text(bucket)),
+            )
+            for bucket in CLAIM_BUCKET_OPTIONS
+        }
 
         selected_bucket = st.radio(
             "Recent Claims Tabs",
@@ -511,7 +500,6 @@ def _render_dashboard_view(session, ctx) -> None:
         _reset_claims_page_on_context_change(card_key, selected_bucket, search)
 
         bucket_filters = _claim_bucket_filters(filters, selected_bucket, search)
-        selected_filtered_claims = filtered_claims_by_bucket[selected_bucket]
         total_claims = claim_counts[selected_bucket]
         st.session_state["dashboard_filtered_claims_count"] = total_claims
         requested_page = max(1, int(st.session_state.get("claims_page_number", 1)))
@@ -519,9 +507,9 @@ def _render_dashboard_view(session, ctx) -> None:
         current_page = min(requested_page, total_pages)
         if current_page != requested_page:
             st.session_state["claims_page_number"] = current_page
-        recent_claims = get_filtered_recent_claims_local(
-            selected_filtered_claims,
-            {},
+        recent_claims = get_filtered_recent_claims(
+            session,
+            bucket_filters,
             current_page,
             DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
         )

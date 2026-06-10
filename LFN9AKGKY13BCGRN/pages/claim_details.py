@@ -26,7 +26,7 @@ from services.claim_service import (
     get_claim_detail_by_id,
     get_claim_documents_by_claim_id,
     get_claim_history_by_claim_id,
-    get_claim_summaries_by_claim_id,
+    get_claim_summary_by_type,
     get_editable_section_ids_for_user,
     save_claim_assignment,
     save_mfq_answer,
@@ -1035,10 +1035,10 @@ def _is_debug_mode_enabled() -> bool:
 
 
 def _render_summary_tab(session, claim_id: str, claim: dict) -> None:
-    summaries = _cached_per_claim(
-        "claim_summary_cache",
+    record_summary = _cached_per_claim(
+        "claim_record_summary_cache",
         claim_id,
-        lambda: get_claim_summaries_by_claim_id(session, claim_id),
+        lambda: get_claim_summary_by_type(session, claim_id, "RECORD_SUMMARY"),
         label="Loading summary...",
     )
     st.markdown("### Claim Summary")
@@ -1054,7 +1054,7 @@ def _render_summary_tab(session, claim_id: str, claim: dict) -> None:
             f"<div class='claim-detail-mini-card'><span>{escape(label)}</span><strong>{escape(value)}</strong></div>",
             unsafe_allow_html=True,
         )
-    _render_text_tab(summaries.get("RECORD_SUMMARY", summaries.get("RECORDS_SUMMARY", "")), "No records summary available.")
+    _render_text_tab(record_summary, "No records summary available.")
 
 
 def _render_mfq_tab(session, ctx, claim_id: str, claim: dict) -> None:
@@ -1197,13 +1197,23 @@ def render_records_summary_tab(session, claim_id: str, claim: dict) -> None:
 
 
 def render_medcron_tab(session, claim_id: str) -> None:
-    summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id), label="Loading MedCron...")
-    _render_text_tab(summaries.get("MEDCRON", ""), "No MedCron summary available.")
+    medcron_summary = _cached_per_claim(
+        "claim_medcron_summary_cache",
+        claim_id,
+        lambda: get_claim_summary_by_type(session, claim_id, "MEDCRON"),
+        label="Loading MedCron...",
+    )
+    _render_text_tab(medcron_summary, "No MedCron summary available.")
 
 
 def render_legal_memo_tab(session, claim_id: str) -> None:
-    summaries = _cached_per_claim("claim_summary_cache", claim_id, lambda: get_claim_summaries_by_claim_id(session, claim_id), label="Loading legal memo...")
-    _render_text_tab(summaries.get("LEGAL_MEMO", ""), "No legal memo available.")
+    legal_memo = _cached_per_claim(
+        "claim_legal_memo_cache",
+        claim_id,
+        lambda: get_claim_summary_by_type(session, claim_id, "LEGAL_MEMO"),
+        label="Loading legal memo...",
+    )
+    _render_text_tab(legal_memo, "No legal memo available.")
 
 
 def render_enquiries_tab(session, claim_id: str) -> None:

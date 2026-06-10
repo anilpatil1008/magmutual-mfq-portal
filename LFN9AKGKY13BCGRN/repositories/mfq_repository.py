@@ -120,6 +120,33 @@ def get_claim_summaries(session, claim_id: str) -> pd.DataFrame:
     )
 
 
+def get_claim_summary_by_type(session, claim_id: str, summary_type: str) -> pd.DataFrame:
+    normalized_type = str(summary_type or "").strip().upper()
+    summary_sources = {
+        "RECORD_SUMMARY": obj.MFQ_RECORD_SUMMARY_TABLE,
+        "RECORDS_SUMMARY": obj.MFQ_RECORD_SUMMARY_TABLE,
+        "MEDCRON": obj.MFQ_MEDCRON_SUMMARY_TABLE,
+        "LEGAL_MEMO": obj.MFQ_LEGAL_MEMO_TABLE,
+    }
+    source_table = summary_sources.get(normalized_type)
+    if source_table is None:
+        return pd.DataFrame(columns=["SUMMARY_TYPE", "SUMMARY_TEXT", "GENERATED_TS"])
+
+    canonical_type = "RECORD_SUMMARY" if normalized_type == "RECORDS_SUMMARY" else normalized_type
+    return execute_query_df(
+        session,
+        f"""
+        SELECT ? AS SUMMARY_TYPE, SUMMARY_TEXT, GENERATED_TS
+        FROM {source_table}
+        WHERE TRIM(TO_VARCHAR(CLAIM_ID)) = TRIM(TO_VARCHAR(?))
+        ORDER BY GENERATED_TS DESC
+        LIMIT 1
+        """,
+        params=[canonical_type, str(claim_id)],
+        query_name=f"mfq.get_claim_summary_by_type.{canonical_type}",
+    )
+
+
 def get_section_confidence(session, claim_id: str, section_id: str) -> pd.DataFrame:
     return execute_query_df(
         session,
