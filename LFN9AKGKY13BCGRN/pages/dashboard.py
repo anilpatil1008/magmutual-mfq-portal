@@ -33,6 +33,8 @@ CLAIM_BUCKET_LABELS = {"recent": "Recent Claims", "ongoing": "Ongoing Claims", "
 CLAIM_BUCKET_DEFAULT = DASHBOARD_CLAIMS_VIEW_DEFAULT
 CLAIM_BUCKET_STATE_KEY = DASHBOARD_CLAIMS_VIEW_STATE_KEY
 CLAIM_BUCKET_LEGACY_STATE_KEY = DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY
+RECENT_CLAIMS_VIEW_STATE_KEY = "recent_claims_view"
+RECENT_CLAIMS_VIEW_RADIO_KEY = "recent_claims_view_radio"
 STATUS_FILTER_OPTIONS = ["MFQ Generated", "Assigned", "Approved", "Rejected"]
 PRIORITY_FILTER_OPTIONS = ["High", "Medium", "Low"]
 AI_CONFIDENCE_FILTER_OPTIONS = [
@@ -54,6 +56,7 @@ def _init_dashboard_filter_state() -> None:
     legacy_priority = st.session_state.pop("selected_priority", None)
     legacy_ai_confidence = st.session_state.pop("selected_ai_confidence", None)
     canonical_claim_view_missing = CLAIM_BUCKET_STATE_KEY not in st.session_state
+    recent_claims_view_missing = RECENT_CLAIMS_VIEW_STATE_KEY not in st.session_state
     defaults = {
         "selected_statuses": [],
         "selected_priorities": [],
@@ -77,14 +80,19 @@ def _init_dashboard_filter_state() -> None:
     if legacy_scope not in CLAIM_BUCKET_OPTIONS:
         legacy_scope = st.session_state.get(CLAIM_BUCKET_LEGACY_STATE_KEY)
 
+    recent_claims_view = str(st.session_state.get(RECENT_CLAIMS_VIEW_STATE_KEY) or "").strip().lower()
     current_scope = str(st.session_state.get(CLAIM_BUCKET_STATE_KEY) or "").strip().lower()
-    if canonical_claim_view_missing and legacy_scope in CLAIM_BUCKET_OPTIONS:
+    if recent_claims_view in CLAIM_BUCKET_OPTIONS and not recent_claims_view_missing:
+        current_scope = recent_claims_view
+    elif canonical_claim_view_missing and legacy_scope in CLAIM_BUCKET_OPTIONS:
         current_scope = str(legacy_scope)
     elif current_scope not in CLAIM_BUCKET_OPTIONS and legacy_scope in CLAIM_BUCKET_OPTIONS:
         current_scope = str(legacy_scope)
     elif current_scope not in CLAIM_BUCKET_OPTIONS:
         current_scope = CLAIM_BUCKET_DEFAULT
 
+    st.session_state[RECENT_CLAIMS_VIEW_STATE_KEY] = current_scope
+    st.session_state[RECENT_CLAIMS_VIEW_RADIO_KEY] = current_scope
     st.session_state[CLAIM_BUCKET_STATE_KEY] = current_scope
     st.session_state[CLAIM_BUCKET_LEGACY_STATE_KEY] = current_scope
 
@@ -254,6 +262,8 @@ def _clear_all_dashboard_filters_before_widgets() -> None:
             "dash_recent_claims_search": "",
             "dash_ongoing_claims_search": "",
             "dash_history_claims_search": "",
+            RECENT_CLAIMS_VIEW_STATE_KEY: CLAIM_BUCKET_DEFAULT,
+            RECENT_CLAIMS_VIEW_RADIO_KEY: CLAIM_BUCKET_DEFAULT,
             CLAIM_BUCKET_STATE_KEY: CLAIM_BUCKET_DEFAULT,
             CLAIM_BUCKET_LEGACY_STATE_KEY: CLAIM_BUCKET_DEFAULT,
         }
@@ -325,6 +335,19 @@ def _claim_bucket_filters(filters: dict[str, object], claim_bucket: str, search_
 def _claim_bucket_label(claim_bucket: str, counts: dict[str, int]) -> str:
     label = CLAIM_BUCKET_LABELS.get(claim_bucket, str(claim_bucket).title())
     return f"{label} ({counts.get(claim_bucket, 0)})"
+
+
+def _on_recent_claims_view_change() -> None:
+    selected_view = str(st.session_state.get(RECENT_CLAIMS_VIEW_RADIO_KEY) or CLAIM_BUCKET_DEFAULT).strip().lower()
+    if selected_view not in CLAIM_BUCKET_OPTIONS:
+        selected_view = CLAIM_BUCKET_DEFAULT
+
+    if st.session_state.get(RECENT_CLAIMS_VIEW_STATE_KEY) != selected_view:
+        _reset_recent_claims_pagination()
+
+    st.session_state[RECENT_CLAIMS_VIEW_STATE_KEY] = selected_view
+    st.session_state[CLAIM_BUCKET_STATE_KEY] = selected_view
+    st.session_state[CLAIM_BUCKET_LEGACY_STATE_KEY] = selected_view
 
 
 def _reset_claims_page_on_context_change(card_key: str, selected_bucket: str, search: str) -> None:
@@ -467,9 +490,10 @@ def _render_dashboard_view(session, ctx) -> None:
     render_kpi_cards(metrics)
 
     card_key = "dashboard_claims"
-    selected_bucket_for_search = str(st.session_state.get(CLAIM_BUCKET_STATE_KEY) or CLAIM_BUCKET_DEFAULT)
+    selected_bucket_for_search = str(st.session_state.get(RECENT_CLAIMS_VIEW_STATE_KEY) or CLAIM_BUCKET_DEFAULT).strip().lower()
     if selected_bucket_for_search not in CLAIM_BUCKET_OPTIONS:
         selected_bucket_for_search = CLAIM_BUCKET_DEFAULT
+        st.session_state[RECENT_CLAIMS_VIEW_STATE_KEY] = selected_bucket_for_search
         st.session_state[CLAIM_BUCKET_STATE_KEY] = selected_bucket_for_search
         st.session_state[CLAIM_BUCKET_LEGACY_STATE_KEY] = selected_bucket_for_search
     search_state_key = _claims_search_state_key(selected_bucket_for_search)
@@ -510,19 +534,21 @@ def _render_dashboard_view(session, ctx) -> None:
             for bucket in CLAIM_BUCKET_OPTIONS
         }
 
+        selected_view = st.session_state.get(RECENT_CLAIMS_VIEW_STATE_KEY, CLAIM_BUCKET_DEFAULT)
+        selected_index = CLAIM_BUCKET_OPTIONS.index(selected_view) if selected_view in CLAIM_BUCKET_OPTIONS else 0
         selected_bucket = st.radio(
             "Recent Claims Tabs",
             CLAIM_BUCKET_OPTIONS,
             horizontal=True,
-            key=CLAIM_BUCKET_STATE_KEY,
+            key=RECENT_CLAIMS_VIEW_RADIO_KEY,
+            index=selected_index,
             format_func=lambda bucket: _claim_bucket_label(bucket, claim_counts),
             label_visibility="collapsed",
+            on_change=_on_recent_claims_view_change,
         )
-        selected_bucket = str(selected_bucket or CLAIM_BUCKET_DEFAULT).strip().lower()
+        selected_bucket = str(st.session_state.get(RECENT_CLAIMS_VIEW_STATE_KEY) or selected_bucket or CLAIM_BUCKET_DEFAULT).strip().lower()
         if selected_bucket not in CLAIM_BUCKET_OPTIONS:
             selected_bucket = CLAIM_BUCKET_DEFAULT
-            st.session_state[CLAIM_BUCKET_STATE_KEY] = selected_bucket
-        st.session_state[CLAIM_BUCKET_LEGACY_STATE_KEY] = selected_bucket
         if selected_bucket != selected_bucket_for_search:
             search = _claims_search_text(selected_bucket)
             filters = _dashboard_filters(search)
@@ -569,7 +595,7 @@ def _render_dashboard_view(session, ctx) -> None:
             page_size=DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
             pagination_state_key="claims_page_number",
             table_key="recent_claims_table",
-            component_key=f"recent_claims_table_{dashboard_route_instance}_{selected_bucket}",
+            component_key=f"recent_claims_table_{selected_bucket}_{dashboard_route_instance}_{current_page}",
         )
 
 
