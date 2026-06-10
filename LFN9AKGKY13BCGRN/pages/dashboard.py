@@ -22,13 +22,35 @@ from utils import navigation
 logger = logging.getLogger(__name__)
 
 DASHBOARD_RECENT_CLAIMS_PAGE_SIZE = 10
-DASHBOARD_VIEW = navigation.DASHBOARD_VIEW
-CLAIM_BUCKET_OPTIONS = navigation.DASHBOARD_CLAIMS_VIEW_OPTIONS
+DASHBOARD_CLAIMS_VIEW_FALLBACK_OPTIONS = ("recent", "ongoing", "history")
+DASHBOARD_CLAIMS_VIEW_FALLBACK_DEFAULT = "ongoing"
+DASHBOARD_VIEW = getattr(navigation, "DASHBOARD_VIEW", "dashboard")
+# Keep dashboard import-safe when an older navigation module is loaded from
+# cache or an out-of-date deployment. The Dashboard page owns these fallback
+# values because it must be able to import before any navigation-state repair
+# logic can run.
+CLAIM_BUCKET_OPTIONS = tuple(
+    getattr(
+        navigation,
+        "DASHBOARD_CLAIMS_VIEW_OPTIONS",
+        DASHBOARD_CLAIMS_VIEW_FALLBACK_OPTIONS,
+    )
+)
+if not CLAIM_BUCKET_OPTIONS:
+    CLAIM_BUCKET_OPTIONS = DASHBOARD_CLAIMS_VIEW_FALLBACK_OPTIONS
 CLAIM_BUCKET_LABELS = {"recent": "Recent Claims", "ongoing": "Ongoing Claims", "history": "History Claims"}
-CLAIM_BUCKET_DEFAULT = navigation.DASHBOARD_CLAIMS_VIEW_DEFAULT
-CLAIM_BUCKET_STATE_KEY = navigation.DASHBOARD_CLAIMS_VIEW_STATE_KEY
-# Keep dashboard import-safe when an older navigation module without the
-# legacy alias is loaded from cache or an out-of-date deployment.
+CLAIM_BUCKET_DEFAULT = getattr(
+    navigation,
+    "DASHBOARD_CLAIMS_VIEW_DEFAULT",
+    DASHBOARD_CLAIMS_VIEW_FALLBACK_DEFAULT,
+)
+if CLAIM_BUCKET_DEFAULT not in CLAIM_BUCKET_OPTIONS:
+    CLAIM_BUCKET_DEFAULT = DASHBOARD_CLAIMS_VIEW_FALLBACK_DEFAULT
+CLAIM_BUCKET_STATE_KEY = getattr(
+    navigation,
+    "DASHBOARD_CLAIMS_VIEW_STATE_KEY",
+    "selected_claim_view",
+)
 CLAIM_BUCKET_LEGACY_STATE_KEY = getattr(
     navigation,
     "DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY",
