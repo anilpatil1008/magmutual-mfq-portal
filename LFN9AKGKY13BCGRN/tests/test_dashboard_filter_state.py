@@ -112,3 +112,70 @@ def test_dashboard_filter_state_keeps_radio_key_in_sync_with_recent_claim_view(m
     assert session_state["recent_claims_view_radio"] == "history"
     assert session_state["selected_claim_view"] == "history"
     assert session_state["claim_scope"] == "history"
+
+
+def test_dashboard_imports_when_navigation_claim_view_constants_are_missing(monkeypatch):
+    import importlib.util
+    import types
+
+    def _module(name, **attrs):
+        module = types.ModuleType(name)
+        for attr_name, attr_value in attrs.items():
+            setattr(module, attr_name, attr_value)
+        return module
+
+    monkeypatch.setitem(sys.modules, "streamlit", _module("streamlit", session_state={}))
+    monkeypatch.setitem(sys.modules, "components", _module("components"))
+    monkeypatch.setitem(
+        sys.modules,
+        "components.cards",
+        _module("components.cards", render_kpi_cards=lambda *args, **kwargs: None),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "components.tables",
+        _module(
+            "components.tables",
+            render_live_claims_search=lambda *args, **kwargs: None,
+            render_recent_claims_table=lambda *args, **kwargs: None,
+        ),
+    )
+    monkeypatch.setitem(sys.modules, "services", _module("services"))
+    monkeypatch.setitem(
+        sys.modules,
+        "services.claim_service",
+        _module(
+            "services.claim_service",
+            get_available_claim_statuses=lambda *args, **kwargs: [],
+            get_available_claim_types=lambda *args, **kwargs: [],
+            get_filtered_claims_count=lambda *args, **kwargs: 0,
+            get_filtered_recent_claims=lambda *args, **kwargs: [],
+        ),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "services.dashboard_service",
+        _module("services.dashboard_service", get_dashboard_metrics=lambda *args, **kwargs: {}),
+    )
+    monkeypatch.setitem(
+        sys.modules,
+        "services.rbac_service",
+        _module("services.rbac_service", get_session_context_snapshot=lambda *args, **kwargs: {}),
+    )
+    older_navigation = _module("utils.navigation", DASHBOARD_VIEW="dashboard")
+    utils_module = _module("utils", navigation=older_navigation)
+    monkeypatch.setitem(sys.modules, "utils", utils_module)
+    monkeypatch.setitem(sys.modules, "utils.navigation", older_navigation)
+
+    spec = importlib.util.spec_from_file_location(
+        "dashboard_with_older_navigation",
+        APP_ROOT / "pages" / "dashboard.py",
+    )
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    assert module.CLAIM_BUCKET_OPTIONS == ("recent", "ongoing", "history")
+    assert module.CLAIM_BUCKET_DEFAULT == "ongoing"
+    assert module.CLAIM_BUCKET_STATE_KEY == "selected_claim_view"
+    assert module.CLAIM_BUCKET_LEGACY_STATE_KEY == "claim_scope"
