@@ -13,8 +13,8 @@ from services.claim_service import (
     get_available_claim_statuses,
     get_available_claim_types,
     get_cached_recent_claims,
-    get_filtered_claims_count_local,
     get_filtered_recent_claims_local,
+    get_filtered_recent_claims_local_all,
 )
 from services.dashboard_service import get_dashboard_metrics
 from services.rbac_service import get_session_context_snapshot
@@ -351,7 +351,11 @@ def _render_dashboard_filter_controls(session, claims=None) -> None:
     _render_date_requested_filter()
     st.markdown("<div class='mfq-filter-clear-all'></div>", unsafe_allow_html=True)
     if st.button("Clear All Filters", key="dashboard_clear_all_filters", use_container_width=True):
-        st.session_state["dashboard_filters_clear_requested"] = True
+        # Reset filter state before rerunning so the very next dashboard render
+        # recomputes the displayed dataframe and count from the cleared state.
+        _clear_all_dashboard_filters_before_widgets()
+        st.session_state.pop("dashboard_filtered_claims_count", None)
+        st.session_state.pop("dashboard_filtered_claims_cache", None)
         st.rerun()
 
 
@@ -469,13 +473,14 @@ def _render_dashboard_view(session, ctx) -> None:
 
         filters = _dashboard_filters(search)
         t1 = perf_counter()
-        claim_counts = {
-            bucket: get_filtered_claims_count_local(
+        filtered_claims_by_bucket = {
+            bucket: get_filtered_recent_claims_local_all(
                 recent_claims_dataset,
                 _claim_bucket_filters(_dashboard_filters(_claims_search_text(bucket)), bucket),
             )
             for bucket in CLAIM_BUCKET_OPTIONS
         }
+        claim_counts = {bucket: len(rows) for bucket, rows in filtered_claims_by_bucket.items()}
 
         selected_bucket = st.radio(
             "Recent Claims Tabs",
@@ -491,15 +496,17 @@ def _render_dashboard_view(session, ctx) -> None:
         _reset_claims_page_on_context_change(card_key, selected_bucket, search)
 
         bucket_filters = _claim_bucket_filters(filters, selected_bucket, search)
+        selected_filtered_claims = filtered_claims_by_bucket[selected_bucket]
         total_claims = claim_counts[selected_bucket]
+        st.session_state["dashboard_filtered_claims_count"] = total_claims
         requested_page = max(1, int(st.session_state.get("claims_page_number", 1)))
         total_pages = max(1, (total_claims + DASHBOARD_RECENT_CLAIMS_PAGE_SIZE - 1) // DASHBOARD_RECENT_CLAIMS_PAGE_SIZE)
         current_page = min(requested_page, total_pages)
         if current_page != requested_page:
             st.session_state["claims_page_number"] = current_page
         recent_claims = get_filtered_recent_claims_local(
-            recent_claims_dataset,
-            bucket_filters,
+            selected_filtered_claims,
+            {},
             current_page,
             DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
         )

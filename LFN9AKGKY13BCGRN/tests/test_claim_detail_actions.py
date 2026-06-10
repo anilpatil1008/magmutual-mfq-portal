@@ -85,12 +85,13 @@ def test_header_badge_helpers_use_mfq_status_and_priority_independently():
     assert _priority_badge_class(None) == "default"
 
 
-def test_priority_display_uses_priority_fields_only_and_hides_null_like_values():
+def test_priority_display_uses_priority_fields_only_and_displays_unknown_for_missing_values():
     assert _priority_from_claim({"PRIORITY": "High", "MFQ_STATUS": "Rejected"}) == "High"
     assert _priority_from_claim({"PRIORITY": None, "CLAIM_PRIORITY": "medium"}) == "Medium"
     assert _priority_from_claim({"PRIORITY": "N/A", "CLAIM_PRIORITY": "low"}) == "Low"
-    assert _priority_from_claim({"PRIORITY": "nan", "MFQ_STATUS": "High"}) == ""
-    assert _priority_from_claim({"CLAIM_STATUS": "High", "WORKFLOW_STATUS": "Medium"}) == ""
+    assert _priority_from_claim({"PRIORITY": "nan", "MFQ_STATUS": "High"}) == "Unknown"
+    assert _priority_from_claim({"PRIORITY": "-", "CLAIM_PRIORITY": " "}) == "Unknown"
+    assert _priority_from_claim({"CLAIM_STATUS": "High", "WORKFLOW_STATUS": "Medium"}) == "Unknown"
 
 
 def test_claim_header_safe_display_labels_and_dates():

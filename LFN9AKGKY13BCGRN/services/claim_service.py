@@ -262,6 +262,11 @@ def _local_dashboard_filters(df: pd.DataFrame, filters: dict | None) -> pd.DataF
     return filter_claims_by_search(scoped, str(filters.get("search_text") or ""))
 
 
+def get_filtered_recent_claims_local_all(claims: pd.DataFrame, filters: dict | None) -> pd.DataFrame:
+    """Return locally filtered dashboard rows without re-querying Snowflake."""
+    return _local_dashboard_filters(claims, filters).copy()
+
+
 def get_filtered_recent_claims_local(claims: pd.DataFrame, filters: dict | None, page: int, page_size: int) -> pd.DataFrame:
     scoped = _local_dashboard_filters(claims, filters)
     offset = max(0, (max(1, int(page)) - 1) * max(1, int(page_size)))
@@ -289,10 +294,10 @@ def get_claim_details(session, claim_id: str) -> dict[str, Any] | None:
 
 
 def _is_blank_value(value: Any) -> bool:
-    return value is None or (isinstance(value, float) and pd.isna(value)) or str(value).strip().lower() in {"", "nan", "none", "null"}
+    return value is None or (isinstance(value, float) and pd.isna(value)) or str(value).strip().lower() in {"", "-", "nan", "none", "null"}
 
 
-def get_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
+def _fetch_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
     started = perf_counter()
     df = claims_repository.get_claim_detail_by_id(session, claim_id)
     detail = df.iloc[0].to_dict() if not df.empty else None
@@ -320,6 +325,28 @@ def get_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
         "" if detail is None else str(detail.get("MFQ_STATUS") or "").strip(),
     )
     return detail
+
+
+@st.cache_data(ttl=300, show_spinner="Loading claim header...")
+def _load_claim_detail_by_id_cached(_session, cache_scope: str, claim_id: str) -> dict[str, Any] | None:
+    del cache_scope
+    return _fetch_claim_detail_by_id(_session, claim_id)
+
+
+def clear_claim_read_caches() -> None:
+    """Clear cached read models after a write that can change claim/dashboard data."""
+    _load_recent_claims_cached.clear()
+    _load_claims_queue_cached.clear()
+    _load_claim_detail_by_id_cached.clear()
+
+
+def get_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
+    normalized_claim_id = str(claim_id or "").strip()
+    if not normalized_claim_id:
+        return None
+    if _in_streamlit_runtime():
+        return _load_claim_detail_by_id_cached(session, _claims_cache_scope(), normalized_claim_id)
+    return _fetch_claim_detail_by_id(session, normalized_claim_id)
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
@@ -828,6 +855,8 @@ def update_claim_status(session, claim_id: str, new_status: str, assigned_to: st
     claims_repository.update_claim_status(session, claim_id, new_status)
     if assigned_to:
         claims_repository.touch_assignment_for_username(session, claim_id, assigned_to)
+    if _in_streamlit_runtime():
+        clear_claim_read_caches()
 
 
 @st.cache_data(ttl=300, show_spinner=False)
