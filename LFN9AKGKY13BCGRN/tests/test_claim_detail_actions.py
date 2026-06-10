@@ -19,6 +19,7 @@ sys.modules.setdefault("snowflake.snowpark", snowpark_module)
 
 from pages.claim_details import (
     _claim_meta_items,
+    _claim_title,
     _display_label_for_claim_key,
     _format_display_date,
     _mfq_status_from_claim,
@@ -27,6 +28,7 @@ from pages.claim_details import (
     _safe_display,
     _status_badge_class,
     display_value,
+    format_unknown,
     get_claim_action_buttons,
     get_claim_detail_actions,
     normalize_status,
@@ -128,6 +130,36 @@ def test_claim_header_meta_items_show_only_first_row_fields_with_unknown_special
     ]
     assert "MFQ_STATUS" not in dict(meta_items)
     assert "PRIORITY" not in dict(meta_items)
+
+
+def test_claim_title_always_uses_patient_vs_defendant_with_unknown_fallbacks():
+    assert (
+        _claim_title(
+            {"PATIENT_NAME": "Patient Name", "DEFENDANT_NAME": "Defendant Name"}
+        )
+        == "Patient Name vs Defendant Name"
+    )
+    assert (
+        _claim_title({"PATIENT_NAME": "Patient Name", "DEFENDANT_NAME": None})
+        == "Patient Name vs Unknown"
+    )
+    assert (
+        _claim_title({"CLAIMANT_NAME": "AMSURG, LLC", "DEFENDANT_NAME": "-"})
+        == "AMSURG, LLC vs Unknown"
+    )
+    assert (
+        _claim_title({"PATIENT_DEFENDANT": "Legacy Patient / Legacy Defendant"})
+        == "Legacy Patient vs Legacy Defendant"
+    )
+    assert _claim_title({}) == "Unknown vs Unknown"
+
+
+def test_format_unknown_uses_unknown_for_required_header_values():
+    assert format_unknown(None) == "Unknown"
+    assert format_unknown(float("nan")) == "Unknown"
+    assert format_unknown("") == "Unknown"
+    assert format_unknown("-") == "Unknown"
+    assert format_unknown("AMSURG, LLC") == "AMSURG, LLC"
 
 
 def test_display_value_uses_unknown_for_claim_header_null_like_values():

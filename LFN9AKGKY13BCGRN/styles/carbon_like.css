@@ -1704,6 +1704,7 @@ section[data-testid="stSidebar"] [class*="st-key-nav_active_"] button .material-
 .review-headline { font-size: clamp(1.45rem, 2vw, 2rem); font-weight: 750; color: #102a43; line-height: 1.15; letter-spacing: -.02em; }
 .review-vs { font-size: 1.3rem; color: #556; margin: 0 .3rem; }
 .review-badges { display: inline-flex; align-items: center; gap: .45rem; margin: 0; flex-wrap: wrap; }
+.review-badge-row { margin-top: .55rem; margin-bottom: 1rem; }
 .review-pill { display: inline-flex; align-items: center; min-height: 26px; font-size: .78rem; font-weight: 700; letter-spacing: .01em; padding: .25rem .65rem; border-radius: 999px; border: 1px solid #d0d7e2; white-space: nowrap; box-shadow: 0 1px 2px rgba(16, 24, 40, .06); }
 .review-status { background: #edf5ff; color: #1243a7; border-color: #b9d6ff; }
 .review-status-generated { background: #edf5ff; color: #1243a7; border-color: #b9d6ff; }

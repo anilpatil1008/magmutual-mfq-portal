@@ -230,8 +230,13 @@ def display_value(value, default: str = "Unknown") -> str:
     return str(value).strip()
 
 
-def _unknown_display(value) -> str:
+def format_unknown(value) -> str:
+    """Return Unknown for null-like detail-card values."""
     return display_value(value)
+
+
+def _unknown_display(value) -> str:
+    return format_unknown(value)
 
 
 def _first_safe_display(claim: dict, keys: tuple[str, ...], fallback: str = "-") -> str:
@@ -271,8 +276,58 @@ def _priority_from_claim(claim: dict) -> str:
         if not _is_unknown_like(raw_priority):
             priority = _normalize_priority_display(raw_priority)
             if priority:
-                return priority
+                return format_unknown(priority)
     return "Unknown"
+
+
+def _split_patient_defendant(value) -> tuple[str | None, str | None]:
+    """Best-effort split for legacy combined patient/defendant fields."""
+    if _is_unknown_like(value):
+        return None, None
+    text = str(value).strip()
+    match = re.split(
+        r"\s+(?:vs\.?|v\.?)\s+|\s*/\s*",
+        text,
+        maxsplit=1,
+        flags=re.IGNORECASE,
+    )
+    if len(match) == 2:
+        return match[0], match[1]
+    return text, None
+
+
+def _claim_title(claim: dict) -> str:
+    """Return the Claim Details header title as Patient/Claimant vs Defendant."""
+    patient = get_case_insensitive_value(
+        claim,
+        "PATIENT_NAME",
+        "patient_name",
+        "CLAIMANT_NAME",
+        "claimant_name",
+        "PATIENT",
+        "CLAIMANT",
+        fallback=None,
+    )
+    defendant = get_case_insensitive_value(
+        claim,
+        "DEFENDANT_NAME",
+        "defendant_name",
+        "DEFENDANT",
+        fallback=None,
+    )
+
+    if _is_unknown_like(patient) or _is_unknown_like(defendant):
+        combined_patient, combined_defendant = _split_patient_defendant(
+            get_case_insensitive_value(
+                claim, "PATIENT_DEFENDANT", "patient_defendant", fallback=None
+            )
+        )
+        if _is_unknown_like(patient):
+            patient = combined_patient
+        if _is_unknown_like(defendant):
+            defendant = combined_defendant
+
+    return f"{format_unknown(patient)} vs {format_unknown(defendant)}"
 
 
 def _format_display_date(value) -> str:
@@ -418,15 +473,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
         status = "Unknown"
     normalized_mfq_status = normalize_status(raw_mfq_status)
     priority = _priority_from_claim(claim)
-    patient_defendant = _first_safe_display(claim, ("PATIENT_DEFENDANT", "patient_defendant"), fallback="")
-    patient = _first_safe_display(claim, ("PATIENT_NAME", "patient_name"), fallback="")
-    defendant = _first_safe_display(claim, ("DEFENDANT_NAME", "defendant_name"), fallback="")
-    if patient and defendant:
-        title = f"{patient} vs {defendant}"
-    elif patient_defendant:
-        title = re.sub(r"\s*/\s*", " vs ", patient_defendant)
-    else:
-        title = patient or defendant or "Unknown Patient vs Unknown Defendant"
+    title = _claim_title(claim)
 
     meta_html = "".join(
         "<div>"
@@ -461,10 +508,10 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
                     "<div class='review-headline-wrap'>"
                     "<div class='review-title-row'>"
                     f"<div class='review-headline'>{title_html}</div>"
-                    "<div class='review-badges'>"
+                    "</div>"
+                    "<div class='review-badges review-badge-row'>"
                     f"<span class='review-pill review-status {escape(status_class)} review-status-{escape(_status_badge_class(raw_mfq_status))}'>{escape(status)}</span>"
                     f"{priority_badge_html}"
-                    "</div>"
                     "</div>"
                     f"<div class='review-meta-grid claim-meta-grid'>{meta_html}</div>"
                     "</div>"
