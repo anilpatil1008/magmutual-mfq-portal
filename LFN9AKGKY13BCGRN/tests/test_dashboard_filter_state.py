@@ -70,12 +70,6 @@ def test_dashboard_filter_state_migrates_legacy_claim_scope(monkeypatch):
     assert session_state["claim_scope"] == "history"
 
 
-def test_recent_claim_view_does_not_apply_bucket_filter():
-    filters = dashboard._claim_bucket_filters({"search_text": ""}, "recent", "smith")
-
-    assert filters == {"search_text": "smith"}
-
-
 def test_history_claim_view_applies_history_bucket_filter():
     filters = dashboard._claim_bucket_filters({"search_text": ""}, "history", "approved")
 
@@ -175,7 +169,7 @@ def test_dashboard_imports_when_navigation_claim_view_constants_are_missing(monk
     assert spec.loader is not None
     spec.loader.exec_module(module)
 
-    assert module.CLAIM_BUCKET_OPTIONS == ("recent", "ongoing", "history")
+    assert module.CLAIM_BUCKET_OPTIONS == ("ongoing", "history")
     assert module.CLAIM_BUCKET_DEFAULT == "ongoing"
     assert module.CLAIM_BUCKET_STATE_KEY == "selected_claim_view"
     assert module.CLAIM_BUCKET_LEGACY_STATE_KEY == "claim_scope"
