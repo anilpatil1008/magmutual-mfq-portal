@@ -8,8 +8,31 @@ CLAIM_DETAILS_PAGE = "Claim Details"
 DASHBOARD_VIEW = "dashboard"
 REPORTS_VIEW = "reports"
 CLAIM_DETAILS_VIEW = "claim_details"
-DASHBOARD_CLAIMS_VIEW_STATE_KEY = "claim_scope"
+DASHBOARD_CLAIMS_VIEW_STATE_KEY = "selected_claim_view"
+DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY = "claim_scope"
+DASHBOARD_CLAIMS_VIEW_OPTIONS = ("recent", "ongoing", "history")
 DASHBOARD_CLAIMS_VIEW_DEFAULT = "ongoing"
+
+
+def _normalize_dashboard_claim_view(value: object) -> str:
+    normalized = str(value or "").strip().lower()
+    return normalized if normalized in DASHBOARD_CLAIMS_VIEW_OPTIONS else DASHBOARD_CLAIMS_VIEW_DEFAULT
+
+
+def _sync_dashboard_claim_view_state() -> None:
+    """Keep the dashboard claims tab on one canonical session-state key."""
+    selected_view = st.session_state.get(DASHBOARD_CLAIMS_VIEW_STATE_KEY)
+    legacy_view = st.session_state.get(DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY)
+    normalized_selected = str(selected_view or "").strip().lower()
+    normalized_legacy = str(legacy_view or "").strip().lower()
+    if normalized_selected not in DASHBOARD_CLAIMS_VIEW_OPTIONS and normalized_legacy in DASHBOARD_CLAIMS_VIEW_OPTIONS:
+        selected_view = normalized_legacy
+
+    normalized_view = _normalize_dashboard_claim_view(selected_view)
+    st.session_state[DASHBOARD_CLAIMS_VIEW_STATE_KEY] = normalized_view
+    # Preserve the legacy alias for older tests/bookmarks/callbacks without
+    # letting it control the widget after migration.
+    st.session_state[DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY] = normalized_view
 
 
 def _is_dashboard_route_active() -> bool:
@@ -38,7 +61,7 @@ def set_dashboard_route() -> None:
     st.session_state["selected_claim_id"] = None
     st.session_state["selected_claim"] = None
     st.session_state["current_view"] = DASHBOARD_VIEW
-    st.session_state[DASHBOARD_CLAIMS_VIEW_STATE_KEY] = DASHBOARD_CLAIMS_VIEW_DEFAULT
+    _sync_dashboard_claim_view_state()
     st.session_state["active_page"] = DASHBOARD_PAGE
     st.session_state["claim_detail_view"] = False
     st.session_state["show_claim_details_nav"] = False

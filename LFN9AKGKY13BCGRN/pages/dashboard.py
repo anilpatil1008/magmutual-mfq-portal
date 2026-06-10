@@ -17,15 +17,22 @@ from services.claim_service import (
 )
 from services.dashboard_service import get_dashboard_metrics
 from services.rbac_service import get_session_context_snapshot
-from utils.navigation import DASHBOARD_VIEW
+from utils.navigation import (
+    DASHBOARD_CLAIMS_VIEW_DEFAULT,
+    DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY,
+    DASHBOARD_CLAIMS_VIEW_OPTIONS,
+    DASHBOARD_CLAIMS_VIEW_STATE_KEY,
+    DASHBOARD_VIEW,
+)
 
 logger = logging.getLogger(__name__)
 
 DASHBOARD_RECENT_CLAIMS_PAGE_SIZE = 10
-CLAIM_BUCKET_OPTIONS = ("ongoing", "history")
-CLAIM_BUCKET_LABELS = {"ongoing": "Ongoing Claims", "history": "History Claims"}
-CLAIM_BUCKET_DEFAULT = CLAIM_BUCKET_OPTIONS[0]
-CLAIM_BUCKET_STATE_KEY = "claim_scope"
+CLAIM_BUCKET_OPTIONS = DASHBOARD_CLAIMS_VIEW_OPTIONS
+CLAIM_BUCKET_LABELS = {"recent": "Recent Claims", "ongoing": "Ongoing Claims", "history": "History Claims"}
+CLAIM_BUCKET_DEFAULT = DASHBOARD_CLAIMS_VIEW_DEFAULT
+CLAIM_BUCKET_STATE_KEY = DASHBOARD_CLAIMS_VIEW_STATE_KEY
+CLAIM_BUCKET_LEGACY_STATE_KEY = DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY
 STATUS_FILTER_OPTIONS = ["MFQ Generated", "Assigned", "Approved", "Rejected"]
 PRIORITY_FILTER_OPTIONS = ["High", "Medium", "Low"]
 AI_CONFIDENCE_FILTER_OPTIONS = [
@@ -46,6 +53,7 @@ def _init_dashboard_filter_state() -> None:
     legacy_status = st.session_state.pop("selected_status", None)
     legacy_priority = st.session_state.pop("selected_priority", None)
     legacy_ai_confidence = st.session_state.pop("selected_ai_confidence", None)
+    canonical_claim_view_missing = CLAIM_BUCKET_STATE_KEY not in st.session_state
     defaults = {
         "selected_statuses": [],
         "selected_priorities": [],
@@ -59,17 +67,26 @@ def _init_dashboard_filter_state() -> None:
         "dash_ongoing_claims_search": "",
         "dash_history_claims_search": "",
         CLAIM_BUCKET_STATE_KEY: CLAIM_BUCKET_DEFAULT,
+        CLAIM_BUCKET_LEGACY_STATE_KEY: CLAIM_BUCKET_DEFAULT,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
     legacy_scope = st.session_state.pop("dashboard_claims_tab", None)
-    current_scope = str(st.session_state.get(CLAIM_BUCKET_STATE_KEY) or CLAIM_BUCKET_DEFAULT)
-    if legacy_scope in CLAIM_BUCKET_OPTIONS and current_scope not in CLAIM_BUCKET_OPTIONS:
-        st.session_state[CLAIM_BUCKET_STATE_KEY] = legacy_scope
+    if legacy_scope not in CLAIM_BUCKET_OPTIONS:
+        legacy_scope = st.session_state.get(CLAIM_BUCKET_LEGACY_STATE_KEY)
+
+    current_scope = str(st.session_state.get(CLAIM_BUCKET_STATE_KEY) or "").strip().lower()
+    if canonical_claim_view_missing and legacy_scope in CLAIM_BUCKET_OPTIONS:
+        current_scope = str(legacy_scope)
+    elif current_scope not in CLAIM_BUCKET_OPTIONS and legacy_scope in CLAIM_BUCKET_OPTIONS:
+        current_scope = str(legacy_scope)
     elif current_scope not in CLAIM_BUCKET_OPTIONS:
-        st.session_state[CLAIM_BUCKET_STATE_KEY] = CLAIM_BUCKET_DEFAULT
+        current_scope = CLAIM_BUCKET_DEFAULT
+
+    st.session_state[CLAIM_BUCKET_STATE_KEY] = current_scope
+    st.session_state[CLAIM_BUCKET_LEGACY_STATE_KEY] = current_scope
 
     legacy_migrations = (
         (legacy_status, "All Statuses", "selected_statuses"),
@@ -238,6 +255,7 @@ def _clear_all_dashboard_filters_before_widgets() -> None:
             "dash_ongoing_claims_search": "",
             "dash_history_claims_search": "",
             CLAIM_BUCKET_STATE_KEY: CLAIM_BUCKET_DEFAULT,
+            CLAIM_BUCKET_LEGACY_STATE_KEY: CLAIM_BUCKET_DEFAULT,
         }
     )
     _refresh_date_requested_widgets()
@@ -283,7 +301,7 @@ def _dashboard_filters(search_text: str = "") -> dict[str, object]:
 
 def _claims_search_state_key(claim_bucket: str) -> str:
     bucket_key = str(claim_bucket or "recent").strip().lower()
-    if bucket_key in {"ongoing", "history"}:
+    if bucket_key in {"recent", "ongoing", "history"}:
         return f"dash_{bucket_key}_claims_search"
     return "dash_recent_claims_search"
 
@@ -294,7 +312,11 @@ def _claims_search_text(claim_bucket: str) -> str:
 
 def _claim_bucket_filters(filters: dict[str, object], claim_bucket: str, search_text: str | None = None) -> dict[str, object]:
     bucket_filters = dict(filters)
-    bucket_filters["claim_bucket"] = claim_bucket
+    normalized_bucket = str(claim_bucket or "").strip().lower()
+    if normalized_bucket in {"ongoing", "history"}:
+        bucket_filters["claim_bucket"] = normalized_bucket
+    else:
+        bucket_filters.pop("claim_bucket", None)
     if search_text is not None:
         bucket_filters["search_text"] = str(search_text or "")
     return bucket_filters
@@ -448,6 +470,8 @@ def _render_dashboard_view(session, ctx) -> None:
     selected_bucket_for_search = str(st.session_state.get(CLAIM_BUCKET_STATE_KEY) or CLAIM_BUCKET_DEFAULT)
     if selected_bucket_for_search not in CLAIM_BUCKET_OPTIONS:
         selected_bucket_for_search = CLAIM_BUCKET_DEFAULT
+        st.session_state[CLAIM_BUCKET_STATE_KEY] = selected_bucket_for_search
+        st.session_state[CLAIM_BUCKET_LEGACY_STATE_KEY] = selected_bucket_for_search
     search_state_key = _claims_search_state_key(selected_bucket_for_search)
     search = _claims_search_text(selected_bucket_for_search)
 
@@ -494,6 +518,11 @@ def _render_dashboard_view(session, ctx) -> None:
             format_func=lambda bucket: _claim_bucket_label(bucket, claim_counts),
             label_visibility="collapsed",
         )
+        selected_bucket = str(selected_bucket or CLAIM_BUCKET_DEFAULT).strip().lower()
+        if selected_bucket not in CLAIM_BUCKET_OPTIONS:
+            selected_bucket = CLAIM_BUCKET_DEFAULT
+            st.session_state[CLAIM_BUCKET_STATE_KEY] = selected_bucket
+        st.session_state[CLAIM_BUCKET_LEGACY_STATE_KEY] = selected_bucket
         if selected_bucket != selected_bucket_for_search:
             search = _claims_search_text(selected_bucket)
             filters = _dashboard_filters(search)
@@ -529,8 +558,9 @@ def _render_dashboard_view(session, ctx) -> None:
             empty_message=(
                 "No matching claims found"
                 if search.strip()
-                else
-                "No ongoing claims found for the selected filters."
+                else "No recent claims found for the selected filters."
+                if selected_bucket == "recent"
+                else "No ongoing claims found for the selected filters."
                 if selected_bucket == "ongoing"
                 else "No history claims found for the selected filters."
             ),
@@ -539,7 +569,7 @@ def _render_dashboard_view(session, ctx) -> None:
             page_size=DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
             pagination_state_key="claims_page_number",
             table_key="recent_claims_table",
-            component_key=f"recent_claims_table_{dashboard_route_instance}",
+            component_key=f"recent_claims_table_{dashboard_route_instance}_{selected_bucket}",
         )
 
 

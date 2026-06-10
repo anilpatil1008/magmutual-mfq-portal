@@ -41,6 +41,7 @@ def test_navigate_to_dashboard_clears_claim_details_state(monkeypatch):
 
     assert state["active_page"] == "Dashboard"
     assert state["current_view"] == "dashboard"
+    assert state["selected_claim_view"] == "ongoing"
     assert state["claim_scope"] == "ongoing"
     assert state["selected_claim_id"] is None
     assert state["selected_claim"] is None
@@ -114,13 +115,16 @@ def test_dashboard_route_instance_advances_only_when_reentering_dashboard(monkey
     navigation.set_dashboard_route()
 
     assert state["dashboard_route_instance"] == 3
+    assert state["selected_claim_view"] == "ongoing"
     assert state["claim_scope"] == "ongoing"
 
+    state["selected_claim_view"] = "history"
     state["claim_scope"] = "history"
     navigation.set_dashboard_route()
 
     assert state["dashboard_route_instance"] == 3
-    assert state["claim_scope"] == "ongoing"
+    assert state["selected_claim_view"] == "history"
+    assert state["claim_scope"] == "history"
 
 
 def test_dashboard_route_instance_is_not_advanced_during_dashboard_normalization(monkeypatch):

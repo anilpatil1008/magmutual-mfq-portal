@@ -35,6 +35,7 @@ def test_clear_dashboard_filters_resets_recent_claims_view_and_search(monkeypatc
         "dash_recent_claims_search": "smith",
         "dash_ongoing_claims_search": "jones",
         "dash_history_claims_search": "approved",
+        "selected_claim_view": "history",
         "claim_scope": "history",
     }
     monkeypatch.setattr(dashboard, "st", SimpleNamespace(session_state=session_state))
@@ -52,5 +53,28 @@ def test_clear_dashboard_filters_resets_recent_claims_view_and_search(monkeypatc
     assert session_state["dash_recent_claims_search"] == ""
     assert session_state["dash_ongoing_claims_search"] == ""
     assert session_state["dash_history_claims_search"] == ""
+    assert session_state["selected_claim_view"] == "ongoing"
     assert session_state["claim_scope"] == "ongoing"
     assert session_state["date_requested_widget_version"] == 3
+
+
+def test_dashboard_filter_state_migrates_legacy_claim_scope(monkeypatch):
+    session_state = {"claim_scope": "history"}
+    monkeypatch.setattr(dashboard, "st", SimpleNamespace(session_state=session_state))
+
+    dashboard._init_dashboard_filter_state()
+
+    assert session_state["selected_claim_view"] == "history"
+    assert session_state["claim_scope"] == "history"
+
+
+def test_recent_claim_view_does_not_apply_bucket_filter():
+    filters = dashboard._claim_bucket_filters({"search_text": ""}, "recent", "smith")
+
+    assert filters == {"search_text": "smith"}
+
+
+def test_history_claim_view_applies_history_bucket_filter():
+    filters = dashboard._claim_bucket_filters({"search_text": ""}, "history", "approved")
+
+    assert filters == {"search_text": "approved", "claim_bucket": "history"}
