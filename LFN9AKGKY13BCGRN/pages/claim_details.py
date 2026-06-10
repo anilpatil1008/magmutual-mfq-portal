@@ -799,8 +799,7 @@ def _build_assignable_sections(sections_df: pd.DataFrame) -> list[dict[str, str]
     return options
 
 
-@st.dialog("Assign Medical Faculty", width="large")
-def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.DataFrame) -> None:
+def render_assign_medical_faculty_form(session, ctx, claim_id: str, sections_df: pd.DataFrame) -> None:
     st.markdown("Select the MFQ sections to review and assign a faculty member.")
     section_options = _build_assignable_sections(sections_df)
     faculty_options = get_assignable_faculty(session)
@@ -875,7 +874,7 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
     footer_cols = st.columns([3.2, 1.1, 1.8], vertical_alignment="center")
     with footer_cols[1]:
         if st.button("Cancel", key=f"cancel_assign_{claim_id}", use_container_width=True):
-            st.session_state[f"open_assign_modal_{claim_id}"] = False
+            _close_assign_medical_faculty(claim_id)
             st.rerun()
     with footer_cols[2]:
         assign_clicked = st.button(
@@ -894,11 +893,51 @@ def _render_assign_faculty_modal(session, ctx, claim_id: str, sections_df: pd.Da
             assigned_by_username=ctx.username,
         )
         if success:
-            st.session_state[f"open_assign_modal_{claim_id}"] = False
+            _close_assign_medical_faculty(claim_id)
             _invalidate_claim_caches(claim_id, "claim_details_cache", "claim_history_cache", "mfq_answers_cache", "mfq_form_cache")
             st.success(message)
             st.rerun()
         st.error(message)
+
+
+def _assign_faculty_panel_key(claim_id: str) -> str:
+    return f"show_assign_faculty_panel_{claim_id}"
+
+
+def _close_assign_medical_faculty(claim_id: str) -> None:
+    st.session_state[f"open_assign_modal_{claim_id}"] = False
+    st.session_state[_assign_faculty_panel_key(claim_id)] = False
+    if st.session_state.get("show_assign_faculty_panel_claim_id") == claim_id:
+        st.session_state["show_assign_faculty_panel"] = False
+        st.session_state.pop("show_assign_faculty_panel_claim_id", None)
+
+
+def open_assign_medical_faculty(session, ctx, claim_id: str, sections_df: pd.DataFrame) -> None:
+    dialog_decorator = None
+    if hasattr(st, "dialog"):
+        dialog_decorator = st.dialog("Assign Medical Faculty", width="large")
+    elif hasattr(st, "experimental_dialog"):
+        dialog_decorator = st.experimental_dialog("Assign Medical Faculty", width="large")
+
+    if dialog_decorator:
+        @dialog_decorator
+        def _assign_dialog() -> None:
+            render_assign_medical_faculty_form(session, ctx, claim_id, sections_df)
+
+        _assign_dialog()
+    else:
+        st.session_state[_assign_faculty_panel_key(claim_id)] = True
+        st.session_state["show_assign_faculty_panel"] = True
+        st.session_state["show_assign_faculty_panel_claim_id"] = claim_id
+
+
+def render_assign_medical_faculty_panel(session, ctx, claim_id: str, sections_df: pd.DataFrame) -> None:
+    if not st.session_state.get(_assign_faculty_panel_key(claim_id), False):
+        return
+
+    with st.container(border=True):
+        st.subheader("Assign Medical Faculty")
+        render_assign_medical_faculty_form(session, ctx, claim_id, sections_df)
 
 
 def _render_questions(
@@ -1432,11 +1471,18 @@ def render(session, ctx) -> None:
             lambda: build_mfq_workspace_for_claim(session, claim_id),
             label="Loading assignable MFQ sections...",
         )
-        _render_assign_faculty_modal(
+        assign_sections_df = mfq_workspace.get("sections", pd.DataFrame())
+        open_assign_medical_faculty(
             session=session,
             ctx=ctx,
             claim_id=claim_id,
-            sections_df=mfq_workspace.get("sections", pd.DataFrame()),
+            sections_df=assign_sections_df,
+        )
+        render_assign_medical_faculty_panel(
+            session=session,
+            ctx=ctx,
+            claim_id=claim_id,
+            sections_df=assign_sections_df,
         )
 
     if st.session_state.get(SELECTED_CLAIM_DETAIL_TAB_CLAIM_KEY) != claim_id:
