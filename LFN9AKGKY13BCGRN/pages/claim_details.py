@@ -105,30 +105,55 @@ def _safe_display(value, fallback: str = "-") -> str:
     return badge_safe_display(value, fallback=fallback)
 
 
+def _is_unknown_like(value) -> bool:
+    if value is None:
+        return True
+    try:
+        if pd.isna(value):
+            return True
+    except (TypeError, ValueError):
+        pass
+    return str(value).strip().casefold() in {"", "-", "nan", "none", "null"}
+
+
+def _unknown_display(value) -> str:
+    return "Unknown" if _is_unknown_like(value) else _safe_display(value, fallback="Unknown")
+
+
 def _first_safe_display(claim: dict, keys: tuple[str, ...], fallback: str = "-") -> str:
     value = get_case_insensitive_value(claim, *keys, fallback=None)
     return _safe_display(value, fallback=fallback)
 
 
+def _first_unknown_display(claim: dict, keys: tuple[str, ...]) -> str:
+    return _unknown_display(get_case_insensitive_value(claim, *keys, fallback=None))
+
+
 def _normalize_priority_display(value) -> str:
-    """Return a user-visible PRIORITY badge label or an empty string for null-like values."""
+    """Return a user-visible PRIORITY badge label, using Unknown for null-like values."""
+    if _is_unknown_like(value):
+        return "Unknown"
     text = _safe_display(value, fallback="")
-    if not text or text.casefold() in {"n/a", "na", "not applicable", "unknown"}:
+    if not text or text.casefold() in {"n/a", "na", "not applicable"}:
         return ""
+    if text.casefold() == "unknown":
+        return "Unknown"
 
     normalized = normalize_badge_value(text)
     if normalized in {"critical", "high", "medium", "low"}:
         return format_priority_label(text)
-    return ""
+    return text
 
 
 def _priority_from_claim(claim: dict) -> str:
     """Read priority only from priority-specific fields, never status fields."""
     for key in ("PRIORITY", "priority", "CLAIM_PRIORITY", "claim_priority"):
-        priority = _normalize_priority_display(get_case_insensitive_value(claim, key, fallback=None))
-        if priority:
-            return priority
-    return ""
+        raw_priority = get_case_insensitive_value(claim, key, fallback=None)
+        if not _is_unknown_like(raw_priority):
+            priority = _normalize_priority_display(raw_priority)
+            if priority:
+                return priority
+    return "Unknown"
 
 
 def _format_display_date(value) -> str:
@@ -171,6 +196,7 @@ def _display_label_for_claim_key(key: str) -> str:
         "MAGMUTUAL_CONTACT_PHONE": "CONTACT PHONE",
         "AI_CONFIDENCE": "AI CONFIDENCE",
         "MFQ_STATUS": "MFQ STATUS",
+        "PRIORITY": "PRIORITY",
     }
     return label_overrides.get(key, key.replace("_", " ").upper())
 
@@ -184,7 +210,7 @@ def _format_claim_meta_value(key: str, value) -> str:
 
 
 def _claim_meta_items(claim_id: str, claim: dict) -> list[tuple[str, str]]:
-    """Build the five required Claim Details top-card fields only."""
+    """Build the required Claim Details top-card fields."""
     file_number = _first_safe_display(
         claim,
         ("CLAIM_ID", "FILE_NUMBER", "file_number"),
@@ -205,6 +231,8 @@ def _claim_meta_items(claim_id: str, claim: dict) -> list[tuple[str, str]]:
         claim,
         ("MAGMUTUAL_CONTACT_EMAIL", "CONTACT_EMAIL", "contact_email", "MAGMUTUAL_EMAIL", "EMAIL"),
     )
+    mfq_status = _first_unknown_display(claim, ("MFQ_STATUS", "MFQ Status", "mfq_status", "STATUS", "status"))
+    priority = _priority_from_claim(claim)
 
     return [
         ("FILE_NUMBER", file_number),
@@ -212,6 +240,8 @@ def _claim_meta_items(claim_id: str, claim: dict) -> list[tuple[str, str]]:
         ("DATE_REQUESTED", date_requested),
         ("MAGMUTUAL_CONTACT", contact),
         ("CONTACT_EMAIL", contact_email),
+        ("MFQ_STATUS", mfq_status),
+        ("PRIORITY", priority),
     ]
 
 def normalize_status(value) -> str:
@@ -261,7 +291,7 @@ def get_claim_detail_actions(claim_status=None, mfq_status=None, current_role=No
 def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     del ctx
     raw_mfq_status = get_case_insensitive_value(claim, "MFQ_STATUS", "mfq_status", fallback=None)
-    status = format_status_label(raw_mfq_status)
+    status = "Unknown" if _is_unknown_like(raw_mfq_status) else format_status_label(raw_mfq_status)
     if status == "-":
         status = "Unknown"
     normalized_mfq_status = normalize_status(raw_mfq_status)
