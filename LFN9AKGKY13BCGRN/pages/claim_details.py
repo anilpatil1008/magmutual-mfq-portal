@@ -116,8 +116,15 @@ def _is_unknown_like(value) -> bool:
     return str(value).strip().casefold() in {"", "-", "nan", "none", "null"}
 
 
+def display_value(value, default: str = "Unknown") -> str:
+    """Return a display value with Unknown for missing/null-like detail-card values."""
+    if _is_unknown_like(value):
+        return default
+    return str(value).strip()
+
+
 def _unknown_display(value) -> str:
-    return "Unknown" if _is_unknown_like(value) else _safe_display(value, fallback="Unknown")
+    return display_value(value)
 
 
 def _first_safe_display(claim: dict, keys: tuple[str, ...], fallback: str = "-") -> str:
@@ -143,6 +150,11 @@ def _normalize_priority_display(value) -> str:
     if normalized in {"critical", "high", "medium", "low"}:
         return format_priority_label(text)
     return text
+
+
+def _mfq_status_from_claim(claim: dict):
+    """Read MFQ status from supported claim detail column names."""
+    return get_case_insensitive_value(claim, "MFQ_STATUS", "MFQ Status", "mfq_status", fallback=None)
 
 
 def _priority_from_claim(claim: dict) -> str:
@@ -216,9 +228,16 @@ def _claim_meta_items(claim_id: str, claim: dict) -> list[tuple[str, str]]:
         ("CLAIM_ID", "FILE_NUMBER", "file_number"),
         fallback=_safe_display(claim_id),
     )
-    specialty = _first_safe_display(
+    specialty = _first_unknown_display(
         claim,
-        ("DEFENDANT_SPECIALTY", "defendant_specialty", "DEFENDANT_SPECIALITY", "SPECIALTY", "SPECIALITY"),
+        (
+            "DEFENDANT_SPECIALTY",
+            "Defendant Specialty",
+            "defendant_specialty",
+            "DEFENDANT_SPECIALITY",
+            "SPECIALTY",
+            "SPECIALITY",
+        ),
     )
     date_requested = _format_display_date(
         get_case_insensitive_value(claim, "DATE_REQUESTED", "date_requested", fallback=None)
@@ -231,18 +250,14 @@ def _claim_meta_items(claim_id: str, claim: dict) -> list[tuple[str, str]]:
         claim,
         ("MAGMUTUAL_CONTACT_EMAIL", "CONTACT_EMAIL", "contact_email", "MAGMUTUAL_EMAIL", "EMAIL"),
     )
-    mfq_status = _first_unknown_display(claim, ("MFQ_STATUS", "MFQ Status", "mfq_status", "STATUS", "status"))
-    priority = _priority_from_claim(claim)
-
     return [
         ("FILE_NUMBER", file_number),
         ("DEFENDANT_SPECIALTY", specialty),
         ("DATE_REQUESTED", date_requested),
         ("MAGMUTUAL_CONTACT", contact),
         ("CONTACT_EMAIL", contact_email),
-        ("MFQ_STATUS", mfq_status),
-        ("PRIORITY", priority),
     ]
+
 
 def normalize_status(value) -> str:
     """Normalize status values for case-insensitive, whitespace-safe comparisons."""
@@ -290,8 +305,8 @@ def get_claim_detail_actions(claim_status=None, mfq_status=None, current_role=No
 
 def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
     del ctx
-    raw_mfq_status = get_case_insensitive_value(claim, "MFQ_STATUS", "mfq_status", fallback=None)
-    status = "Unknown" if _is_unknown_like(raw_mfq_status) else format_status_label(raw_mfq_status)
+    raw_mfq_status = _mfq_status_from_claim(claim)
+    status = "Unknown" if _is_unknown_like(raw_mfq_status) else format_status_label(display_value(raw_mfq_status))
     if status == "-":
         status = "Unknown"
     normalized_mfq_status = normalize_status(raw_mfq_status)

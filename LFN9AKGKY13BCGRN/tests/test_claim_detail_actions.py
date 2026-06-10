@@ -18,12 +18,15 @@ sys.modules.setdefault("snowflake", snowflake_module)
 sys.modules.setdefault("snowflake.snowpark", snowpark_module)
 
 from pages.claim_details import (
+    _claim_meta_items,
     _display_label_for_claim_key,
     _format_display_date,
+    _mfq_status_from_claim,
     _priority_badge_class,
     _priority_from_claim,
     _safe_display,
     _status_badge_class,
+    display_value,
     get_claim_action_buttons,
     get_claim_detail_actions,
     normalize_status,
@@ -100,3 +103,43 @@ def test_claim_header_safe_display_labels_and_dates():
     assert _safe_display(float("nan"), fallback="") == ""
     assert _safe_display(" null ", fallback="") == ""
     assert _format_display_date("2026-01-02 13:45:00") == "Jan 2, 2026"
+
+
+def test_claim_header_meta_items_show_only_first_row_fields_with_unknown_specialty():
+    meta_items = _claim_meta_items(
+        "CLM-123",
+        {
+            "CLAIM_ID": "CLM-123",
+            "Defendant Specialty": "-",
+            "DATE_REQUESTED": "2026-01-02",
+            "MAGMUTUAL_CONTACT": "Alex Reviewer",
+            "CONTACT_EMAIL": "alex@example.com",
+            "MFQ_STATUS": "Rejected",
+            "PRIORITY": "High",
+        },
+    )
+
+    assert meta_items == [
+        ("FILE_NUMBER", "CLM-123"),
+        ("DEFENDANT_SPECIALTY", "Unknown"),
+        ("DATE_REQUESTED", "Jan 2, 2026"),
+        ("MAGMUTUAL_CONTACT", "Alex Reviewer"),
+        ("CONTACT_EMAIL", "alex@example.com"),
+    ]
+    assert "MFQ_STATUS" not in dict(meta_items)
+    assert "PRIORITY" not in dict(meta_items)
+
+
+def test_display_value_uses_unknown_for_claim_header_null_like_values():
+    assert display_value(None) == "Unknown"
+    assert display_value(float("nan")) == "Unknown"
+    assert display_value("") == "Unknown"
+    assert display_value(" ") == "Unknown"
+    assert display_value("-") == "Unknown"
+    assert display_value("Assigned") == "Assigned"
+
+
+def test_mfq_status_helper_supports_human_readable_column_name_and_unknown_fallback():
+    assert _mfq_status_from_claim({"MFQ Status": "Approved"}) == "Approved"
+    assert display_value(_mfq_status_from_claim({"MFQ_STATUS": "-"})) == "Unknown"
+    assert display_value(_mfq_status_from_claim({})) == "Unknown"
