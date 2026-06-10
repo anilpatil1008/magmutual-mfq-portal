@@ -17,22 +17,23 @@ from services.claim_service import (
 )
 from services.dashboard_service import get_dashboard_metrics
 from services.rbac_service import get_session_context_snapshot
-from utils.navigation import (
-    DASHBOARD_CLAIMS_VIEW_DEFAULT,
-    DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY,
-    DASHBOARD_CLAIMS_VIEW_OPTIONS,
-    DASHBOARD_CLAIMS_VIEW_STATE_KEY,
-    DASHBOARD_VIEW,
-)
+from utils import navigation
 
 logger = logging.getLogger(__name__)
 
 DASHBOARD_RECENT_CLAIMS_PAGE_SIZE = 10
-CLAIM_BUCKET_OPTIONS = DASHBOARD_CLAIMS_VIEW_OPTIONS
+DASHBOARD_VIEW = navigation.DASHBOARD_VIEW
+CLAIM_BUCKET_OPTIONS = navigation.DASHBOARD_CLAIMS_VIEW_OPTIONS
 CLAIM_BUCKET_LABELS = {"recent": "Recent Claims", "ongoing": "Ongoing Claims", "history": "History Claims"}
-CLAIM_BUCKET_DEFAULT = DASHBOARD_CLAIMS_VIEW_DEFAULT
-CLAIM_BUCKET_STATE_KEY = DASHBOARD_CLAIMS_VIEW_STATE_KEY
-CLAIM_BUCKET_LEGACY_STATE_KEY = DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY
+CLAIM_BUCKET_DEFAULT = navigation.DASHBOARD_CLAIMS_VIEW_DEFAULT
+CLAIM_BUCKET_STATE_KEY = navigation.DASHBOARD_CLAIMS_VIEW_STATE_KEY
+# Keep dashboard import-safe when an older navigation module without the
+# legacy alias is loaded from cache or an out-of-date deployment.
+CLAIM_BUCKET_LEGACY_STATE_KEY = getattr(
+    navigation,
+    "DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY",
+    "claim_scope",
+)
 RECENT_CLAIMS_VIEW_STATE_KEY = "recent_claims_view"
 RECENT_CLAIMS_VIEW_RADIO_KEY = "recent_claims_view_radio"
 STATUS_FILTER_OPTIONS = ["MFQ Generated", "Assigned", "Approved", "Rejected"]
