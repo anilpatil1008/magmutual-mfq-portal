@@ -25,6 +25,8 @@ logger = logging.getLogger(__name__)
 DASHBOARD_RECENT_CLAIMS_PAGE_SIZE = 10
 CLAIM_BUCKET_OPTIONS = ("ongoing", "history")
 CLAIM_BUCKET_LABELS = {"ongoing": "Ongoing Claims", "history": "History Claims"}
+CLAIM_BUCKET_DEFAULT = CLAIM_BUCKET_OPTIONS[0]
+CLAIM_BUCKET_STATE_KEY = "claim_scope"
 STATUS_FILTER_OPTIONS = ["MFQ Generated", "Assigned", "Approved", "Rejected"]
 PRIORITY_FILTER_OPTIONS = ["High", "Medium", "Low"]
 AI_CONFIDENCE_FILTER_OPTIONS = [
@@ -57,18 +59,18 @@ def _init_dashboard_filter_state() -> None:
         "dash_recent_claims_search": "",
         "dash_ongoing_claims_search": "",
         "dash_history_claims_search": "",
-        "claim_scope": CLAIM_BUCKET_OPTIONS[0],
+        CLAIM_BUCKET_STATE_KEY: CLAIM_BUCKET_DEFAULT,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
             st.session_state[key] = value
 
     legacy_scope = st.session_state.pop("dashboard_claims_tab", None)
-    current_scope = str(st.session_state.get("claim_scope") or CLAIM_BUCKET_OPTIONS[0])
+    current_scope = str(st.session_state.get(CLAIM_BUCKET_STATE_KEY) or CLAIM_BUCKET_DEFAULT)
     if legacy_scope in CLAIM_BUCKET_OPTIONS and current_scope not in CLAIM_BUCKET_OPTIONS:
-        st.session_state["claim_scope"] = legacy_scope
+        st.session_state[CLAIM_BUCKET_STATE_KEY] = legacy_scope
     elif current_scope not in CLAIM_BUCKET_OPTIONS:
-        st.session_state["claim_scope"] = CLAIM_BUCKET_OPTIONS[0]
+        st.session_state[CLAIM_BUCKET_STATE_KEY] = CLAIM_BUCKET_DEFAULT
 
     legacy_migrations = (
         (legacy_status, "All Statuses", "selected_statuses"),
@@ -233,6 +235,10 @@ def _clear_all_dashboard_filters_before_widgets() -> None:
             "date_requested_to": None,
             "claims_page_number": 1,
             "dash_recent_claims_pagination_page": 1,
+            "dash_recent_claims_search": "",
+            "dash_ongoing_claims_search": "",
+            "dash_history_claims_search": "",
+            CLAIM_BUCKET_STATE_KEY: CLAIM_BUCKET_DEFAULT,
         }
     )
     _refresh_date_requested_widgets()
@@ -452,9 +458,9 @@ def _render_dashboard_view(session, ctx) -> None:
     render_kpi_cards(metrics)
 
     card_key = "dashboard_claims"
-    selected_bucket_for_search = str(st.session_state.get("claim_scope") or CLAIM_BUCKET_OPTIONS[0])
+    selected_bucket_for_search = str(st.session_state.get(CLAIM_BUCKET_STATE_KEY) or CLAIM_BUCKET_DEFAULT)
     if selected_bucket_for_search not in CLAIM_BUCKET_OPTIONS:
-        selected_bucket_for_search = CLAIM_BUCKET_OPTIONS[0]
+        selected_bucket_for_search = CLAIM_BUCKET_DEFAULT
     search_state_key = _claims_search_state_key(selected_bucket_for_search)
     search = _claims_search_text(selected_bucket_for_search)
 
@@ -497,7 +503,7 @@ def _render_dashboard_view(session, ctx) -> None:
             "Recent Claims Tabs",
             CLAIM_BUCKET_OPTIONS,
             horizontal=True,
-            key="claim_scope",
+            key=CLAIM_BUCKET_STATE_KEY,
             format_func=lambda bucket: _claim_bucket_label(bucket, claim_counts),
             label_visibility="collapsed",
         )
