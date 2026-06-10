@@ -14,7 +14,7 @@ from services.claim_service import (
     get_available_claim_types,
     get_cached_recent_claims,
     get_filtered_recent_claims_local,
-    get_filtered_recent_claims_local_all,
+    get_recent_claims_by_bucket_local,
 )
 from services.dashboard_service import get_dashboard_metrics
 from services.rbac_service import get_session_context_snapshot
@@ -490,13 +490,11 @@ def _render_dashboard_view(session, ctx) -> None:
 
         filters = _dashboard_filters(search)
         t1 = perf_counter()
-        filtered_claims_by_bucket = {
-            bucket: get_filtered_recent_claims_local_all(
-                recent_claims_dataset,
-                _claim_bucket_filters(_dashboard_filters(_claims_search_text(bucket)), bucket),
-            )
-            for bucket in CLAIM_BUCKET_OPTIONS
-        }
+        filtered_claims_by_bucket = get_recent_claims_by_bucket_local(
+            recent_claims_dataset,
+            _dashboard_filters(""),
+            {bucket: _claims_search_text(bucket) for bucket in CLAIM_BUCKET_OPTIONS},
+        )
         claim_counts = {bucket: len(rows) for bucket, rows in filtered_claims_by_bucket.items()}
 
         selected_bucket = st.radio(

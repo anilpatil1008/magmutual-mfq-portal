@@ -38,8 +38,15 @@ def _get_dashboard_summary_cached(_session, cache_scope: str) -> pd.DataFrame:
     return get_dashboard_summary(_session)
 
 
+def clear_dashboard_metrics_cache() -> None:
+    """Invalidate dashboard summary metrics after claim status changes."""
+    _get_dashboard_summary_cached.clear()
+
+
 def get_dashboard_metrics(session, username: str) -> dict[str, int]:
-    cache_scope = str(st.session_state.get("selected_sf_role") or "default")
+    role_scope = str(st.session_state.get("selected_sf_role") or "default")
+    cache_version = int(st.session_state.get("dashboard_metrics_cache_version", 0) or 0)
+    cache_scope = f"{role_scope}:{id(session)}:{cache_version}"
     summary = (
         _get_dashboard_summary_cached(session, cache_scope)
         if get_script_run_ctx(suppress_warning=True) is not None

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
+import streamlit as st
 
 from config import snowflake_objects as obj
 from core.query_executor import execute_query_df
@@ -37,13 +38,14 @@ def _schema_predicate(schema: str | None) -> str:
     return "TABLE_SCHEMA = CURRENT_SCHEMA()"
 
 
-def object_exists(session, object_name: str) -> bool:
+@st.cache_data(ttl=1800, show_spinner=False)
+def _object_exists_cached(_session, session_cache_key: str, object_name: str) -> bool:
     database, schema, name = _parse_snowflake_object_name(object_name)
     object_q = quote_sql(name)
     information_schema = _information_schema_prefix(database)
     schema_predicate = _schema_predicate(schema)
     df = execute_query_df(
-        session,
+        _session,
         f"""
         SELECT 1 AS FOUND FROM {information_schema}.TABLES
         WHERE {schema_predicate} AND UPPER(TABLE_NAME) = '{object_q}'
@@ -57,15 +59,20 @@ def object_exists(session, object_name: str) -> bool:
     return not df.empty
 
 
-def table_columns(session, table_name: str) -> set[str]:
-    if not object_exists(session, table_name):
+def object_exists(session, object_name: str) -> bool:
+    return _object_exists_cached(session, str(id(session)), str(object_name))
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def _table_columns_cached(_session, session_cache_key: str, table_name: str) -> set[str]:
+    if not object_exists(_session, table_name):
         return set()
     database, schema, name = _parse_snowflake_object_name(table_name)
     information_schema = _information_schema_prefix(database)
     schema_predicate = _schema_predicate(schema)
     table_q = quote_sql(name)
     df = execute_query_df(
-        session,
+        _session,
         f"""
         SELECT COLUMN_NAME
         FROM {information_schema}.COLUMNS
@@ -75,6 +82,10 @@ def table_columns(session, table_name: str) -> set[str]:
         query_name=f"claims.table_columns.{table_name}",
     )
     return {str(v).upper() for v in df.get("COLUMN_NAME", pd.Series(dtype=str)).dropna().tolist()}
+
+
+def table_columns(session, table_name: str) -> set[str]:
+    return _table_columns_cached(session, str(id(session)), str(table_name))
 
 
 CLAIMS_QUEUE_COLUMNS = [

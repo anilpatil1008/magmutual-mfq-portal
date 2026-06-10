@@ -96,6 +96,7 @@ def _display_patient_defendant(value: Any) -> str:
     return safe_display(value, fallback="Unknown Patient")
 
 
+@st.cache_data(show_spinner=False)
 def _load_recent_claims_table_css() -> str:
     css_candidates = [
         Path(__file__).resolve().parent / "styles" / "carbonstyle.css",
@@ -437,6 +438,11 @@ def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.Dat
 def _open_claim_details(claim_id: str) -> None:
     started = perf_counter()
     claim_id = str(claim_id).strip()
+    if (
+        str(st.session_state.get("current_view") or "").strip().lower() == "claim_details"
+        and str(st.session_state.get("selected_claim_id") or "").strip() == claim_id
+    ):
+        return
     st.session_state["review_click_started_at"] = started
     st.session_state["last_review_event"] = None
     st.session_state["last_processed_review_claim_id"] = claim_id

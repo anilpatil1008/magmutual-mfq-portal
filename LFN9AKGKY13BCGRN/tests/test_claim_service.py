@@ -110,3 +110,23 @@ def test_recent_claims_select_projects_nulls_for_missing_deployed_view_columns()
     assert "MFQ_STATUS AS MFQ_STATUS" in select_columns
     assert "NULL AS FILE_NUMBER" in select_columns
     assert "NULL AS DEFENDANT_NAME" in select_columns
+
+
+def test_recent_claims_bucket_filter_uses_precomputed_bucket_and_shared_filters():
+    claims = pd.DataFrame(
+        [
+            {"CLAIM_ID": "CLM-1", "PATIENT_DEFENDANT": "Alice", "MFQ_STATUS": "Assigned", "PRIORITY": "High"},
+            {"CLAIM_ID": "CLM-2", "PATIENT_DEFENDANT": "Bob", "MFQ_STATUS": "Approved", "PRIORITY": "High"},
+            {"CLAIM_ID": "CLM-3", "PATIENT_DEFENDANT": "Carol", "MFQ_STATUS": "Rejected", "PRIORITY": "Low"},
+        ]
+    )
+    indexed = claim_service.add_claims_search_index(claims)
+
+    result = claim_service.get_recent_claims_by_bucket_local(
+        indexed,
+        {"selected_priorities": ["High"]},
+        {"ongoing": "alice", "history": "bob"},
+    )
+
+    assert result["ongoing"]["CLAIM_ID"].tolist() == ["CLM-1"]
+    assert result["history"]["CLAIM_ID"].tolist() == ["CLM-2"]
