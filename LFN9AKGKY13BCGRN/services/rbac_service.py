@@ -15,14 +15,24 @@ class UserContext:
     sf_role: str
 
 
-def get_current_user(session) -> str:
-    row = session.sql("SELECT CURRENT_USER() AS CURRENT_USER").to_pandas().iloc[0]
+@st.cache_data(show_spinner=False, ttl=300)
+def _get_current_user_cached(_session) -> str:
+    row = _session.sql("SELECT CURRENT_USER() AS CURRENT_USER").to_pandas().iloc[0]
     return str(row["CURRENT_USER"]).strip()
 
 
-def get_current_role(session) -> str:
-    row = session.sql("SELECT CURRENT_ROLE() AS CURRENT_ROLE").to_pandas().iloc[0]
+def get_current_user(session) -> str:
+    return _get_current_user_cached(session)
+
+
+@st.cache_data(show_spinner=False, ttl=300)
+def _get_current_role_cached(_session) -> str:
+    row = _session.sql("SELECT CURRENT_ROLE() AS CURRENT_ROLE").to_pandas().iloc[0]
     return str(row["CURRENT_ROLE"]).strip()
+
+
+def get_current_role(session) -> str:
+    return _get_current_role_cached(session)
 
 
 @st.cache_data(show_spinner=False, ttl=300)

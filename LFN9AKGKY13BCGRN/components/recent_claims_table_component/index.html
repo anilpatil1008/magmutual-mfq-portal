@@ -24,6 +24,7 @@
     const root = document.getElementById('root');
     let lastHtml = null;
     let configuredHeight = 600;
+    let navigationInFlight = false;
 
     function sendMessage(type, data) {
       window.parent.postMessage({ isStreamlitMessage: true, type, ...data }, '*');
@@ -49,6 +50,13 @@
       });
     }
 
+    function setReviewLinksDisabled(disabled) {
+      root.querySelectorAll('.review-link[data-claim-id]').forEach((link) => {
+        link.disabled = disabled;
+        link.setAttribute('aria-busy', disabled ? 'true' : 'false');
+      });
+    }
+
     function wireReviewLinks() {
       const links = root.querySelectorAll('.review-link[data-claim-id]');
       links.forEach((link) => {
@@ -57,12 +65,16 @@
         link.addEventListener('click', (event) => {
           event.preventDefault();
           event.stopPropagation();
+          if (navigationInFlight) return;
           const claimId = String(link.dataset.claimId || '').trim();
           if (claimId) {
+            navigationInFlight = true;
+            setReviewLinksDisabled(true);
             setComponentValue({ claim_id: claimId, event_id: `${Date.now()}-${Math.random().toString(36).slice(2)}` });
           }
         });
       });
+      setReviewLinksDisabled(navigationInFlight);
     }
 
     function render(args) {
@@ -70,6 +82,7 @@
       configuredHeight = Number(args.height || configuredHeight || 600);
 
       if (html !== lastHtml) {
+        navigationInFlight = false;
         root.innerHTML = html;
         runEmbeddedScripts(root);
         wireReviewLinks();

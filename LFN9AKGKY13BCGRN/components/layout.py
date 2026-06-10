@@ -37,10 +37,16 @@ section[data-testid="stSidebar"] > div:first-child {
 """
 
 
-def load_css() -> None:
+@st.cache_data(show_spinner=False)
+def _load_app_css() -> str:
     css_file = Path(__file__).resolve().parent.parent / "styles" / "carbon_like.css"
-    if css_file.exists():
-        st.markdown(f"<style>{css_file.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
+    return css_file.read_text(encoding="utf-8") if css_file.exists() else ""
+
+
+def load_css() -> None:
+    app_css = _load_app_css()
+    if app_css:
+        st.markdown(f"<style>{app_css}</style>", unsafe_allow_html=True)
     st.markdown(_HIDE_DEFAULT_STREAMLIT_NAV_CSS, unsafe_allow_html=True)
 
 
