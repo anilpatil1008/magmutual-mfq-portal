@@ -211,7 +211,23 @@ def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[obj
     return claims_repository.build_claim_filter_where_clause(filters)
 
 
+@st.cache_data(ttl=120, show_spinner="Loading recent claims...")
+def _get_filtered_recent_claims_cached(
+    _session, cache_scope: str, filters: dict | None, page: int, page_size: int
+) -> pd.DataFrame:
+    del cache_scope
+    return claims_repository.get_filtered_recent_claims(_session, filters, page, page_size)
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _get_filtered_claims_count_cached(_session, cache_scope: str, filters: dict | None) -> int:
+    del cache_scope
+    return claims_repository.get_filtered_claims_count(_session, filters)
+
+
 def get_filtered_recent_claims(session, filters: dict | None, page: int, page_size: int) -> pd.DataFrame:
+    if _in_streamlit_runtime():
+        return _get_filtered_recent_claims_cached(session, _claims_cache_scope(session), filters or {}, int(page), int(page_size))
     return claims_repository.get_filtered_recent_claims(session, filters, page, page_size)
 
 
@@ -315,14 +331,32 @@ def get_filtered_claims_count_local(claims: pd.DataFrame, filters: dict | None) 
 
 
 def get_filtered_claims_count(session, filters: dict | None) -> int:
+    if _in_streamlit_runtime():
+        return _get_filtered_claims_count_cached(session, _claims_cache_scope(session), filters or {})
     return claims_repository.get_filtered_claims_count(session, filters)
 
 
+@st.cache_data(ttl=1800, show_spinner=False)
+def _get_available_claim_statuses_cached(_session, cache_scope: str) -> list[str]:
+    del cache_scope
+    return claims_repository.get_available_claim_statuses(_session)
+
+
+@st.cache_data(ttl=1800, show_spinner=False)
+def _get_available_claim_types_cached(_session, cache_scope: str) -> list[str]:
+    del cache_scope
+    return claims_repository.get_available_claim_types(_session)
+
+
 def get_available_claim_statuses(session) -> list[str]:
+    if _in_streamlit_runtime():
+        return _get_available_claim_statuses_cached(session, _claims_cache_scope(session))
     return claims_repository.get_available_claim_statuses(session)
 
 
 def get_available_claim_types(session) -> list[str]:
+    if _in_streamlit_runtime():
+        return _get_available_claim_types_cached(session, _claims_cache_scope(session))
     return claims_repository.get_available_claim_types(session)
 
 
@@ -374,6 +408,10 @@ def clear_claim_read_caches() -> None:
     """Clear cached read models after a write that can change claim/dashboard data."""
     _load_recent_claims_cached.clear()
     _load_claims_queue_cached.clear()
+    _get_filtered_recent_claims_cached.clear()
+    _get_filtered_claims_count_cached.clear()
+    _get_available_claim_statuses_cached.clear()
+    _get_available_claim_types_cached.clear()
     _load_claim_detail_by_id_cached.clear()
     if _in_streamlit_runtime():
         current_version = int(st.session_state.get("dashboard_metrics_cache_version", 0) or 0)
@@ -442,17 +480,37 @@ def get_claim_documents_by_claim_id(session, claim_id: str) -> pd.DataFrame:
     return df
 
 
-def get_claim_summaries_by_claim_id(session, claim_id: str) -> dict[str, str]:
-    started = perf_counter()
-    summary_df = mfq_repository.get_claim_summaries(session, claim_id)
+def _summary_df_to_map(summary_df: pd.DataFrame) -> dict[str, str]:
     summary_map: dict[str, str] = {}
     if not summary_df.empty:
         for _, row in summary_df.iterrows():
             summary_type = str(row.get("SUMMARY_TYPE", "")).strip().upper()
             if summary_type and summary_type not in summary_map:
                 summary_map[summary_type] = str(row.get("SUMMARY_TEXT", "") or "")
+    return summary_map
+
+
+def get_claim_summaries_by_claim_id(session, claim_id: str) -> dict[str, str]:
+    started = perf_counter()
+    summary_df = mfq_repository.get_claim_summaries(session, claim_id)
+    summary_map = _summary_df_to_map(summary_df)
     logger.info("get_claim_summaries_by_claim_id_ms=%d claim_id=%s rows=%d", int((perf_counter() - started) * 1000), claim_id, len(summary_df))
     return summary_map
+
+
+def get_claim_summary_by_type(session, claim_id: str, summary_type: str) -> str:
+    started = perf_counter()
+    summary_df = mfq_repository.get_claim_summary_by_type(session, claim_id, summary_type)
+    summary_map = _summary_df_to_map(summary_df)
+    normalized_type = "RECORD_SUMMARY" if str(summary_type or "").strip().upper() == "RECORDS_SUMMARY" else str(summary_type or "").strip().upper()
+    logger.info(
+        "get_claim_summary_by_type_ms=%d claim_id=%s summary_type=%s rows=%d",
+        int((perf_counter() - started) * 1000),
+        claim_id,
+        normalized_type,
+        len(summary_df),
+    )
+    return summary_map.get(normalized_type, "")
 
 
 def _mfq_required_objects_available(session) -> tuple[bool, list[str]]:
