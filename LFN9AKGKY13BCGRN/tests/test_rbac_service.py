@@ -161,3 +161,25 @@ def test_get_available_roles_always_includes_current_role():
         ["FR_MFQ_APP", "FR_MFQ_APPDEV"],
         "FR_MFQ_APPDEV",
     )
+
+
+def test_role_selector_state_defaults_to_current_role_from_available_roles():
+    assert rbac_service.get_role_selector_state(
+        ["FR_MFQ_ADMIN", "FR_MFQ_APP"],
+        "FR_MFQ_APP",
+    ) == (["FR_MFQ_ADMIN", "FR_MFQ_APP"], "FR_MFQ_APP")
+
+
+def test_role_selector_state_preserves_valid_user_selection():
+    assert rbac_service.get_role_selector_state(
+        ["FR_MFQ_ADMIN", "FR_MFQ_APP"],
+        "FR_MFQ_APP",
+        "FR_MFQ_ADMIN",
+    ) == (["FR_MFQ_ADMIN", "FR_MFQ_APP"], "FR_MFQ_ADMIN")
+
+
+def test_role_selector_state_includes_current_role_when_available_roles_omit_it():
+    assert rbac_service.get_role_selector_state(
+        ["FR_MFQ_APP"],
+        "FR_MFQ_APPDEV",
+    ) == (["FR_MFQ_APP", "FR_MFQ_APPDEV"], "FR_MFQ_APPDEV")
