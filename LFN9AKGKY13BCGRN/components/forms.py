@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.streamlit_compat import safe_columns
 
 from components.badges import confidence_badge
 
@@ -10,7 +11,7 @@ def render_mfq_sections(df, editable: bool = False):
 
     section_scores = df.groupby("SECTION_NAME")["SECTION_CONFIDENCE"].mean().round(1).sort_values(ascending=False)
     st.markdown("#### Section-wise Review")
-    review_cols = st.columns(4)
+    review_cols = safe_columns(4)
     for idx, (name, score) in enumerate(section_scores.items()):
         review_cols[idx % 4].markdown(
             f"<div class='section-score-card'><div class='section-score-name'>{name}</div>"
@@ -23,7 +24,7 @@ def render_mfq_sections(df, editable: bool = False):
         with st.expander(f"{section_name} | Confidence {section_score:.0f}%", expanded=False):
             st.markdown(confidence_badge(section_score), unsafe_allow_html=True)
             for _, row in section_df.iterrows():
-                col_q, col_a, col_c = st.columns([2, 3, 1])
+                col_q, col_a, col_c = safe_columns([2, 3, 1])
                 with col_q:
                     st.caption(f"Q: {row['QUESTION_TEXT']}")
                 with col_a:

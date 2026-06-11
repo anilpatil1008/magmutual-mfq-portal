@@ -7,6 +7,7 @@ from pathlib import Path
 import re
 
 import streamlit as st
+from utils.streamlit_compat import safe_child_container, safe_container, safe_popover, safe_rerun
 
 from components.notifications import render_notification_center
 from utils.navigation import (
@@ -67,7 +68,7 @@ def _render_role_selector(session, current_role: str) -> None:
 
     if selected_role != current_role:
         st.session_state["selected_sf_role"] = str(selected_role or "").strip()
-        st.rerun()
+        safe_rerun()
 
 
 def _to_title_name(raw_value: str) -> str:
@@ -151,8 +152,8 @@ def render_header(session, ctx, notifications_df) -> None:
     safe_email = escape(email or "N/A")
     safe_sf_role = escape(sf_role or "N/A")
 
-    header_container = st.container(key="app_topbar")
-    actions_container = header_container.container(key="portal_header_actions")
+    header_container = safe_container(key="app_topbar")
+    actions_container = safe_child_container(header_container, key="portal_header_actions")
     role_col, bell_col, profile_col = actions_container.columns([380, 120, 330], gap="small")
 
     active_sf_role = st.session_state.get("selected_sf_role") or sf_role or ctx.sf_role
@@ -160,11 +161,11 @@ def render_header(session, ctx, notifications_df) -> None:
         _render_role_selector(session, active_sf_role)
 
     with bell_col:
-        with st.popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
+        with safe_popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
             render_notification_center(notifications_df)
 
     with profile_col:
-        with st.popover(
+        with safe_popover(
             f"{safe_short_name} ▾",
             use_container_width=True,
             key="header_profile_popover",

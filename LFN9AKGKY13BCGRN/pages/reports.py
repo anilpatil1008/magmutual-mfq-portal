@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import streamlit as st
+from utils.streamlit_compat import safe_columns, safe_dataframe
 
 from components.charts import render_series_bar_chart
 from services.report_service import get_report_frame
@@ -14,7 +15,7 @@ def render(session, ctx) -> None:
         st.info("No report data available.")
         return
 
-    c1, c2 = st.columns(2)
+    c1, c2 = safe_columns(2)
     with c1:
         render_series_bar_chart(df.groupby("STATUS").size(), "Throughput by status")
         render_series_bar_chart(df.groupby("PRIORITY").size(), "Priority mix")
@@ -22,4 +23,4 @@ def render(session, ctx) -> None:
         render_series_bar_chart(df.groupby("SPECIALTY").size(), "Specialty mix")
         st.markdown("#### Faculty load")
         load = df.groupby("ASSIGNED_TO").agg(TOTAL=("CLAIM_ID", "count")).reset_index()
-        st.dataframe(load, use_container_width=True)
+        safe_dataframe(load, use_container_width=True)
