@@ -78,75 +78,88 @@ def test_get_current_user_falls_back_to_current_user_case_insensitively(monkeypa
     assert rbac_service.get_current_user(session) == "APATIL"
 
 
-def test_available_roles_uses_show_grants_fallback_when_current_available_roles_fails():
-    session = _FakeSession(
-        [
-            ("CURRENT_AVAILABLE_ROLES()", RuntimeError("function unavailable")),
-            ("CURRENT_USER()", pd.DataFrame([{"USER_NAME": "APATIL"}])),
-            (
-                "SHOW GRANTS TO USER",
-                pd.DataFrame(
-                    [
-                        {"granted_to": "ROLE", "role": "FR_MFQ_APP"},
-                        {"granted_to": "ROLE", "role": "FR_MFQ_APPDEV"},
-                        {"granted_to": "WAREHOUSE", "role": "IGNORED_WAREHOUSE"},
-                    ]
-                ),
-            ),
-        ]
-    )
-
-    assert rbac_service.get_available_roles_for_current_user(session) == [
-        "FR_MFQ_APP",
-        "FR_MFQ_APPDEV",
-    ]
-    assert any('SHOW GRANTS TO USER "APATIL"' in query for query in session.queries)
-
-
-def test_available_roles_merges_streamlit_user_grants_with_current_available_roles(monkeypatch):
-    monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
+def test_available_roles_for_dropdown_uses_current_available_roles_locally(monkeypatch):
+    monkeypatch.setattr(rbac_service.st, "user", None, raising=False)
     monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     session = _FakeSession(
         [
             ("CURRENT_AVAILABLE_ROLES()", pd.DataFrame([{"ROLE_NAME": "FR_MFQ_APP"}])),
-            (
-                "SHOW GRANTS TO USER",
-                pd.DataFrame(
-                    [
-                        {"granted_to": "USER", "role": "FR_MFQ_APPDEV"},
-                        {"granted_to": "USER", "role": "FR_MFQ_ADMIN"},
-                    ]
-                ),
-            ),
         ]
     )
 
-    assert rbac_service.get_available_roles_for_current_user(session) == [
-        "FR_MFQ_ADMIN",
-        "FR_MFQ_APP",
-        "FR_MFQ_APPDEV",
-    ]
-    assert any('SHOW GRANTS TO USER "APATIL"' in query for query in session.queries)
-    assert not any("CURRENT_USER()" in query for query in session.queries)
+    assert rbac_service.get_available_roles_for_dropdown(session) == ["FR_MFQ_APP"]
+    assert any("CURRENT_AVAILABLE_ROLES()" in query for query in session.queries)
+    assert not any("GRANTS_TO_USERS" in query for query in session.queries)
 
 
-def test_available_roles_retries_uppercase_snowflake_username(monkeypatch):
-    monkeypatch.setattr(rbac_service.st, "user", {"user_name": "apatil"}, raising=False)
+def test_available_roles_for_dropdown_uses_viewer_account_usage_roles(monkeypatch):
+    monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
     monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     session = _FakeSession(
         [
-            ("CURRENT_AVAILABLE_ROLES()", RuntimeError("function unavailable")),
-            ('SHOW GRANTS TO USER "apatil"', RuntimeError("user does not exist")),
             (
-                'SHOW GRANTS TO USER "APATIL"',
-                pd.DataFrame([{"granted_to": "USER", "role": "FR_MFQ_APPDEV"}]),
+                "SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS",
+                pd.DataFrame(
+                    [
+                        {"ROLE_NAME": "FR_MFQ_APPDEV"},
+                        {"ROLE_NAME": "FR_MFQ_ANALYST"},
+                    ]
+                ),
             ),
+            ("CURRENT_AVAILABLE_ROLES()", pd.DataFrame([{"ROLE_NAME": "FR_MFQ_ADMIN"}])),
         ]
     )
 
-    assert rbac_service.get_available_roles_for_current_user(session) == ["FR_MFQ_APPDEV"]
-    assert any('SHOW GRANTS TO USER "apatil"' in query for query in session.queries)
-    assert any('SHOW GRANTS TO USER "APATIL"' in query for query in session.queries)
+    assert rbac_service.get_available_roles_for_dropdown(session) == [
+        "FR_MFQ_ANALYST",
+        "FR_MFQ_APPDEV",
+        "PUBLIC",
+    ]
+    assert any("GRANTEE_NAME = UPPER('APATIL')" in query for query in session.queries)
+    assert not any("CURRENT_AVAILABLE_ROLES()" in query for query in session.queries)
+
+
+def test_available_roles_for_dropdown_falls_back_to_session_roles_when_account_usage_fails(monkeypatch):
+    monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
+    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
+    session = _FakeSession(
+        [
+            ("SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS", RuntimeError("not authorized")),
+            ("CURRENT_AVAILABLE_ROLES()", pd.DataFrame([{"ROLE_NAME": "FR_MFQ_ADMIN"}])),
+        ]
+    )
+
+    assert rbac_service.get_available_roles_for_dropdown(session) == ["FR_MFQ_ADMIN"]
+    assert any("GRANTS_TO_USERS" in query for query in session.queries)
+    assert any("CURRENT_AVAILABLE_ROLES()" in query for query in session.queries)
+
+
+def test_available_roles_for_dropdown_falls_back_to_current_role(monkeypatch):
+    monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
+    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
+    session = _FakeSession(
+        [
+            ("SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS", RuntimeError("not authorized")),
+            ("CURRENT_AVAILABLE_ROLES()", RuntimeError("function unavailable")),
+            ("CURRENT_ROLE()", pd.DataFrame([{"ROLE_NAME": "FR_MFQ_ADMIN"}])),
+        ]
+    )
+
+    assert rbac_service.get_available_roles_for_dropdown(session) == ["FR_MFQ_ADMIN"]
+
+
+def test_available_roles_for_dropdown_returns_unknown_as_last_resort(monkeypatch):
+    monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
+    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
+    session = _FakeSession(
+        [
+            ("SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS", RuntimeError("not authorized")),
+            ("CURRENT_AVAILABLE_ROLES()", RuntimeError("function unavailable")),
+            ("CURRENT_ROLE()", RuntimeError("unavailable")),
+        ]
+    )
+
+    assert rbac_service.get_available_roles_for_dropdown(session) == ["Unknown"]
 
 
 def test_get_available_roles_always_includes_current_role():
