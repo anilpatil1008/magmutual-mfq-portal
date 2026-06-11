@@ -5,6 +5,7 @@ from typing import Any
 
 import streamlit as st
 from snowflake.snowpark import Session
+from snowflake.snowpark.context import get_active_session
 
 _SECRET_CANDIDATE_KEYS = ("snowflake", "connections", "snowflake_connection")
 _CONFIG_KEYS = (
@@ -27,13 +28,24 @@ _ENV_KEY_MAP = {
 }
 
 
+def _get_active_session() -> Session | None:
+    """Return Snowflake Streamlit's active session when running in Snowflake."""
+    try:
+        return get_active_session()
+    except Exception:
+        return None
+
+
 def _read_streamlit_secrets() -> dict[str, Any]:
     """Read Snowflake connection settings from st.secrets if provided."""
-    for key in _SECRET_CANDIDATE_KEYS:
-        section = st.secrets.get(key)
-        if section:
-            return {k: section.get(k) for k in _CONFIG_KEYS if section.get(k)}
-    return {k: st.secrets.get(k) for k in _CONFIG_KEYS if st.secrets.get(k)}
+    try:
+        for key in _SECRET_CANDIDATE_KEYS:
+            section = st.secrets.get(key)
+            if section:
+                return {k: section.get(k) for k in _CONFIG_KEYS if section.get(k)}
+        return {k: st.secrets.get(k) for k in _CONFIG_KEYS if st.secrets.get(k)}
+    except Exception:
+        return {}
 
 
 def _read_environment_variables() -> dict[str, Any]:
@@ -60,7 +72,11 @@ def _build_connection_parameters() -> dict[str, Any]:
 
 @st.cache_resource(show_spinner=False)
 def get_snowflake_session() -> Session:
-    """Return cached Snowflake Snowpark session using secrets/env configuration."""
+    """Return the active Snowflake session or create one from local settings."""
+    active_session = _get_active_session()
+    if active_session is not None:
+        return active_session
+
     connection_parameters = _build_connection_parameters()
     return Session.builder.configs(connection_parameters).create()
 
