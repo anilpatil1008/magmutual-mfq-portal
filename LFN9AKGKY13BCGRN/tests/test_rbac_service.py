@@ -115,7 +115,7 @@ def test_available_roles_for_dropdown_uses_viewer_account_usage_roles(monkeypatc
         "FR_MFQ_APPDEV",
         "PUBLIC",
     ]
-    assert any("GRANTEE_NAME = UPPER('APATIL')" in query for query in session.queries)
+    assert any("UPPER(GRANTEE_NAME) = UPPER('APATIL')" in query for query in session.queries)
     assert not any("CURRENT_AVAILABLE_ROLES()" in query for query in session.queries)
 
 
@@ -162,7 +162,7 @@ def test_available_roles_for_dropdown_returns_unknown_as_last_resort(monkeypatch
     assert rbac_service.get_available_roles_for_dropdown(session) == ["Unknown"]
 
 
-def test_get_available_roles_always_includes_current_role():
+def test_get_available_roles_returns_dropdown_options_and_owner_role_context():
     session = _FakeSession(
         [
             ("CURRENT_ROLE()", pd.DataFrame([{"ROLE_NAME": "FR_MFQ_APPDEV"}])),
@@ -171,6 +171,31 @@ def test_get_available_roles_always_includes_current_role():
     )
 
     assert rbac_service.get_available_roles(session) == (
-        ["FR_MFQ_APP", "FR_MFQ_APPDEV"],
+        ["FR_MFQ_APP"],
         "FR_MFQ_APPDEV",
     )
+
+
+def test_selected_app_role_defaults_to_appdev_when_available(monkeypatch):
+    monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
+    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
+    rbac_service.st.session_state.pop("selected_app_role", None)
+    rbac_service.st.session_state.pop("selected_sf_role", None)
+    session = _FakeSession(
+        [
+            (
+                "SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS",
+                pd.DataFrame(
+                    [
+                        {"ROLE_NAME": "FR_MFQ_ADMIN"},
+                        {"ROLE_NAME": "FR_MFQ_APPDEV"},
+                    ]
+                ),
+            ),
+            ("CURRENT_ROLE()", pd.DataFrame([{"ROLE_NAME": "FR_MFQ_ADMIN"}])),
+        ]
+    )
+
+    assert rbac_service.get_selected_sf_role(session) == "FR_MFQ_APPDEV"
+    assert rbac_service.st.session_state["selected_app_role"] == "FR_MFQ_APPDEV"
+    assert rbac_service.st.session_state["selected_sf_role"] == "FR_MFQ_APPDEV"
