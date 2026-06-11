@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 import pandas as pd
 import streamlit as st
-from utils.streamlit_compat import safe_columns, safe_container, safe_rerun
+from utils.streamlit_compat import safe_button, safe_columns, safe_container, safe_rerun
 import streamlit.components.v1 as components
 
 from components.badges import (
@@ -478,7 +478,7 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
     for _, row in show_df.iterrows():
         claim_id = row.get("CLAIM_ID", "")
         btn_key = f"{key_prefix}_open_{claim_id}"
-        if st.button(f"Review {claim_id}", key=btn_key):
+        if safe_button(f"Review {claim_id}", key=btn_key):
             _open_claim_details(str(claim_id))
 
         row_html = "".join([f"<td>{value}</td>" for value in row.values])
@@ -646,10 +646,10 @@ def render_recent_claims_table(
         with pager_cols[1]:
             prev_col, next_col = safe_columns(2)
             with prev_col:
-                if st.button("Previous", key=f"{pagination_key_base}_prev", disabled=current_page <= 1, use_container_width=True):
+                if safe_button("Previous", key=f"{pagination_key_base}_prev", disabled=current_page <= 1, use_container_width=True):
                     st.session_state[page_state_key] = max(1, current_page - 1)
                     safe_rerun()
             with next_col:
-                if st.button("Next", key=f"{pagination_key_base}_next", disabled=current_page >= total_pages, use_container_width=True):
+                if safe_button("Next", key=f"{pagination_key_base}_next", disabled=current_page >= total_pages, use_container_width=True):
                     st.session_state[page_state_key] = min(total_pages, current_page + 1)
                     safe_rerun()

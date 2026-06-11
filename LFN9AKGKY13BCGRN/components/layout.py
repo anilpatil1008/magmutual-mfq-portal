@@ -7,7 +7,7 @@ from pathlib import Path
 import re
 
 import streamlit as st
-from utils.streamlit_compat import safe_child_container, safe_container, safe_popover, safe_rerun
+from utils.streamlit_compat import safe_button, safe_child_columns, safe_child_container, safe_container, safe_popover, safe_rerun
 
 from components.notifications import render_notification_center
 from utils.navigation import (
@@ -154,7 +154,7 @@ def render_header(session, ctx, notifications_df) -> None:
 
     header_container = safe_container(key="app_topbar")
     actions_container = safe_child_container(header_container, key="portal_header_actions")
-    role_col, bell_col, profile_col = actions_container.columns([380, 120, 330], gap="small")
+    role_col, bell_col, profile_col = safe_child_columns(actions_container, [380, 120, 330], gap="small")
 
     active_sf_role = st.session_state.get("selected_sf_role") or sf_role or ctx.sf_role
     with role_col:
@@ -249,7 +249,7 @@ def render_sidebar(ctx) -> None:
             key_slug = page.lower().replace(" ", "_")
             key_prefix = "nav_active" if active else "nav"
 
-            if st.button(
+            if safe_button(
                 page,
                 icon=page_icons.get(page, ":material/chevron_right:"),
                 use_container_width=True,

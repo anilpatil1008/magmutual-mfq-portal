@@ -6,7 +6,7 @@ import logging
 from time import perf_counter
 
 import streamlit as st
-from utils.streamlit_compat import safe_columns, safe_container, safe_popover, safe_rerun
+from utils.streamlit_compat import safe_button, safe_columns, safe_container, safe_popover, safe_rerun
 
 from components.cards import render_kpi_cards
 from components.tables import render_live_claims_search, render_recent_claims_table
@@ -186,7 +186,7 @@ def _render_filter_chip_group(
         chip_key = f"filter_chip_{group_key}_{_filter_button_slug(str(value))}_{state_suffix}"
         with columns[index % 3]:
             with safe_container(key=chip_key):
-                if st.button(str(label), key=f"{chip_key}_button", use_container_width=True):
+                if safe_button(str(label), key=f"{chip_key}_button", use_container_width=True):
                     _toggle_dashboard_multi_filter(state_key, str(value), all_label=all_label)
 
 
@@ -244,7 +244,7 @@ def _render_date_requested_filter() -> None:
         chip_key = f"filter_chip_date_requested_{_filter_button_slug(label)}_{state_suffix}"
         with chip_columns[index % 3]:
             with safe_container(key=chip_key):
-                if st.button(label, key=f"{chip_key}_button", use_container_width=True):
+                if safe_button(label, key=f"{chip_key}_button", use_container_width=True):
                     _set_date_requested_quick_filter(label)
 
     widget_version = int(st.session_state.get("date_requested_widget_version", 0) or 0)
@@ -425,7 +425,7 @@ def _render_dashboard_filter_controls(session) -> None:
     )
     _render_date_requested_filter()
     st.markdown("<div class='mfq-filter-clear-all'></div>", unsafe_allow_html=True)
-    st.button(
+    safe_button(
         "Clear All Filters",
         key="dashboard_clear_all_filters",
         use_container_width=True,

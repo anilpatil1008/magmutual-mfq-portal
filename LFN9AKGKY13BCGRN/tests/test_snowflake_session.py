@@ -42,3 +42,48 @@ def test_get_snowflake_session_falls_back_to_local_config(monkeypatch):
     monkeypatch.setattr(snowflake_session, "Session", _FakeSession)
 
     assert snowflake_session.get_snowflake_session() == {"created_with": parameters}
+
+
+def test_externalbrowser_local_config_does_not_require_password(monkeypatch):
+    monkeypatch.setattr(
+        snowflake_session,
+        "_read_streamlit_secrets",
+        lambda: {
+            "account": "acct",
+            "user": "user",
+            "authenticator": "externalbrowser",
+            "role": "role",
+            "warehouse": "wh",
+            "database": "db",
+            "schema": "schema",
+        },
+    )
+    monkeypatch.setattr(snowflake_session, "_read_environment_variables", lambda: {})
+
+    params = snowflake_session._build_connection_parameters()
+
+    assert params["authenticator"] == "externalbrowser"
+    assert "password" not in params
+
+
+def test_password_local_config_requires_password(monkeypatch):
+    monkeypatch.setattr(
+        snowflake_session,
+        "_read_streamlit_secrets",
+        lambda: {
+            "account": "acct",
+            "user": "user",
+            "role": "role",
+            "warehouse": "wh",
+            "database": "db",
+            "schema": "schema",
+        },
+    )
+    monkeypatch.setattr(snowflake_session, "_read_environment_variables", lambda: {})
+
+    try:
+        snowflake_session._build_connection_parameters()
+    except RuntimeError as exc:
+        assert "password" in str(exc)
+    else:
+        raise AssertionError("password login should require password")
