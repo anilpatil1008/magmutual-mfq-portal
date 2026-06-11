@@ -77,11 +77,8 @@ class _FakeSession:
         raise AssertionError(f"Unexpected query: {query}")
 
 
-def test_get_current_user_reads_experimental_user_before_sql(monkeypatch):
-    monkeypatch.setattr(rbac_service.st, "user", None, raising=False)
-    monkeypatch.setattr(
-        rbac_service.st, "experimental_user", {"user_name": "APATIL"}, raising=False
-    )
+def test_get_current_user_reads_st_user_before_sql(monkeypatch):
+    monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
     session = _FakeSession([])
 
     assert rbac_service.get_current_user(session) == "APATIL"
@@ -90,7 +87,6 @@ def test_get_current_user_reads_experimental_user_before_sql(monkeypatch):
 
 def test_get_current_user_falls_back_to_current_user_case_insensitively(monkeypatch):
     monkeypatch.setattr(rbac_service.st, "user", None, raising=False)
-    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     session = _FakeSession(
         [
             ("CURRENT_USER()", pd.DataFrame([{"current_user": "APATIL"}])),
@@ -104,7 +100,6 @@ def test_available_roles_for_dropdown_uses_show_grants_for_streamlit_viewer(
     monkeypatch,
 ):
     monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
-    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     session = _FakeSession(
         [
             ("SHOW GRANTS TO USER", []),
@@ -135,7 +130,6 @@ def test_available_roles_for_dropdown_falls_back_to_current_user_when_st_user_mi
     monkeypatch,
 ):
     monkeypatch.setattr(rbac_service.st, "user", None, raising=False)
-    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     session = _FakeSession(
         [
             ("CURRENT_USER()", pd.DataFrame([{"USER_NAME": "APATIL"}])),
@@ -152,7 +146,6 @@ def test_available_roles_for_dropdown_escapes_viewer_identifier(monkeypatch):
     monkeypatch.setattr(
         rbac_service.st, "user", {"user_name": 'A"PATIL'}, raising=False
     )
-    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     session = _FakeSession(
         [
             ("SHOW GRANTS TO USER", []),
@@ -166,7 +159,6 @@ def test_available_roles_for_dropdown_escapes_viewer_identifier(monkeypatch):
 
 def test_available_roles_for_dropdown_falls_back_to_current_role(monkeypatch):
     monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
-    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     session = _FakeSession(
         [
             ("SHOW GRANTS TO USER", RuntimeError("not authorized")),
@@ -179,7 +171,6 @@ def test_available_roles_for_dropdown_falls_back_to_current_role(monkeypatch):
 
 def test_available_roles_for_dropdown_returns_unknown_as_last_resort(monkeypatch):
     monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
-    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     session = _FakeSession(
         [
             ("SHOW GRANTS TO USER", RuntimeError("not authorized")),
@@ -208,7 +199,6 @@ def test_get_available_roles_returns_dropdown_options_and_owner_role_context():
 
 def test_selected_app_role_defaults_to_viewer_default_role_when_available(monkeypatch):
     monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
-    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     rbac_service.st.session_state.pop("selected_role", None)
     rbac_service.st.session_state.pop("selected_app_role", None)
     rbac_service.st.session_state.pop("selected_sf_role", None)
