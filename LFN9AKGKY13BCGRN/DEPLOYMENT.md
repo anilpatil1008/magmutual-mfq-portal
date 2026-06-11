@@ -3,7 +3,7 @@
 ## Dependency model used by this app
 
 - Snowflake Streamlit runtime dependencies are defined in `environment.yml`.
-- The runtime is pinned to Python 3.12 because Snowflake packages used by this app (`pandas` and `snowflake-snowpark-python`) are not available for Python 3.11 in Snowflake Streamlit.
+- The runtime is pinned to Python 3.11 because Streamlit in Snowflake does not support Python 3.12. Newly created apps default to Python 3.11, and warehouse runtimes support Python 3.9, 3.10, and 3.11.
 - The app is intended to run directly from source (`streamlit_app.py`), not by installing the repository as a local Python package.
 - This avoids build-time requirements such as `setuptools`/`wheel` for local project packaging.
 

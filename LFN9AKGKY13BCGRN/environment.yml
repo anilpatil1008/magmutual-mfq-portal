@@ -2,9 +2,9 @@ name: sf_env
 channels:
   - snowflake
 dependencies:
-  # Snowflake Streamlit package availability currently skips Python 3.11 for
-  # pandas and snowflake-snowpark-python; use a supported runtime.
-  - python=3.12
+  # Streamlit in Snowflake supports Python 3.9, 3.10, and 3.11 for
+  # warehouse runtimes; 3.11 is the default for newly created apps.
+  - python=3.11
   - streamlit
   - pandas
   - snowflake-snowpark-python
