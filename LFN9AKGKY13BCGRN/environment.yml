@@ -3,10 +3,11 @@ channels:
   - snowflake
 dependencies:
   # Keep this on a Snowflake Streamlit warehouse runtime supported by both
-  # Snowflake itself and the app's required packages. The target account now
-  # reports pandas and snowflake-snowpark-python availability for Python 3.11
-  # but not Python 3.10, so avoid requesting python==3.10 or python=3.10.
-  - python=3.11
+  # Snowflake itself and the app's required packages. The target account
+  # currently reports pandas and snowflake-snowpark-python availability for
+  # Python 3.10, but not Python 3.11, so avoid requesting python==3.11
+  # or python=3.11.
+  - python=3.10
   # Pin Streamlit to a warehouse-runtime supported version to avoid surprise
   # upgrades when Snowflake adds newer Anaconda packages.
   - streamlit=1.48.0

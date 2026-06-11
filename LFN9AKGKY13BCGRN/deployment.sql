@@ -3,7 +3,7 @@
 --
 -- If this stage was used before, clear stale dependency files first; otherwise
 -- Snowflake can keep resolving an old environment.yml/requirements.txt that
--- still contains an invalid package spec such as python==3.10.
+-- still contains an invalid package spec such as python==3.11.
 CREATE OR REPLACE STAGE MAGMUTUAL_MFQ_APP.PUBLIC.MFQ_APP_STAGE;
 
 -- Upload the contents of LFN9AKGKY13BCGRN/ to @MFQ_APP_STAGE before running the
