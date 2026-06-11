@@ -467,31 +467,33 @@ def _render_dashboard_header(session, display_name: str) -> None:
 
 def _resolve_user_display_name(ctx) -> str:
     candidate_values = [
+        getattr(ctx, "display_name", None),
         getattr(ctx, "full_name", None),
         getattr(ctx, "name", None),
+        st.session_state.get("display_name"),
         st.session_state.get("full_name"),
         st.session_state.get("user_full_name"),
         st.session_state.get("username"),
-        st.session_state.get("user_email"),
     ]
 
     user_profile = st.session_state.get("user_profile")
     if isinstance(user_profile, dict):
         candidate_values.extend(
             [
+                user_profile.get("display_name"),
                 user_profile.get("full_name"),
                 user_profile.get("name"),
                 user_profile.get("username"),
-                user_profile.get("email"),
             ]
         )
 
     for candidate in candidate_values:
         value = str(candidate or "").strip()
-        if value:
+        if value and value.casefold() not in {"none", "null", "nan", "n/a"}:
             return value
 
-    return str(getattr(ctx, "username", "") or "").strip()
+    username = str(getattr(ctx, "username", "") or "").strip()
+    return username if username and username.casefold() not in {"none", "null", "nan", "n/a", "unknown"} else "User"
 
 
 def _render_dashboard_view(session, ctx) -> None:
