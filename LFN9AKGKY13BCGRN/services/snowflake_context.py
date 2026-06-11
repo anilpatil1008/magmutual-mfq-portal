@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 
 _EMPTY_CONTEXT_VALUES = {"", "none", "null", "nan", "n/a"}
 _SELECTED_APP_ROLE_KEY = "selected_app_role"
+# st.session_state.selected_role is the canonical app-level viewer selected role.
+# It is UI/display context only; Streamlit in Snowflake owner-rights apps must not
+# issue USE ROLE for this value because SQL continues to run with app privileges.
+_CANONICAL_SELECTED_ROLE_KEY = "selected_role"
 _LEGACY_SELECTED_ROLE_KEY = "selected_sf_role"
 
 
@@ -34,10 +38,23 @@ def _clean_context_value(value: object) -> str:
     return cleaned
 
 
+def _dedupe_preserve_order(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    deduped: list[str] = []
+    for value in values:
+        cleaned = _clean_context_value(value)
+        if not cleaned:
+            continue
+        normalized = cleaned.casefold()
+        if normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(cleaned)
+    return deduped
+
+
 def _dedupe_sorted(values: list[str]) -> list[str]:
-    return sorted(
-        {value for value in (_clean_context_value(item) for item in values) if value}
-    )
+    return sorted(_dedupe_preserve_order(values))
 
 
 def _extract_column_values(df: Any, *candidate_names: str) -> list[str]:
@@ -150,6 +167,24 @@ def _get_current_user_from_sql(session) -> str:
     return _get_first_row_value(row, "USER_NAME", "CURRENT_USER")
 
 
+def get_viewer_username(session=None) -> str:
+    """Return the Streamlit viewer username, preserving local SQL fallback."""
+    for attribute_name in ("user_name", "username", "login_name"):
+        username = _get_streamlit_user_value(attribute_name)
+        if username:
+            return username
+
+    if session is not None:
+        return _get_current_user_from_sql(session)
+
+    return ""
+
+
+def get_viewer_email() -> str:
+    """Return the Streamlit viewer email when Streamlit identity provides it."""
+    return _get_streamlit_user_value("email")
+
+
 def get_viewer_user(session=None) -> dict[str, str]:
     """Return the actual Streamlit viewer identity, never relying only on SQL.
 
@@ -157,14 +192,7 @@ def get_viewer_user(session=None) -> dict[str, str]:
     context. st.user.user_name and st.user.email are therefore the authoritative
     viewer identity fields when present.
     """
-    username = ""
-    for attribute_name in ("user_name", "username", "login_name"):
-        username = _get_streamlit_user_value(attribute_name)
-        if username:
-            break
-
-    if not username and session is not None:
-        username = _get_current_user_from_sql(session)
+    username = get_viewer_username(session)
 
     display_name = ""
     for attribute_name in ("name", "display_name", "full_name"):
@@ -177,18 +205,28 @@ def get_viewer_user(session=None) -> dict[str, str]:
         "username": username,
         "user_name": username,
         "display_name": display_name or username or "User",
-        "email": _get_streamlit_user_value("email") or "N/A",
+        "email": get_viewer_email() or "N/A",
     }
 
 
 def get_current_owner_role(session) -> str:
-    """Return CURRENT_ROLE(), which is the runtime owner/session role."""
+    """Return CURRENT_ROLE(), which is the runtime/app owner role.
+
+    In Streamlit in Snowflake owner-rights mode, CURRENT_ROLE() is not the
+    interactive viewer's selected role. It is only an internal fallback/context
+    value and must not be displayed as the viewer role.
+    """
     try:
         row = session.sql("SELECT CURRENT_ROLE() AS ROLE_NAME").to_pandas().iloc[0]
     except Exception as ex:
         _debug_log("Unable to fetch CURRENT_ROLE(): %s", ex)
         return ""
     return _get_first_row_value(row, "ROLE_NAME", "CURRENT_ROLE")
+
+
+def get_runtime_owner_role(session) -> str:
+    """Alias for the owner-rights runtime role context."""
+    return get_current_owner_role(session)
 
 
 def get_viewer_default_role(session, viewer_user: object) -> str:
@@ -210,13 +248,11 @@ def get_viewer_default_role(session, viewer_user: object) -> str:
         ).collect()
     except TypeError:
         try:
-            rows = session.sql(
-                f"""
+            rows = session.sql(f"""
                 SELECT "default_role" AS DEFAULT_ROLE
                 FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()))
                 WHERE UPPER("name") = UPPER({quote_snowflake_literal(cleaned_username)})
-                """
-            ).collect()
+                """).collect()
         except Exception as ex:
             _debug_log("Unable to fetch default role for %s: %s", cleaned_username, ex)
             return ""
@@ -243,12 +279,35 @@ def _read_show_grants_roles(session) -> list[str]:
     return _dedupe_sorted(roles)
 
 
+def _get_existing_role_list(viewer_username: str = "") -> list[str]:
+    """Return already-loaded app roles only for the current viewer session."""
+    cached_username = _clean_context_value(
+        st.session_state.get("viewer_role_context_username")
+    )
+    cleaned_username = _clean_context_value(viewer_username)
+    if (
+        cached_username
+        and cleaned_username
+        and cached_username.casefold() != cleaned_username.casefold()
+    ):
+        return []
+
+    existing_roles = (
+        st.session_state.get("available_roles")
+        or st.session_state.get("viewer_granted_roles")
+        or []
+    )
+    if not isinstance(existing_roles, (list, tuple, set)):
+        return []
+    return _dedupe_preserve_order(list(existing_roles))
+
+
 def _get_roles_from_show_grants(session, viewer_username: str) -> list[str]:
     cleaned_username = _clean_context_value(viewer_username)
     if not cleaned_username or cleaned_username == "Unknown":
         return []
 
-    safe_user = quote_snowflake_identifier(cleaned_username.upper())
+    safe_user = quote_snowflake_identifier(cleaned_username)
     try:
         session.sql(f"SHOW GRANTS TO USER {safe_user}").collect()
         return _read_show_grants_roles(session)
@@ -258,21 +317,72 @@ def _get_roles_from_show_grants(session, viewer_username: str) -> list[str]:
 
 
 def get_viewer_granted_roles(session) -> list[str]:
-    """Return roles granted to the Streamlit viewer, with safe fallbacks."""
-    viewer = get_viewer_user(session)
-    viewer_username = _clean_context_value(viewer.get("user_name"))
+    """Return roles granted to the Streamlit viewer, with safe fallbacks.
+
+    SHOW GRANTS is scoped to st.user.user_name (not CURRENT_ROLE()). If the
+    owner-rights runtime cannot inspect user grants, reuse any already-loaded
+    role list and only then fall back internally to the runtime owner role.
+    """
+    viewer_username = _clean_context_value(get_viewer_username(session))
 
     roles = _get_roles_from_show_grants(session, viewer_username)
-    if not roles:
-        owner_role = get_current_owner_role(session)
-        roles = [owner_role] if owner_role else ["Unknown"]
+    if roles:
+        st.session_state["viewer_role_context_username"] = viewer_username
+        return _dedupe_sorted(roles)
 
-    return _dedupe_sorted(roles)
+    existing_roles = _get_existing_role_list(viewer_username)
+    if existing_roles:
+        return existing_roles
+
+    owner_role = get_current_owner_role(session)
+    return [owner_role] if owner_role else ["Unknown"]
+
+
+def _get_existing_selected_role() -> str:
+    for state_key in (
+        _CANONICAL_SELECTED_ROLE_KEY,
+        _SELECTED_APP_ROLE_KEY,
+        _LEGACY_SELECTED_ROLE_KEY,
+    ):
+        selected_role = _clean_context_value(st.session_state.get(state_key))
+        if selected_role:
+            return selected_role
+    return ""
 
 
 def get_role_dropdown_options(session) -> list[str]:
-    """Return the app-level role dropdown options for UI/profile logic only."""
-    return get_viewer_granted_roles(session)
+    """Return viewer-selectable UI roles without treating CURRENT_ROLE as viewer.
+
+    The dropdown is built from viewer grants, the viewer default role, and any
+    already-fetched app role list. The runtime owner role is appended only as the
+    final internal fallback so the widget can render during local/limited-perm
+    execution.
+    """
+    viewer_username = _clean_context_value(get_viewer_username(session))
+    granted_roles = get_viewer_granted_roles(session)
+    default_role = _clean_context_value(
+        get_viewer_default_role(session, viewer_username)
+    )
+    selected_role = (
+        _get_existing_selected_role()
+        if st.session_state.get("role_default_initialized")
+        else ""
+    )
+
+    role_options = _dedupe_preserve_order(
+        [
+            *granted_roles,
+            default_role,
+            *_get_existing_role_list(viewer_username),
+            selected_role,
+        ]
+    )
+
+    if not role_options:
+        owner_role = _clean_context_value(get_current_owner_role(session))
+        role_options = [owner_role] if owner_role else ["Unknown"]
+
+    return role_options
 
 
 def set_selected_app_role(role_name: object) -> str:
@@ -280,7 +390,7 @@ def set_selected_app_role(role_name: object) -> str:
     selected_role = _clean_context_value(role_name) or "Unknown"
     st.session_state["role_default_initialized"] = True
     st.session_state[_SELECTED_APP_ROLE_KEY] = selected_role
-    st.session_state["selected_role"] = selected_role
+    st.session_state[_CANONICAL_SELECTED_ROLE_KEY] = selected_role
     # Keep the legacy key synchronized so existing cache scopes and page state
     # continue to behave exactly as before while the canonical key moves to
     # selected_app_role.
@@ -296,31 +406,44 @@ def get_initial_selected_role(session, roles: list[str]) -> str:
         return ""
 
     if st.session_state.get("role_default_initialized"):
-        for state_key in ("selected_role", _SELECTED_APP_ROLE_KEY, _LEGACY_SELECTED_ROLE_KEY):
-            selected_role = _clean_context_value(st.session_state.get(state_key))
-            if selected_role in role_options:
-                return selected_role
-
-    viewer = get_viewer_user(session)
-    viewer_username = _clean_context_value(viewer.get("user_name"))
-    default_role = _clean_context_value(get_viewer_default_role(session, viewer_username))
-    if default_role in role_options:
-        return default_role
-
-    for state_key in ("selected_role", _SELECTED_APP_ROLE_KEY, _LEGACY_SELECTED_ROLE_KEY):
-        selected_role = _clean_context_value(st.session_state.get(state_key))
-        if selected_role in role_options:
+        selected_role = _get_existing_selected_role()
+        if selected_role:
+            if selected_role not in role_options:
+                role_options.append(selected_role)
             return selected_role
 
+    viewer_username = _clean_context_value(get_viewer_username(session))
+    default_role = _clean_context_value(
+        get_viewer_default_role(session, viewer_username)
+    )
+    if default_role:
+        if default_role not in role_options:
+            role_options.append(default_role)
+        return default_role
+
+    selected_role = _get_existing_selected_role()
+    if selected_role:
+        if selected_role not in role_options:
+            role_options.append(selected_role)
+        return selected_role
+
+    viewer_granted_roles = [role for role in role_options if role != "Unknown"]
+    if viewer_granted_roles:
+        return viewer_granted_roles[0]
+
     current_role = _clean_context_value(get_current_owner_role(session))
-    if current_role in role_options:
+    if current_role:
         return current_role
 
     return role_options[0]
 
 
 def get_selected_app_role(session) -> str:
-    """Resolve and persist the selected app-level role for UI decisions."""
+    """Resolve and persist the selected app-level role for UI decisions.
+
+    st.session_state.selected_role is the app-level viewer selected role. It is
+    deliberately independent from CURRENT_ROLE() in owner-rights execution.
+    """
     role_options = get_role_dropdown_options(session)
     selected_role = get_initial_selected_role(session, role_options)
 
@@ -334,6 +457,16 @@ def get_selected_app_role(session) -> str:
     return set_selected_app_role("Unknown")
 
 
+def get_viewer_selected_role(session=None) -> str:
+    """Return the persisted app-level viewer selected role."""
+    selected_role = _get_existing_selected_role()
+    if selected_role:
+        return selected_role
+    if session is None:
+        return ""
+    return get_selected_app_role(session)
+
+
 def has_app_role(role_name: object) -> bool:
     """Check the selected app role first, then loaded viewer role grants."""
     requested_role = _clean_context_value(role_name).casefold()
@@ -341,14 +474,18 @@ def has_app_role(role_name: object) -> bool:
         return False
 
     selected_role = _clean_context_value(
-        st.session_state.get(_SELECTED_APP_ROLE_KEY)
-        or st.session_state.get("selected_role")
+        st.session_state.get(_CANONICAL_SELECTED_ROLE_KEY)
+        or st.session_state.get(_SELECTED_APP_ROLE_KEY)
         or st.session_state.get(_LEGACY_SELECTED_ROLE_KEY)
     )
     if selected_role.casefold() == requested_role:
         return True
 
-    viewer_roles = st.session_state.get("viewer_granted_roles") or st.session_state.get(
-        "available_roles"
-    ) or []
-    return any(_clean_context_value(role).casefold() == requested_role for role in viewer_roles)
+    viewer_roles = (
+        st.session_state.get("viewer_granted_roles")
+        or st.session_state.get("available_roles")
+        or []
+    )
+    return any(
+        _clean_context_value(role).casefold() == requested_role for role in viewer_roles
+    )

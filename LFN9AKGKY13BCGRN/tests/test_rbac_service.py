@@ -9,9 +9,26 @@ if str(APP_ROOT) not in sys.path:
     sys.path.insert(0, str(APP_ROOT))
 
 import pandas as pd
+import pytest
 
 from services import rbac_service
 from services.rbac_service import can_edit_claim
+
+
+@pytest.fixture(autouse=True)
+def _clear_role_session_state():
+    for key in (
+        "available_roles",
+        "viewer_granted_roles",
+        "viewer_role_context_username",
+        "selected_role",
+        "selected_app_role",
+        "selected_sf_role",
+        "role_default_initialized",
+        "sf_role",
+    ):
+        rbac_service.st.session_state.pop(key, None)
+    yield
 
 
 def test_can_edit_claim_handles_nan_assignment_without_crashing():
@@ -83,7 +100,9 @@ def test_get_current_user_falls_back_to_current_user_case_insensitively(monkeypa
     assert rbac_service.get_current_user(session) == "APATIL"
 
 
-def test_available_roles_for_dropdown_uses_show_grants_for_streamlit_viewer(monkeypatch):
+def test_available_roles_for_dropdown_uses_show_grants_for_streamlit_viewer(
+    monkeypatch,
+):
     monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
     monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     session = _FakeSession(
@@ -112,7 +131,9 @@ def test_available_roles_for_dropdown_uses_show_grants_for_streamlit_viewer(monk
     assert not any("GRANTS_TO_USERS" in query for query in session.queries)
 
 
-def test_available_roles_for_dropdown_falls_back_to_current_user_when_st_user_missing(monkeypatch):
+def test_available_roles_for_dropdown_falls_back_to_current_user_when_st_user_missing(
+    monkeypatch,
+):
     monkeypatch.setattr(rbac_service.st, "user", None, raising=False)
     monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     session = _FakeSession(
@@ -128,7 +149,9 @@ def test_available_roles_for_dropdown_falls_back_to_current_user_when_st_user_mi
 
 
 def test_available_roles_for_dropdown_escapes_viewer_identifier(monkeypatch):
-    monkeypatch.setattr(rbac_service.st, "user", {"user_name": 'A"PATIL'}, raising=False)
+    monkeypatch.setattr(
+        rbac_service.st, "user", {"user_name": 'A"PATIL'}, raising=False
+    )
     monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
     session = _FakeSession(
         [
