@@ -1,10 +1,19 @@
 import streamlit as st
-from utils.streamlit_compat import is_debug_enabled, safe_child_container, safe_container, safe_set_page_config
+from utils.streamlit_compat import (
+    is_debug_enabled,
+    safe_child_container,
+    safe_container,
+    safe_set_page_config,
+)
 
 from components.layout import load_css, render_header, render_sidebar
 from pages import claim_details, dashboard, reports
 from services.notification_service import get_user_notifications
-from services.rbac_service import get_available_roles, get_current_user_context, get_selected_sf_role
+from services.rbac_service import (
+    get_available_roles,
+    get_current_user_context,
+    get_selected_sf_role,
+)
 from services.snowflake_service import get_session
 from core.snowflake_session import is_active_session_available
 from utils.navigation import (
@@ -32,6 +41,7 @@ st.session_state["available_roles"] = available_roles
 st.session_state["viewer_granted_roles"] = available_roles
 st.session_state["runtime_owner_role"] = current_sf_role or "Unknown"
 selected_sf_role = get_selected_sf_role(session)
+st.session_state["selected_role"] = selected_sf_role
 st.session_state["selected_app_role"] = selected_sf_role
 st.session_state["selected_sf_role"] = selected_sf_role
 
@@ -84,7 +94,6 @@ def _sync_claim_details_route_from_query_params() -> None:
     navigate_to_claim_details(query_claim_id)
 
 
-
 def _normalize_navigation_state() -> None:
     """Normalize legacy state without rendering or rerunning.
 
@@ -92,7 +101,9 @@ def _normalize_navigation_state() -> None:
     must not route by itself, and an incomplete Claim Details route is folded
     back to Dashboard before any page body is rendered.
     """
-    current_view = str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
+    current_view = (
+        str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
+    )
     selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
 
     if current_view == CLAIM_DETAILS_VIEW and selected_claim_id:
@@ -117,7 +128,9 @@ notifications = get_user_notifications(session, ctx.username, limit=6)
 render_header(session, ctx, notifications)
 render_sidebar(ctx)
 
-current_view = str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
+current_view = (
+    str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
+)
 selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
 
 # Keep the routed page body in a single replaceable slot.  This prevents stale

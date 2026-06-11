@@ -7,7 +7,14 @@ from pathlib import Path
 import re
 
 import streamlit as st
-from utils.streamlit_compat import safe_button, safe_child_columns, safe_child_container, safe_container, safe_popover, safe_rerun
+from utils.streamlit_compat import (
+    safe_button,
+    safe_child_columns,
+    safe_child_container,
+    safe_container,
+    safe_popover,
+    safe_rerun,
+)
 
 from components.notifications import render_notification_center
 from services.snowflake_context import set_selected_app_role
@@ -54,24 +61,34 @@ def load_css() -> None:
 
 def _render_role_selector(session, current_role: str) -> None:
     del session
-    role_options = [_clean_profile_value(role) for role in st.session_state.get("available_roles", [])]
+    role_options = [
+        _clean_profile_value(role)
+        for role in st.session_state.get("available_roles", [])
+    ]
     role_options = [role for role in role_options if role]
     current_role = _clean_profile_value(current_role) or "Unknown"
 
-    if not role_options:
-        role_options = [current_role]
-
+    # selected_role is the app-level viewer-selected role. Do not bind the
+    # dropdown default to CURRENT_ROLE(), which is the runtime/app owner role in
+    # Streamlit in Snowflake owner-rights mode.
     selected_context_role = _clean_profile_value(
         st.session_state.get("selected_role")
         or st.session_state.get("selected_app_role")
         or st.session_state.get("selected_sf_role")
     )
-    if selected_context_role and selected_context_role in role_options:
-        default_role = selected_context_role
-    elif current_role in role_options:
-        default_role = current_role
-    else:
-        default_role = role_options[0]
+
+    if selected_context_role and selected_context_role not in role_options:
+        role_options.append(selected_context_role)
+    if not role_options:
+        role_options = [selected_context_role or current_role or "Unknown"]
+
+    default_role = (
+        selected_context_role
+        if selected_context_role in role_options
+        else role_options[0]
+    )
+    if st.session_state.get("header_role_select") not in role_options:
+        st.session_state["header_role_select"] = default_role
 
     selected_role = st.selectbox(
         "Role",
@@ -82,7 +99,7 @@ def _render_role_selector(session, current_role: str) -> None:
     )
 
     selected_role = _clean_profile_value(selected_role) or "Unknown"
-    if selected_role != st.session_state.get("selected_app_role"):
+    if selected_role != st.session_state.get("selected_role"):
         set_selected_app_role(selected_role)
         safe_rerun()
 
@@ -115,7 +132,9 @@ def _first_non_empty(*values: object) -> str:
 
 
 def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str]:
-    username = _first_non_empty(getattr(ctx, "username", ""), st.session_state.get("username"))
+    username = _first_non_empty(
+        getattr(ctx, "username", ""), st.session_state.get("username")
+    )
 
     full_name_candidates = [
         getattr(ctx, "display_name", None),
@@ -127,7 +146,13 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str]:
     ]
     user_profile = st.session_state.get("user_profile")
     if isinstance(user_profile, dict):
-        full_name_candidates.extend([user_profile.get("display_name"), user_profile.get("full_name"), user_profile.get("name")])
+        full_name_candidates.extend(
+            [
+                user_profile.get("display_name"),
+                user_profile.get("full_name"),
+                user_profile.get("name"),
+            ]
+        )
 
     full_name = _first_non_empty(*full_name_candidates, username) or "User"
     username = username or "Unknown"
@@ -149,9 +174,9 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str]:
         email_value = "N/A"
 
     sf_role = _first_non_empty(
+        st.session_state.get("selected_role"),
         st.session_state.get("selected_app_role"),
         st.session_state.get("selected_sf_role"),
-        st.session_state.get("selected_role"),
         getattr(ctx, "sf_role", None),
         st.session_state.get("sf_role"),
     )
@@ -162,25 +187,43 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str]:
     return short_name, full_name, username, email_value, sf_role, initials
 
 
-
 def render_header(session, ctx, notifications_df) -> None:
-    unread = int((~notifications_df["IS_READ"]).sum()) if "IS_READ" in notifications_df.columns else 0
+    unread = (
+        int((~notifications_df["IS_READ"]).sum())
+        if "IS_READ" in notifications_df.columns
+        else 0
+    )
 
-    short_name, _full_name, username, email, sf_role, initials = _resolve_profile_display(ctx)
+    short_name, _full_name, username, email, sf_role, initials = (
+        _resolve_profile_display(ctx)
+    )
     safe_short_name = escape(short_name or "User")
     safe_username = escape(username or "Unknown")
     safe_email = escape(email or "N/A")
     safe_sf_role = escape(sf_role or "Unknown")
     header_container = safe_container(key="app_topbar")
-    actions_container = safe_child_container(header_container, key="portal_header_actions")
-    role_col, bell_col, profile_col = safe_child_columns(actions_container, [380, 120, 330], gap="small")
+    actions_container = safe_child_container(
+        header_container, key="portal_header_actions"
+    )
+    role_col, bell_col, profile_col = safe_child_columns(
+        actions_container, [380, 120, 330], gap="small"
+    )
 
-    active_sf_role = st.session_state.get("selected_app_role") or st.session_state.get("selected_sf_role") or sf_role or getattr(ctx, "sf_role", "") or "Unknown"
+    active_sf_role = (
+        st.session_state.get("selected_role")
+        or st.session_state.get("selected_app_role")
+        or st.session_state.get("selected_sf_role")
+        or sf_role
+        or getattr(ctx, "sf_role", "")
+        or "Unknown"
+    )
     with role_col:
         _render_role_selector(session, active_sf_role)
 
     with bell_col:
-        with safe_popover(f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"):
+        with safe_popover(
+            f"🔔 {unread}", use_container_width=True, key="header_notifications_popover"
+        ):
             render_notification_center(notifications_df)
 
     with profile_col:
@@ -190,8 +233,7 @@ def render_header(session, ctx, notifications_df) -> None:
             key="header_profile_popover",
         ):
             st.markdown(
-                dedent(
-                    f"""
+                dedent(f"""
                     <div class="mm-profile-card">
                         <div class="mm-profile-card-head">
                             <span class="mm-avatar mm-avatar-lg">{escape(initials)}</span>
@@ -202,20 +244,25 @@ def render_header(session, ctx, notifications_df) -> None:
                             </div>
                         </div>
                     </div>
-                    """
-                ).strip(),
+                    """).strip(),
                 unsafe_allow_html=True,
             )
 
 
-
-def _sidebar_nav_items(current_view: str, selected_claim_id: str) -> list[tuple[str, str, object, bool]]:
+def _sidebar_nav_items(
+    current_view: str, selected_claim_id: str
+) -> list[tuple[str, str, object, bool]]:
     """Build sidebar items with ``current_view`` as the active-state source of truth."""
     normalized_view = str(current_view or DASHBOARD_VIEW).strip().lower()
     normalized_claim_id = str(selected_claim_id or "").strip()
 
     items: list[tuple[str, str, object, bool]] = [
-        (DASHBOARD_PAGE, DASHBOARD_VIEW, navigate_to_dashboard, normalized_view == DASHBOARD_VIEW),
+        (
+            DASHBOARD_PAGE,
+            DASHBOARD_VIEW,
+            navigate_to_dashboard,
+            normalized_view == DASHBOARD_VIEW,
+        ),
     ]
 
     if normalized_view == CLAIM_DETAILS_VIEW and normalized_claim_id:
@@ -228,7 +275,14 @@ def _sidebar_nav_items(current_view: str, selected_claim_id: str) -> list[tuple[
             )
         )
 
-    items.append((REPORTS_PAGE, REPORTS_VIEW, navigate_to_reports, normalized_view == REPORTS_VIEW))
+    items.append(
+        (
+            REPORTS_PAGE,
+            REPORTS_VIEW,
+            navigate_to_reports,
+            normalized_view == REPORTS_VIEW,
+        )
+    )
     return items
 
 
@@ -240,11 +294,15 @@ def render_sidebar(ctx) -> None:
     }
 
     with st.sidebar:
-        logo_path = Path(__file__).resolve().parents[1] / "assets" / "magmutual_logo.png"
+        logo_path = (
+            Path(__file__).resolve().parents[1] / "assets" / "magmutual_logo.png"
+        )
         logo_src = ""
         if logo_path.exists():
             logo_bytes = logo_path.read_bytes()
-            logo_src = f"data:image/png;base64,{base64.b64encode(logo_bytes).decode('utf-8')}"
+            logo_src = (
+                f"data:image/png;base64,{base64.b64encode(logo_bytes).decode('utf-8')}"
+            )
 
         st.markdown(
             f"""
@@ -260,9 +318,13 @@ def render_sidebar(ctx) -> None:
         )
         st.markdown('<div class="mm-sidebar-divider"></div>', unsafe_allow_html=True)
 
-        current_view = str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
+        current_view = (
+            str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
+        )
         selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
-        for page, _view, navigate, active in _sidebar_nav_items(current_view, selected_claim_id):
+        for page, _view, navigate, active in _sidebar_nav_items(
+            current_view, selected_claim_id
+        ):
             key_slug = page.lower().replace(" ", "_")
             key_prefix = "nav_active" if active else "nav"
 
