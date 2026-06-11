@@ -103,6 +103,52 @@ def test_available_roles_uses_show_grants_fallback_when_current_available_roles_
     assert any('SHOW GRANTS TO USER "APATIL"' in query for query in session.queries)
 
 
+def test_available_roles_merges_streamlit_user_grants_with_current_available_roles(monkeypatch):
+    monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
+    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
+    session = _FakeSession(
+        [
+            ("CURRENT_AVAILABLE_ROLES()", pd.DataFrame([{"ROLE_NAME": "FR_MFQ_APP"}])),
+            (
+                "SHOW GRANTS TO USER",
+                pd.DataFrame(
+                    [
+                        {"granted_to": "USER", "role": "FR_MFQ_APPDEV"},
+                        {"granted_to": "USER", "role": "FR_MFQ_ADMIN"},
+                    ]
+                ),
+            ),
+        ]
+    )
+
+    assert rbac_service.get_available_roles_for_current_user(session) == [
+        "FR_MFQ_ADMIN",
+        "FR_MFQ_APP",
+        "FR_MFQ_APPDEV",
+    ]
+    assert any('SHOW GRANTS TO USER "APATIL"' in query for query in session.queries)
+    assert not any("CURRENT_USER()" in query for query in session.queries)
+
+
+def test_available_roles_retries_uppercase_snowflake_username(monkeypatch):
+    monkeypatch.setattr(rbac_service.st, "user", {"user_name": "apatil"}, raising=False)
+    monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
+    session = _FakeSession(
+        [
+            ("CURRENT_AVAILABLE_ROLES()", RuntimeError("function unavailable")),
+            ('SHOW GRANTS TO USER "apatil"', RuntimeError("user does not exist")),
+            (
+                'SHOW GRANTS TO USER "APATIL"',
+                pd.DataFrame([{"granted_to": "USER", "role": "FR_MFQ_APPDEV"}]),
+            ),
+        ]
+    )
+
+    assert rbac_service.get_available_roles_for_current_user(session) == ["FR_MFQ_APPDEV"]
+    assert any('SHOW GRANTS TO USER "apatil"' in query for query in session.queries)
+    assert any('SHOW GRANTS TO USER "APATIL"' in query for query in session.queries)
+
+
 def test_get_available_roles_always_includes_current_role():
     session = _FakeSession(
         [

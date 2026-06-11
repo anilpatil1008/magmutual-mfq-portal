@@ -166,18 +166,41 @@ def _get_available_roles_from_current_available_roles(_session) -> list[str]:
     return _dedupe_sorted(_extract_column_values(roles_df, "ROLE_NAME", "VALUE"))
 
 
+def _get_grants_to_user_candidates(username: str) -> list[str]:
+    cleaned_username = _clean_context_value(username)
+    if not cleaned_username:
+        return []
+
+    candidates = [cleaned_username]
+    uppercase_username = cleaned_username.upper()
+    if uppercase_username != cleaned_username:
+        candidates.append(uppercase_username)
+    return candidates
+
+
+def _show_grants_to_user(_session, username: str):
+    for candidate_username in _get_grants_to_user_candidates(username):
+        quoted_username = _quote_snowflake_identifier(candidate_username)
+        try:
+            return _session.sql(f"SHOW GRANTS TO USER {quoted_username}").to_pandas()
+        except Exception as ex:
+            logger.warning(
+                "Unable to fetch SHOW GRANTS TO USER for %s: %s",
+                candidate_username,
+                ex,
+            )
+    return None
+
+
+def _is_user_role_grant(granted_to: str) -> bool:
+    if not granted_to:
+        return True
+    return granted_to.casefold() in {"role", "user"}
+
+
 def _get_available_roles_from_user_grants(_session, username: str) -> list[str]:
-    if not username:
-        return []
-
-    quoted_username = _quote_snowflake_identifier(username)
-    try:
-        roles_df = _session.sql(f"SHOW GRANTS TO USER {quoted_username}").to_pandas()
-    except Exception as ex:
-        logger.warning("Unable to fetch SHOW GRANTS TO USER for %s: %s", username, ex)
-        return []
-
-    if roles_df.empty:
+    roles_df = _show_grants_to_user(_session, username)
+    if roles_df is None or roles_df.empty:
         return []
 
     granted_roles = []
@@ -188,20 +211,20 @@ def _get_available_roles_from_user_grants(_session, username: str) -> list[str]:
     if role_values:
         for index, role_name in enumerate(role_values):
             granted_to = (
-                granted_to_values[index].casefold()
+                granted_to_values[index]
                 if index < len(granted_to_values)
-                else "role"
+                else "user"
             )
-            if not granted_to or granted_to == "role":
+            if _is_user_role_grant(granted_to):
                 granted_roles.append(role_name)
     elif name_values:
         for index, name in enumerate(name_values):
             granted_to = (
-                granted_to_values[index].casefold()
+                granted_to_values[index]
                 if index < len(granted_to_values)
-                else "role"
+                else "user"
             )
-            if not granted_to or granted_to == "role":
+            if _is_user_role_grant(granted_to):
                 granted_roles.append(name)
 
     return _dedupe_sorted(granted_roles)
@@ -209,11 +232,9 @@ def _get_available_roles_from_user_grants(_session, username: str) -> list[str]:
 
 def get_available_roles_for_current_user(_session) -> list[str]:
     roles = _get_available_roles_from_current_available_roles(_session)
-    if roles:
-        return roles
-
-    username = _get_current_user_from_sql(_session)
-    roles = _get_available_roles_from_user_grants(_session, username)
+    username = get_current_user(_session)
+    granted_roles = _get_available_roles_from_user_grants(_session, username)
+    roles = _dedupe_sorted([*roles, *granted_roles])
     if roles:
         return roles
 
