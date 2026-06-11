@@ -51,7 +51,7 @@ CLAIMS_SEARCHABLE_COLUMNS = (
 
 def _claims_cache_scope(session: object | None = None) -> str:
     """Key cached claims by app role/context and runtime session without hashing Snowpark."""
-    role_scope = str(st.session_state.get("selected_sf_role") or "default")
+    role_scope = str(st.session_state.get("selected_app_role") or st.session_state.get("selected_sf_role") or "default")
     session_scope = str(id(session)) if session is not None else "no-session"
     return f"{role_scope}:{session_scope}"
 

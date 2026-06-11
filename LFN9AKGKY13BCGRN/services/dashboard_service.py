@@ -44,7 +44,7 @@ def clear_dashboard_metrics_cache() -> None:
 
 
 def get_dashboard_metrics(session, username: str) -> dict[str, int]:
-    role_scope = str(st.session_state.get("selected_sf_role") or "default")
+    role_scope = str(st.session_state.get("selected_app_role") or st.session_state.get("selected_sf_role") or "default")
     cache_version = int(st.session_state.get("dashboard_metrics_cache_version", 0) or 0)
     cache_scope = f"{role_scope}:{id(session)}:{cache_version}"
     summary = (

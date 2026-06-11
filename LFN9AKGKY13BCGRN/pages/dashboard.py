@@ -505,6 +505,7 @@ def _render_dashboard_view(session, ctx) -> None:
 
     t0 = perf_counter()
     session_ctx = get_session_context_snapshot(session)
+    session_ctx["selected_app_role"] = str(st.session_state.get("selected_app_role") or "")
     session_ctx["selected_sf_role"] = str(st.session_state.get("selected_sf_role") or "")
     logger.info("dashboard_session_context=%s", session_ctx)
     metrics = get_dashboard_metrics(session, username=ctx.username)

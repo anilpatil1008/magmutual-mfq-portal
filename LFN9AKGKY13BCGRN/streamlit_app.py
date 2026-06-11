@@ -29,7 +29,10 @@ load_css()
 session = get_session()
 available_roles, current_sf_role = get_available_roles(session)
 st.session_state["available_roles"] = available_roles
+st.session_state["viewer_granted_roles"] = available_roles
+st.session_state["runtime_owner_role"] = current_sf_role or "Unknown"
 selected_sf_role = get_selected_sf_role(session)
+st.session_state["selected_app_role"] = selected_sf_role
 st.session_state["selected_sf_role"] = selected_sf_role
 
 ctx = get_current_user_context(session)
