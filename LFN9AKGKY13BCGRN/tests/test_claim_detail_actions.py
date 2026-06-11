@@ -23,6 +23,7 @@ for dialog_api_name in ("dialog", "experimental_dialog"):
     if hasattr(st, dialog_api_name):
         delattr(st, dialog_api_name)
 
+import pages.claim_details as claim_details
 from pages.claim_details import (
     _claim_meta_items,
     _claim_title,
@@ -44,6 +45,42 @@ from pages.claim_details import (
 def test_claim_details_imports_without_streamlit_dialog_apis():
     assert not hasattr(st, "dialog")
     assert not hasattr(st, "experimental_dialog")
+
+
+def test_back_to_dashboard_callback_updates_route_without_forcing_rerun(monkeypatch):
+    calls = {
+        "set_dashboard_route": 0,
+        "clear_query_params": 0,
+        "navigate_to_dashboard": 0,
+    }
+
+    class QueryParams:
+        def clear(self):
+            calls["clear_query_params"] += 1
+
+    monkeypatch.setattr(claim_details.st, "query_params", QueryParams(), raising=False)
+    monkeypatch.setattr(
+        claim_details,
+        "set_dashboard_route",
+        lambda: calls.__setitem__(
+            "set_dashboard_route", calls["set_dashboard_route"] + 1
+        ),
+    )
+    monkeypatch.setattr(
+        claim_details,
+        "navigate_to_dashboard",
+        lambda: calls.__setitem__(
+            "navigate_to_dashboard", calls["navigate_to_dashboard"] + 1
+        ),
+    )
+
+    claim_details._go_back_to_dashboard()
+
+    assert calls == {
+        "set_dashboard_route": 1,
+        "clear_query_params": 1,
+        "navigate_to_dashboard": 0,
+    }
 
 
 def test_normalize_status_is_case_whitespace_and_underscore_safe():
