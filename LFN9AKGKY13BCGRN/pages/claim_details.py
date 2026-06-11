@@ -42,12 +42,22 @@ from utils.navigation import (
 logger = logging.getLogger(__name__)
 
 
-DETAIL_TAB_OPTIONS = ["MFQ Form", "Records Summary", "MedCron", "Legal Memo", "Enquiries", "AI Assist", "Documents"]
+DETAIL_TAB_OPTIONS = [
+    "MFQ Form",
+    "Records Summary",
+    "MedCron",
+    "Legal Memo",
+    "Chronological/Timeline",
+    "Enquiries",
+    "AI Assist",
+    "Documents",
+]
 DETAIL_TAB_ICONS = {
     "MFQ Form": "🩺",
     "Records Summary": "📄",
     "MedCron": "⏱️",
     "Legal Memo": "🛡️",
+    "Chronological/Timeline": "🗓️",
     "Enquiries": "💬",
     "AI Assist": "✨",
     "Documents": "📥",
@@ -1381,10 +1391,11 @@ def render_claim_detail_tabs(active_tab: str) -> str:
     selected_tab = active_tab if active_tab in DETAIL_TAB_OPTIONS else DETAIL_TAB_OPTIONS[0]
 
     with safe_container(key="claim_detail_tabs_shell"):
-        columns = safe_columns([1.12, 1.45, 1.0, 1.15, 1.0, 1.0, 1.05], gap="small")
+        columns = safe_columns([1.12, 1.45, 1.0, 1.15, 1.72, 1.0, 1.0, 1.05], gap="small")
         for column, tab_name in zip(columns, DETAIL_TAB_OPTIONS):
             state_class = "active" if tab_name == selected_tab else "inactive"
-            button_key = f"claim_detail_tab_{state_class}_{tab_name.lower().replace(' ', '_')}"
+            tab_key_suffix = re.sub(r"[^a-z0-9_]+", "_", tab_name.lower().replace(" ", "_")).strip("_")
+            button_key = f"claim_detail_tab_{state_class}_{tab_key_suffix}"
             label = f"{DETAIL_TAB_ICONS[tab_name]}  {tab_name}"
             with column:
                 if safe_button(label, key=button_key, use_container_width=True):
@@ -1421,6 +1432,10 @@ def render_legal_memo_tab(session, claim_id: str) -> None:
         label="Loading legal memo...",
     )
     _render_text_tab(legal_memo, "No legal memo available.")
+
+
+def render_chronological_timeline_tab() -> None:
+    st.info("No data available as of now.")
 
 
 def render_enquiries_tab(session, claim_id: str) -> None:
@@ -1517,6 +1532,8 @@ def render(session, ctx) -> None:
         render_medcron_tab(session, claim_id)
     elif selected_tab == "Legal Memo":
         render_legal_memo_tab(session, claim_id)
+    elif selected_tab == "Chronological/Timeline":
+        render_chronological_timeline_tab()
     elif selected_tab == "Enquiries":
         render_enquiries_tab(session, claim_id)
     elif selected_tab == "AI Assist":
