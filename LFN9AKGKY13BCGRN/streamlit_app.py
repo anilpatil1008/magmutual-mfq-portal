@@ -5,6 +5,7 @@ from components.layout import load_css, render_header, render_sidebar
 from pages import claim_details, dashboard, reports
 from services.notification_service import get_user_notifications
 from services.rbac_service import get_available_roles, get_current_user_context, get_selected_sf_role
+from services.snowflake_context import render_role_debug_expander
 from services.snowflake_service import get_session
 from core.snowflake_session import is_active_session_available
 from utils.navigation import (
@@ -42,6 +43,8 @@ if is_debug_enabled():
         f"Debug: Streamlit {st.__version__} | "
         f"active Snowflake session: {is_active_session_available()}"
     )
+
+render_role_debug_expander(session)
 
 if "active_page" not in st.session_state:
     st.session_state.active_page = DASHBOARD_PAGE
