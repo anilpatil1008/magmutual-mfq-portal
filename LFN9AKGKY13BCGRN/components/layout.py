@@ -52,22 +52,32 @@ def load_css() -> None:
 
 
 def _render_role_selector(session, current_role: str) -> None:
-    role_options = [str(role) for role in st.session_state.get("available_roles", []) if str(role).strip()]
+    role_options = [_clean_profile_value(role) for role in st.session_state.get("available_roles", [])]
+    role_options = [role for role in role_options if role]
+    current_role = _clean_profile_value(current_role) or "Unknown"
+
     if not role_options:
         role_options = [current_role]
-    elif current_role not in role_options:
-        role_options = [current_role, *role_options]
+
+    selected_context_role = _clean_profile_value(st.session_state.get("selected_sf_role"))
+    if selected_context_role and selected_context_role in role_options:
+        default_role = selected_context_role
+    elif current_role in role_options:
+        default_role = current_role
+    else:
+        default_role = role_options[0]
 
     selected_role = st.selectbox(
         "Role",
         role_options,
-        index=role_options.index(current_role),
+        index=role_options.index(default_role),
         key="header_role_select",
         label_visibility="collapsed",
     )
 
-    if selected_role != current_role:
-        st.session_state["selected_sf_role"] = str(selected_role or "").strip()
+    selected_role = _clean_profile_value(selected_role) or "Unknown"
+    if selected_role != st.session_state.get("selected_sf_role"):
+        st.session_state["selected_sf_role"] = selected_role
         safe_rerun()
 
 
@@ -81,10 +91,12 @@ def _to_title_name(raw_value: str) -> str:
 
 def _clean_profile_value(value: object) -> str:
     raw = str(value or "").strip()
-    if not raw:
+    if not raw or raw.casefold() in {"none", "null", "nan"}:
         return ""
     plain = re.sub(r"<[^>]+>", " ", unescape(raw))
     plain = re.sub(r"\s+", " ", plain).strip()
+    if plain.casefold() in {"none", "null", "nan"}:
+        return ""
     return plain
 
 
@@ -97,26 +109,26 @@ def _first_non_empty(*values: object) -> str:
 
 
 def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str]:
-    username = _clean_profile_value(getattr(ctx, "username", ""))
+    username = _first_non_empty(getattr(ctx, "username", ""), st.session_state.get("username"))
 
     full_name_candidates = [
+        getattr(ctx, "display_name", None),
         getattr(ctx, "full_name", None),
         getattr(ctx, "name", None),
+        st.session_state.get("display_name"),
         st.session_state.get("full_name"),
         st.session_state.get("user_full_name"),
     ]
     user_profile = st.session_state.get("user_profile")
     if isinstance(user_profile, dict):
-        full_name_candidates.extend([user_profile.get("full_name"), user_profile.get("name")])
+        full_name_candidates.extend([user_profile.get("display_name"), user_profile.get("full_name"), user_profile.get("name")])
 
-    full_name = _first_non_empty(*full_name_candidates)
-
-    if not full_name:
-        full_name = _to_title_name(username) or "Unknown User"
+    full_name = _first_non_empty(*full_name_candidates, username) or "User"
+    username = username or "Unknown"
 
     name_parts = [part for part in full_name.split() if part]
     short_name = " ".join(name_parts[:2]) if len(name_parts) >= 2 else full_name
-    short_name = short_name.strip() or "Unknown User"
+    short_name = short_name.strip() or "User"
 
     email_candidates = [
         getattr(ctx, "email", None),
@@ -128,7 +140,7 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str]:
 
     email_value = _first_non_empty(*email_candidates)
     if "@" not in email_value:
-        email_value = ""
+        email_value = "N/A"
 
     sf_role = _first_non_empty(
         st.session_state.get("selected_sf_role"),
@@ -136,6 +148,8 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str]:
         getattr(ctx, "sf_role", None),
         st.session_state.get("sf_role"),
     )
+
+    sf_role = sf_role or "Unknown"
 
     initials = "".join(part[0] for part in short_name.split()[:2]).upper() or "U"
     return short_name, full_name, username, email_value, sf_role, initials
@@ -146,17 +160,17 @@ def render_header(session, ctx, notifications_df) -> None:
     unread = int((~notifications_df["IS_READ"]).sum()) if "IS_READ" in notifications_df.columns else 0
 
     short_name, full_name, username, email, sf_role, initials = _resolve_profile_display(ctx)
-    safe_short_name = escape(short_name or "Profile")
-    safe_full_name = escape(full_name or "N/A")
-    safe_username = escape(username or "N/A")
+    safe_short_name = escape(short_name or "User")
+    safe_full_name = escape(full_name or "User")
+    safe_username = escape(username or "Unknown")
     safe_email = escape(email or "N/A")
-    safe_sf_role = escape(sf_role or "N/A")
+    safe_sf_role = escape(sf_role or "Unknown")
 
     header_container = safe_container(key="app_topbar")
     actions_container = safe_child_container(header_container, key="portal_header_actions")
     role_col, bell_col, profile_col = safe_child_columns(actions_container, [380, 120, 330], gap="small")
 
-    active_sf_role = st.session_state.get("selected_sf_role") or sf_role or ctx.sf_role
+    active_sf_role = st.session_state.get("selected_sf_role") or sf_role or getattr(ctx, "sf_role", "") or "Unknown"
     with role_col:
         _render_role_selector(session, active_sf_role)
 
