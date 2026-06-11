@@ -116,46 +116,29 @@ def quote_snowflake_literal(value: str) -> str:
 
 
 def _get_streamlit_user_value(attribute_name: str) -> str:
-    """Read viewer metadata from Streamlit identity, preferring st.user."""
-    for user_container_name in ("user", "experimental_user"):
+    """Read viewer metadata from Streamlit identity via st.user."""
+    try:
+        user = getattr(st, "user", None)
+    except Exception as ex:  # pragma: no cover - runtime compatibility guard
+        _debug_log("Unable to read st.user.%s: %s", attribute_name, ex)
+        return ""
+
+    if user is None:
+        return ""
+
+    value = ""
+    try:
+        value = getattr(user, attribute_name, "")
+    except Exception as ex:  # pragma: no cover - runtime compatibility guard
+        _debug_log("Unable to read st.user.%s attribute: %s", attribute_name, ex)
+
+    if not value and hasattr(user, "get"):
         try:
-            user = getattr(st, user_container_name, None)
+            value = user.get(attribute_name, "")
         except Exception as ex:  # pragma: no cover - runtime compatibility guard
-            _debug_log(
-                "Unable to read st.%s.%s: %s", user_container_name, attribute_name, ex
-            )
-            continue
+            _debug_log("Unable to read st.user[%s]: %s", attribute_name, ex)
 
-        if user is None:
-            continue
-
-        value = ""
-        try:
-            value = getattr(user, attribute_name, "")
-        except Exception as ex:  # pragma: no cover - runtime compatibility guard
-            _debug_log(
-                "Unable to read st.%s.%s attribute: %s",
-                user_container_name,
-                attribute_name,
-                ex,
-            )
-
-        if not value and hasattr(user, "get"):
-            try:
-                value = user.get(attribute_name, "")
-            except Exception as ex:  # pragma: no cover - runtime compatibility guard
-                _debug_log(
-                    "Unable to read st.%s[%s]: %s",
-                    user_container_name,
-                    attribute_name,
-                    ex,
-                )
-
-        cleaned = _clean_context_value(value)
-        if cleaned:
-            return cleaned
-
-    return ""
+    return _clean_context_value(value)
 
 
 def _get_current_user_from_sql(session) -> str:
