@@ -242,24 +242,50 @@ def get_available_roles_for_current_user(_session) -> list[str]:
     return [current_role] if current_role else []
 
 
+def get_role_selector_state(
+    available_roles: list[str], current_role: str, selected_role: object = ""
+) -> tuple[list[str], str]:
+    """Return dropdown options and the role that should display as selected.
+
+    Snowflake's ``CURRENT_AVAILABLE_ROLES()`` drives the role options.  The
+    current session role is also included so the user's login/default role is
+    always visible and is selected by default unless the user has already chosen
+    another available role.
+    """
+    current_role = _clean_context_value(current_role)
+    selected_role = _clean_context_value(selected_role)
+    role_options = _dedupe_sorted([*available_roles, current_role])
+
+    if selected_role and selected_role in role_options:
+        default_role = selected_role
+    elif current_role and current_role in role_options:
+        default_role = current_role
+    elif role_options:
+        default_role = role_options[0]
+    else:
+        default_role = current_role or "Unknown"
+        role_options = [default_role]
+
+    return role_options, default_role
+
+
 def get_available_roles(session) -> tuple[list[str], str]:
     current_role = get_current_role(session)
     available_roles = get_available_roles_for_current_user(_session=session)
-    if current_role:
-        available_roles = _dedupe_sorted([*available_roles, current_role])
-    return available_roles, current_role
+    role_options, _default_role = get_role_selector_state(
+        available_roles, current_role
+    )
+    return role_options, current_role
 
 
 def get_selected_sf_role(session) -> str:
     available_roles, current_role = get_available_roles(session)
-    selected_role = _clean_context_value(st.session_state.get("selected_sf_role"))
-    if selected_role and selected_role in available_roles:
-        return selected_role
-    if current_role and current_role in available_roles:
-        return current_role
-    if available_roles:
-        return available_roles[0]
-    return current_role or "Unknown"
+    _role_options, default_role = get_role_selector_state(
+        available_roles,
+        current_role,
+        st.session_state.get("selected_sf_role"),
+    )
+    return default_role
 
 
 def get_current_user_context(session) -> UserContext:

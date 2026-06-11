@@ -10,6 +10,7 @@ import streamlit as st
 from utils.streamlit_compat import safe_button, safe_child_columns, safe_child_container, safe_container, safe_popover, safe_rerun
 
 from components.notifications import render_notification_center
+from services.rbac_service import get_role_selector_state
 from utils.navigation import (
     CLAIM_DETAILS_PAGE,
     CLAIM_DETAILS_VIEW,
@@ -52,20 +53,11 @@ def load_css() -> None:
 
 
 def _render_role_selector(session, current_role: str) -> None:
-    role_options = [_clean_profile_value(role) for role in st.session_state.get("available_roles", [])]
-    role_options = [role for role in role_options if role]
-    current_role = _clean_profile_value(current_role) or "Unknown"
-
-    if not role_options:
-        role_options = [current_role]
-
-    selected_context_role = _clean_profile_value(st.session_state.get("selected_sf_role"))
-    if selected_context_role and selected_context_role in role_options:
-        default_role = selected_context_role
-    elif current_role in role_options:
-        default_role = current_role
-    else:
-        default_role = role_options[0]
+    role_options, default_role = get_role_selector_state(
+        st.session_state.get("available_roles", []),
+        current_role,
+        st.session_state.get("selected_sf_role"),
+    )
 
     selected_role = st.selectbox(
         "Role",
