@@ -6,6 +6,7 @@ import logging
 from time import perf_counter
 
 import streamlit as st
+from utils.streamlit_compat import safe_columns, safe_container, safe_popover, safe_rerun
 
 from components.cards import render_kpi_cards
 from components.tables import render_live_claims_search, render_recent_claims_table
@@ -164,7 +165,7 @@ def _toggle_dashboard_multi_filter(state_key: str, value: str, all_label: str | 
     if current_values != new_values:
         st.session_state[state_key] = new_values
         _reset_recent_claims_pagination()
-        st.rerun()
+        safe_rerun()
 
 
 def _render_filter_chip_group(
@@ -176,7 +177,7 @@ def _render_filter_chip_group(
 ) -> None:
     st.markdown(f"<p class='mfq-filter-section-label'>{escape(title)}</p>", unsafe_allow_html=True)
     options_with_all: list[str] | list[tuple[str, str]] = [all_label, *options]
-    columns = st.columns(3, gap="small")
+    columns = safe_columns(3, gap="small")
     selected_values = _selected_list(state_key)
     for index, option in enumerate(options_with_all):
         value, label = option if isinstance(option, tuple) else (option, option)
@@ -184,7 +185,7 @@ def _render_filter_chip_group(
         state_suffix = "selected" if selected else "unselected"
         chip_key = f"filter_chip_{group_key}_{_filter_button_slug(str(value))}_{state_suffix}"
         with columns[index % 3]:
-            with st.container(key=chip_key):
+            with safe_container(key=chip_key):
                 if st.button(str(label), key=f"{chip_key}_button", use_container_width=True):
                     _toggle_dashboard_multi_filter(state_key, str(value), all_label=all_label)
 
@@ -214,7 +215,7 @@ def _set_date_requested_quick_filter(label: str) -> None:
         st.session_state["date_requested_to"] = to_date
         _refresh_date_requested_widgets()
         _reset_recent_claims_pagination()
-        st.rerun()
+        safe_rerun()
 
 
 def _date_quick_filter_is_selected(label: str) -> bool:
@@ -236,18 +237,18 @@ def _date_quick_filter_is_selected(label: str) -> bool:
 
 def _render_date_requested_filter() -> None:
     st.markdown("<p class='mfq-filter-section-label'>Date Requested</p>", unsafe_allow_html=True)
-    chip_columns = st.columns(3, gap="small")
+    chip_columns = safe_columns(3, gap="small")
     for index, label in enumerate(DATE_REQUESTED_QUICK_FILTERS):
         selected = _date_quick_filter_is_selected(label)
         state_suffix = "selected" if selected else "unselected"
         chip_key = f"filter_chip_date_requested_{_filter_button_slug(label)}_{state_suffix}"
         with chip_columns[index % 3]:
-            with st.container(key=chip_key):
+            with safe_container(key=chip_key):
                 if st.button(label, key=f"{chip_key}_button", use_container_width=True):
                     _set_date_requested_quick_filter(label)
 
     widget_version = int(st.session_state.get("date_requested_widget_version", 0) or 0)
-    from_col, to_col = st.columns(2, gap="small")
+    from_col, to_col = safe_columns(2, gap="small")
     with from_col:
         from_date = st.date_input(
             "From Date",
@@ -433,7 +434,7 @@ def _render_dashboard_filter_controls(session) -> None:
 
 
 def _render_dashboard_header(session, display_name: str) -> None:
-    header_left, header_right = st.columns([8, 2], vertical_alignment="top")
+    header_left, header_right = safe_columns([8, 2], vertical_alignment="top")
     with header_left:
         st.title("Dashboard")
         if display_name:
@@ -450,21 +451,17 @@ def _render_dashboard_header(session, display_name: str) -> None:
                 unsafe_allow_html=True,
             )
     with header_right:
-        with st.container(key="dashboard_header_actions"):
+        with safe_container(key="dashboard_header_actions"):
             st.markdown("<div class='dashboard-filter-button-wrapper'>", unsafe_allow_html=True)
-            if hasattr(st, "popover"):
-                active_filter_count = _active_dashboard_filter_count()
-                filter_label = f"Filters ({active_filter_count})" if active_filter_count else "Filters"
-                with st.popover(
-                    filter_label,
-                    icon=":material/filter_list:",
-                    width="content",
-                    key="dashboard_filters_popover",
-                ):
-                    _render_dashboard_filter_controls(session)
-            else:
-                with st.expander("Filters", expanded=False):
-                    _render_dashboard_filter_controls(session)
+            active_filter_count = _active_dashboard_filter_count()
+            filter_label = f"Filters ({active_filter_count})" if active_filter_count else "Filters"
+            with safe_popover(
+                filter_label,
+                icon=":material/filter_list:",
+                width="content",
+                key="dashboard_filters_popover",
+            ):
+                _render_dashboard_filter_controls(session)
             st.markdown("</div>", unsafe_allow_html=True)
 
 
@@ -522,9 +519,9 @@ def _render_dashboard_view(session, ctx) -> None:
     search_state_key = _claims_search_state_key(selected_bucket_for_search)
     search = _claims_search_text(selected_bucket_for_search)
 
-    with st.container(key="recent_claims_card"):
-        with st.container(key="recent_claims_toolbar"):
-            header_left, header_right = st.columns([4, 2], vertical_alignment="top")
+    with safe_container(key="recent_claims_card"):
+        with safe_container(key="recent_claims_toolbar"):
+            header_left, header_right = safe_columns([4, 2], vertical_alignment="top")
             with header_left:
                 st.markdown(
                     (
@@ -536,7 +533,7 @@ def _render_dashboard_view(session, ctx) -> None:
                     unsafe_allow_html=True,
                 )
             with header_right:
-                with st.container(key="recent_claims_search"):
+                with safe_container(key="recent_claims_search"):
                     live_search = render_live_claims_search(
                         value=search,
                         table_key="dashboard_claims_search",

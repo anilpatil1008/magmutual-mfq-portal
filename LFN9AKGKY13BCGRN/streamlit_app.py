@@ -1,4 +1,5 @@
 import streamlit as st
+from utils.streamlit_compat import safe_child_container, safe_container
 
 from components.layout import load_css, render_header, render_sidebar
 from pages import claim_details, dashboard, reports
@@ -113,9 +114,9 @@ selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
 # Dashboard elements (especially custom-component iframes from Recent Claims)
 # from remaining mounted when Review navigates to Claim Details and then back
 # to Dashboard in the same browser session.
-with st.container(key="app_main_content"):
+with safe_container(key="app_main_content"):
     active_view_slot = st.empty()
-    with active_view_slot.container(key=f"active_view_{current_view}"):
+    with safe_child_container(active_view_slot, key=f"active_view_{current_view}"):
         if current_view == CLAIM_DETAILS_VIEW and selected_claim_id:
             claim_details.render(session=session, ctx=ctx)
             st.stop()

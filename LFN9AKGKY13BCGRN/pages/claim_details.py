@@ -10,6 +10,7 @@ from time import perf_counter
 
 import pandas as pd
 import streamlit as st
+from utils.streamlit_compat import has_dialog, safe_columns, safe_container, safe_dataframe, safe_dialog, safe_rerun
 
 from components.badges import (
     format_status_label,
@@ -503,8 +504,8 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
         actions,
     )
 
-    with st.container(key="review_header_card"):
-        left_col, action_col = st.columns([5.2, 2.1], vertical_alignment="top")
+    with safe_container(key="review_header_card"):
+        left_col, action_col = safe_columns([5.2, 2.1], vertical_alignment="top")
         with left_col:
             priority_badge_html = (
                 f"<span class='review-pill review-priority {escape(priority_class)} review-priority-{escape(_priority_badge_class(priority))}'>{escape(priority)}</span>"
@@ -530,7 +531,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
 
         with action_col:
             if actions:
-                with st.container(key="claim_header_actions"):
+                with safe_container(key="claim_header_actions"):
                     if "assign_to_faculty" in actions and st.button(
                         assign_label,
                         key=f"assign_to_faculty_{claim_id}",
@@ -550,7 +551,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
                         update_claim_status(session, claim_id, "Approved")
                         _invalidate_claim_caches(claim_id, "claim_details_cache", "claim_history_cache")
                         st.success("Claim approved.")
-                        st.rerun()
+                        safe_rerun()
 
 
 def _go_back_to_dashboard() -> None:
@@ -559,7 +560,7 @@ def _go_back_to_dashboard() -> None:
 
 
 def _render_breadcrumb(claim_id: str) -> None:
-    with st.container(key="review_breadcrumb_row"):
+    with safe_container(key="review_breadcrumb_row"):
         st.markdown("<div class='review-breadcrumb'>", unsafe_allow_html=True)
         st.button(
             f"← Back to Dashboard / {claim_id}",
@@ -616,7 +617,7 @@ def _render_confidence_panel(workspace: dict) -> None:
 
     st.markdown("<div class='confidence-grid-title'>SECTION-WISE CONFIDENCE</div>", unsafe_allow_html=True)
     st.markdown("<div class='confidence-grid'>", unsafe_allow_html=True)
-    left, right = st.columns(2, gap="small")
+    left, right = safe_columns(2, gap="small")
     moderate_or_low_sections: list[str] = []
     ordered_rows = list(section_conf.iterrows())
     midpoint = (len(ordered_rows) + 1) // 2
@@ -827,7 +828,7 @@ def render_assign_medical_faculty_form(session, ctx, claim_id: str, sections_df:
     st.session_state[selected_section_ids_key] = sorted(selected_set)
 
     st.markdown("<div class='assign-modal-section-head'>", unsafe_allow_html=True)
-    title_col, count_col = st.columns([4, 1.2], vertical_alignment="center")
+    title_col, count_col = safe_columns([4, 1.2], vertical_alignment="center")
     with title_col:
         st.markdown("**Sections for Review**")
     with count_col:
@@ -842,7 +843,7 @@ def render_assign_medical_faculty_form(session, ctx, claim_id: str, sections_df:
         st.session_state[selected_section_ids_key] = all_section_ids if select_all_clicked else []
 
     selected_set = set(st.session_state[selected_section_ids_key])
-    with st.container(border=True, height=260):
+    with safe_container(border=True, height=260):
         for item in section_options:
             widget_key = f"assign_sec_{claim_id}_{item['id']}"
             expected_checked = item["id"] in selected_set
@@ -880,11 +881,11 @@ def render_assign_medical_faculty_form(session, ctx, claim_id: str, sections_df:
     selection_count = len(st.session_state[selected_section_ids_key])
     can_assign = selection_count > 0 and bool(chosen_faculty)
 
-    footer_cols = st.columns([3.2, 1.1, 1.8], vertical_alignment="center")
+    footer_cols = safe_columns([3.2, 1.1, 1.8], vertical_alignment="center")
     with footer_cols[1]:
         if st.button("Cancel", key=f"cancel_assign_{claim_id}", use_container_width=True):
             _close_assign_medical_faculty(claim_id)
-            st.rerun()
+            safe_rerun()
     with footer_cols[2]:
         assign_clicked = st.button(
             f"Assign Claim ({selection_count} sections)",
@@ -905,7 +906,7 @@ def render_assign_medical_faculty_form(session, ctx, claim_id: str, sections_df:
             _close_assign_medical_faculty(claim_id)
             _invalidate_claim_caches(claim_id, "claim_details_cache", "claim_history_cache", "mfq_answers_cache", "mfq_form_cache")
             st.success(message)
-            st.rerun()
+            safe_rerun()
         st.error(message)
 
 
@@ -922,11 +923,7 @@ def _close_assign_medical_faculty(claim_id: str) -> None:
 
 
 def open_assign_medical_faculty(session, ctx, claim_id: str, sections_df: pd.DataFrame) -> None:
-    dialog_decorator = None
-    if hasattr(st, "dialog"):
-        dialog_decorator = st.dialog("Assign Medical Faculty", width="large")
-    elif hasattr(st, "experimental_dialog"):
-        dialog_decorator = st.experimental_dialog("Assign Medical Faculty", width="large")
+    dialog_decorator = safe_dialog("Assign Medical Faculty", width="large") if has_dialog() else None
 
     if dialog_decorator:
         @dialog_decorator
@@ -944,7 +941,7 @@ def render_assign_medical_faculty_panel(session, ctx, claim_id: str, sections_df
     if not st.session_state.get(_assign_faculty_panel_key(claim_id), False):
         return
 
-    with st.container(border=True):
+    with safe_container(border=True):
         st.subheader("Assign Medical Faculty")
         render_assign_medical_faculty_form(session, ctx, claim_id, sections_df)
 
@@ -1028,7 +1025,7 @@ def _render_questions(
             confidence_badge_html = (
                 f"<span class='mfq-confidence-badge tone-{_tone_for_conf(confidence_score)}'>{_fmt_conf(confidence_score)}</span>"
             )
-        with st.container(border=False):
+        with safe_container(border=False):
             st.markdown(
                 "<div class='mfq-question-header'>"
                 f"<div class='mfq-question-content mfq-question-text'>{question_order}. {escape(question_text)}</div>"
@@ -1053,7 +1050,7 @@ def _render_questions(
             answer_widget_key = _safe_widget_key("ans", effective_claim_id, section_id_value, row, idx)
 
             st.markdown("<div class='mfq-answer-wrap'></div>", unsafe_allow_html=True)
-            with st.container(border=False):
+            with safe_container(border=False):
                 if answer_type in {"BOOLEAN", "YES_NO", "YES_NO_UNCLEAR", "YES_NO_UNCLEAR_NA"}:
                     type_options = {
                         "BOOLEAN": ["Yes", "No"],
@@ -1155,7 +1152,7 @@ def _render_questions(
             child_rows = children_by_parent.get(parent_id, [])
             if show_question_cards:
                 st.markdown("<div class='mfq-question-card'></div>", unsafe_allow_html=True)
-                with st.container(border=True):
+                with safe_container(border=True):
                     render_question_input(parent, section_id=section_id, is_child=False, idx=question_index)
                     for child_row in child_rows:
                         render_question_input(child_row, section_id=section_id, is_child=True, idx=question_index)
@@ -1220,7 +1217,7 @@ def _render_docs_tab(documents: pd.DataFrame) -> None:
         st.info("No claim documents found.")
         return
     cols = [c for c in ["FILE_NAME", "DOC_TYPE", "OCR_STATUS", "CREATED_TS"] if c in documents.columns]
-    st.dataframe(documents[cols], use_container_width=True, hide_index=True)
+    safe_dataframe(documents[cols], use_container_width=True, hide_index=True)
 
 
 def _render_missing_objects(missing_objects: list[str]) -> None:
@@ -1244,7 +1241,7 @@ def _render_summary_tab(session, claim_id: str, claim: dict) -> None:
         label="Loading summary...",
     )
     st.markdown("### Claim Summary")
-    detail_cols = st.columns(4)
+    detail_cols = safe_columns(4)
     detail_items = [
         ("Claim Type", _safe_display(claim.get("CLAIM_TYPE"))),
         ("Workflow Status", _first_safe_display(claim, ("WORKFLOW_STATUS", "MFQ_STATUS", "STATUS"))),
@@ -1272,8 +1269,8 @@ def _render_mfq_tab(session, ctx, claim_id: str, claim: dict) -> None:
     can_edit = can_edit_claim(str(claim.get("MFQ_STATUS", "")), claim.get("ASSIGNED_TO"), ctx.username)
     editable_section_ids = get_editable_section_ids_for_user(session, str(claim_id), ctx.username)
     save_clicked = False
-    with st.container(key="mfq_header_card"):
-        title_col, edit_col = st.columns([7.4, 1.4], vertical_alignment="center")
+    with safe_container(key="mfq_header_card"):
+        title_col, edit_col = safe_columns([7.4, 1.4], vertical_alignment="center")
         with title_col:
             st.markdown(
                 "<section class='mfq-page'><div class='mfq-header'><div class='mfq-header-left'><h2>Medical Faculty Questionnaire</h2><p>Complete evaluation based on accepted medical practice standards.</p></div></div></section>",
@@ -1283,14 +1280,14 @@ def _render_mfq_tab(session, ctx, claim_id: str, claim: dict) -> None:
             if not st.session_state[edit_key]:
                 if st.button("✎ Edit", key="mfq_edit_btn", type="secondary", use_container_width=True, disabled=not can_edit):
                     st.session_state[edit_key] = True
-                    st.rerun()
+                    safe_rerun()
                 if not can_edit:
                     st.caption("Read-only")
             else:
                 save_clicked = st.button("Save Draft", key="mfq_save_btn", type="primary", use_container_width=True)
                 if st.button("Cancel", key="mfq_cancel_btn", type="secondary", use_container_width=True):
                     st.session_state[edit_key] = False
-                    st.rerun()
+                    safe_rerun()
 
     if workspace.get("missing_objects"):
         st.error(
@@ -1307,9 +1304,9 @@ def _render_mfq_tab(session, ctx, claim_id: str, claim: dict) -> None:
         if _safe_display(claim.get(key), fallback="")
     }
     if synopsis_fields:
-        synopsis_col, questions_col = st.columns([1, 2.15], gap="large")
+        synopsis_col, questions_col = safe_columns([1, 2.15], gap="large")
         with synopsis_col:
-            with st.container(key=f"mfq_synopsis_card_{claim_id}"):
+            with safe_container(key=f"mfq_synopsis_card_{claim_id}"):
                 _render_synopsis_panel(claim)
         with questions_col:
             rendered_questions = _render_questions(
@@ -1345,7 +1342,7 @@ def _render_mfq_tab(session, ctx, claim_id: str, claim: dict) -> None:
         _invalidate_claim_caches(claim_id, "mfq_answers_cache", "mfq_form_cache")
         st.session_state[edit_key] = False
         st.success("MFQ answers saved successfully.")
-        st.rerun()
+        safe_rerun()
 
 
 def _render_history_tab(session, claim_id: str) -> None:
@@ -1358,7 +1355,7 @@ def _render_history_tab(session, claim_id: str) -> None:
     if history_df.empty:
         st.info("No history data available for this claim.")
     else:
-        st.dataframe(history_df, use_container_width=True, hide_index=True)
+        safe_dataframe(history_df, use_container_width=True, hide_index=True)
 
 
 def _render_documents_lazy_tab(session, claim_id: str) -> None:
@@ -1375,8 +1372,8 @@ def render_claim_detail_tabs(active_tab: str) -> str:
     """Render the polished claim-detail tab bar without mounting inactive tab content."""
     selected_tab = active_tab if active_tab in DETAIL_TAB_OPTIONS else DETAIL_TAB_OPTIONS[0]
 
-    with st.container(key="claim_detail_tabs_shell"):
-        columns = st.columns([1.12, 1.45, 1.0, 1.15, 1.0, 1.0, 1.05], gap="small")
+    with safe_container(key="claim_detail_tabs_shell"):
+        columns = safe_columns([1.12, 1.45, 1.0, 1.15, 1.0, 1.0, 1.05], gap="small")
         for column, tab_name in zip(columns, DETAIL_TAB_OPTIONS):
             state_class = "active" if tab_name == selected_tab else "inactive"
             button_key = f"claim_detail_tab_{state_class}_{tab_name.lower().replace(' ', '_')}"
@@ -1385,7 +1382,7 @@ def render_claim_detail_tabs(active_tab: str) -> str:
                 if st.button(label, key=button_key, use_container_width=True):
                     selected_tab = tab_name
                     st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY] = tab_name
-                    st.rerun()
+                    safe_rerun()
 
     return selected_tab
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 
 import streamlit as st
+from utils.streamlit_compat import safe_columns
 
 from components.tables import render_claims_table, render_live_claims_search
 from services.claim_service import get_claims_queue, get_status_values
@@ -21,7 +22,7 @@ def render(session, ctx) -> None:
     if "claims_sort_order" not in st.session_state:
         st.session_state["claims_sort_order"] = "Newest"
 
-    f1, f2, f3 = st.columns([3, 2, 2])
+    f1, f2, f3 = safe_columns([3, 2, 2])
     with f1:
         live_search = render_live_claims_search(
             value=str(st.session_state.get("claims_search_text") or ""),

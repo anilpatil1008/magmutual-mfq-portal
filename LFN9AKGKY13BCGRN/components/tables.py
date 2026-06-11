@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 import pandas as pd
 import streamlit as st
+from utils.streamlit_compat import safe_columns, safe_container, safe_rerun
 import streamlit.components.v1 as components
 
 from components.badges import (
@@ -543,7 +544,7 @@ def render_recent_claims_table(
         st.info(empty_message)
         return
 
-    with st.container(key=f"{stable_table_key}_container"):
+    with safe_container(key=f"{stable_table_key}_container"):
         header_cells: list[str] = []
         for column in RECENT_CLAIMS_COLUMNS:
             col_key = column["key"]
@@ -640,15 +641,15 @@ def render_recent_claims_table(
                 st.session_state["last_review_event"] = None
                 _open_claim_details(claim_id)
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
-        pager_cols = st.columns([3, 1], vertical_alignment="center")
+        pager_cols = safe_columns([3, 1], vertical_alignment="center")
         pager_cols[0].markdown(f"<div class='recent-claims-pagination-summary'>{summary_text}</div>", unsafe_allow_html=True)
         with pager_cols[1]:
-            prev_col, next_col = st.columns(2)
+            prev_col, next_col = safe_columns(2)
             with prev_col:
                 if st.button("Previous", key=f"{pagination_key_base}_prev", disabled=current_page <= 1, use_container_width=True):
                     st.session_state[page_state_key] = max(1, current_page - 1)
-                    st.rerun()
+                    safe_rerun()
             with next_col:
                 if st.button("Next", key=f"{pagination_key_base}_next", disabled=current_page >= total_pages, use_container_width=True):
                     st.session_state[page_state_key] = min(total_pages, current_page + 1)
-                    st.rerun()
+                    safe_rerun()

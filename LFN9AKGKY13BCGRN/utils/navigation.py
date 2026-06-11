@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import streamlit as st
+from utils.streamlit_compat import safe_rerun
 
 DASHBOARD_PAGE = "Dashboard"
 REPORTS_PAGE = "Reports"
@@ -98,19 +99,19 @@ def set_claim_details_route(claim_id: str) -> None:
 def navigate_to_dashboard() -> None:
     """Navigate to Dashboard and immediately restart Streamlit from the single router."""
     set_dashboard_route()
-    st.rerun()
+    safe_rerun(st)
 
 
 def navigate_to_reports() -> None:
     """Navigate to Reports and immediately restart Streamlit from the single router."""
     set_reports_route()
-    st.rerun()
+    safe_rerun(st)
 
 
 def navigate_to_claim_details(claim_id: str) -> None:
     """Navigate to Claim Details and immediately restart Streamlit from the single router."""
     set_claim_details_route(claim_id)
-    st.rerun()
+    safe_rerun(st)
 
 
 def is_claim_details_route_active() -> bool:
