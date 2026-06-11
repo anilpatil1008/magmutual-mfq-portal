@@ -10,7 +10,7 @@ from time import perf_counter
 
 import pandas as pd
 import streamlit as st
-from utils.streamlit_compat import has_dialog, safe_columns, safe_container, safe_dataframe, safe_dialog, safe_rerun
+from utils.streamlit_compat import has_dialog, safe_button, safe_child_container, safe_columns, safe_container, safe_dataframe, safe_dialog, safe_rerun
 
 from components.badges import (
     format_status_label,
@@ -532,7 +532,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
         with action_col:
             if actions:
                 with safe_container(key="claim_header_actions"):
-                    if "assign_to_faculty" in actions and st.button(
+                    if "assign_to_faculty" in actions and safe_button(
                         assign_label,
                         key=f"assign_to_faculty_{claim_id}",
                         type="primary",
@@ -541,7 +541,7 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
                     ):
                         st.session_state[f"open_assign_modal_{claim_id}"] = True
 
-                    if "approve" in actions and st.button(
+                    if "approve" in actions and safe_button(
                         "Approve",
                         key=f"approve_claim_{claim_id}",
                         type="secondary",
@@ -562,7 +562,7 @@ def _go_back_to_dashboard() -> None:
 def _render_breadcrumb(claim_id: str) -> None:
     with safe_container(key="review_breadcrumb_row"):
         st.markdown("<div class='review-breadcrumb'>", unsafe_allow_html=True)
-        st.button(
+        safe_button(
             f"← Back to Dashboard / {claim_id}",
             key="review_back_to_dashboard",
             on_click=_go_back_to_dashboard,
@@ -883,11 +883,11 @@ def render_assign_medical_faculty_form(session, ctx, claim_id: str, sections_df:
 
     footer_cols = safe_columns([3.2, 1.1, 1.8], vertical_alignment="center")
     with footer_cols[1]:
-        if st.button("Cancel", key=f"cancel_assign_{claim_id}", use_container_width=True):
+        if safe_button("Cancel", key=f"cancel_assign_{claim_id}", use_container_width=True):
             _close_assign_medical_faculty(claim_id)
             safe_rerun()
     with footer_cols[2]:
-        assign_clicked = st.button(
+        assign_clicked = safe_button(
             f"Assign Claim ({selection_count} sections)",
             type="primary",
             disabled=not can_assign,
@@ -1278,14 +1278,14 @@ def _render_mfq_tab(session, ctx, claim_id: str, claim: dict) -> None:
             )
         with edit_col:
             if not st.session_state[edit_key]:
-                if st.button("✎ Edit", key="mfq_edit_btn", type="secondary", use_container_width=True, disabled=not can_edit):
+                if safe_button("✎ Edit", key="mfq_edit_btn", type="secondary", use_container_width=True, disabled=not can_edit):
                     st.session_state[edit_key] = True
                     safe_rerun()
                 if not can_edit:
                     st.caption("Read-only")
             else:
-                save_clicked = st.button("Save Draft", key="mfq_save_btn", type="primary", use_container_width=True)
-                if st.button("Cancel", key="mfq_cancel_btn", type="secondary", use_container_width=True):
+                save_clicked = safe_button("Save Draft", key="mfq_save_btn", type="primary", use_container_width=True)
+                if safe_button("Cancel", key="mfq_cancel_btn", type="secondary", use_container_width=True):
                     st.session_state[edit_key] = False
                     safe_rerun()
 
@@ -1379,7 +1379,7 @@ def render_claim_detail_tabs(active_tab: str) -> str:
             button_key = f"claim_detail_tab_{state_class}_{tab_name.lower().replace(' ', '_')}"
             label = f"{DETAIL_TAB_ICONS[tab_name]}  {tab_name}"
             with column:
-                if st.button(label, key=button_key, use_container_width=True):
+                if safe_button(label, key=button_key, use_container_width=True):
                     selected_tab = tab_name
                     st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY] = tab_name
                     safe_rerun()
@@ -1467,7 +1467,7 @@ def render(session, ctx) -> None:
         logger.info("review_click_to_claim_header_ms=%d claim_id=%s", int((perf_counter() - review_started) * 1000), claim_id)
         st.session_state.pop("review_click_started_at", None)
 
-    with header_slot.container():
+    with safe_child_container(header_slot):
         _render_header(session, ctx, claim_id, claim)
 
     if st.session_state.get(f"open_assign_modal_{claim_id}", False):

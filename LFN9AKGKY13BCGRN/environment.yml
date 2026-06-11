@@ -1,9 +1,8 @@
-name: sf_env
+name: mfq_streamlit_env
 channels:
   - snowflake
-
 dependencies:
-  - python=3.11.*
-  - streamlit=1.35.*
+  - python=3.11
+  - streamlit=1.35.0
   - snowflake-snowpark-python
   - pandas

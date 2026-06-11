@@ -1,11 +1,12 @@
 import streamlit as st
-from utils.streamlit_compat import safe_child_container, safe_container
+from utils.streamlit_compat import is_debug_enabled, safe_child_container, safe_container, safe_set_page_config
 
 from components.layout import load_css, render_header, render_sidebar
 from pages import claim_details, dashboard, reports
 from services.notification_service import get_user_notifications
 from services.rbac_service import get_available_roles, get_current_user_context, get_selected_sf_role
 from services.snowflake_service import get_session
+from core.snowflake_session import is_active_session_available
 from utils.navigation import (
     CLAIM_DETAILS_PAGE,
     CLAIM_DETAILS_VIEW,
@@ -17,7 +18,7 @@ from utils.navigation import (
     set_reports_route,
 )
 
-st.set_page_config(
+safe_set_page_config(
     page_title="MagMutual MFQ Enterprise Portal",
     page_icon="🧭",
     layout="wide",
@@ -32,6 +33,12 @@ selected_sf_role = get_selected_sf_role(session)
 st.session_state["selected_sf_role"] = selected_sf_role
 
 ctx = get_current_user_context(session)
+
+if is_debug_enabled():
+    st.caption(
+        f"Debug: Streamlit {st.__version__} | "
+        f"active Snowflake session: {is_active_session_available()}"
+    )
 
 if "active_page" not in st.session_state:
     st.session_state.active_page = DASHBOARD_PAGE
