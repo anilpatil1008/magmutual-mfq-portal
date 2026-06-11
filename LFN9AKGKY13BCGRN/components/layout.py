@@ -10,7 +10,7 @@ import streamlit as st
 from utils.streamlit_compat import safe_button, safe_child_columns, safe_child_container, safe_container, safe_popover, safe_rerun
 
 from components.notifications import render_notification_center
-from services.snowflake_context import get_current_owner_role, set_selected_app_role
+from services.snowflake_context import set_selected_app_role
 from utils.navigation import (
     CLAIM_DETAILS_PAGE,
     CLAIM_DETAILS_VIEW,
@@ -166,17 +166,11 @@ def _resolve_profile_display(ctx) -> tuple[str, str, str, str, str, str]:
 def render_header(session, ctx, notifications_df) -> None:
     unread = int((~notifications_df["IS_READ"]).sum()) if "IS_READ" in notifications_df.columns else 0
 
-    short_name, full_name, username, email, sf_role, initials = _resolve_profile_display(ctx)
+    short_name, _full_name, username, email, sf_role, initials = _resolve_profile_display(ctx)
     safe_short_name = escape(short_name or "User")
-    safe_full_name = escape(full_name or "User")
     safe_username = escape(username or "Unknown")
     safe_email = escape(email or "N/A")
     safe_sf_role = escape(sf_role or "Unknown")
-    runtime_owner_role = _clean_profile_value(
-        st.session_state.get("runtime_owner_role") or get_current_owner_role(session)
-    ) or "Unknown"
-    safe_runtime_owner_role = escape(runtime_owner_role)
-
     header_container = safe_container(key="app_topbar")
     actions_container = safe_child_container(header_container, key="portal_header_actions")
     role_col, bell_col, profile_col = safe_child_columns(actions_container, [380, 120, 330], gap="small")
@@ -202,11 +196,8 @@ def render_header(session, ctx, notifications_df) -> None:
                         <div class="mm-profile-card-head">
                             <span class="mm-avatar mm-avatar-lg">{escape(initials)}</span>
                             <div class="mm-profile-meta">
-                                <div class="mm-profile-fullname">{safe_full_name}</div>
-                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Name</span><span class="mm-profile-detail-value">{safe_full_name}</span></div>
                                 <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Username</span><span class="mm-profile-detail-value">{safe_username}</span></div>
                                 <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Snowflake Role</span><span class="mm-profile-detail-value">{safe_sf_role}</span></div>
-                                <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Runtime Owner Role</span><span class="mm-profile-detail-value">{safe_runtime_owner_role}</span></div>
                                 <div class="mm-profile-detail-row"><span class="mm-profile-detail-label">Email</span><span class="mm-profile-detail-value">{safe_email}</span></div>
                             </div>
                         </div>
