@@ -35,6 +35,8 @@ Then seed demo data as needed:
 
 ## Local development
 
+Use Python 3.10 or 3.11 locally to match the supported Snowflake Streamlit warehouse runtime range configured in `environment.yml`.
+
 ```bash
 python -m pip install -r requirements.txt
 streamlit run streamlit_app.py
