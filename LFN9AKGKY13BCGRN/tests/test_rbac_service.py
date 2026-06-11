@@ -50,7 +50,7 @@ class _FakeSession:
         self.responses = responses
         self.queries = []
 
-    def sql(self, query):
+    def sql(self, query, params=None):
         self.queries.append(query)
         for marker, response in self.responses:
             if marker in query:
@@ -104,6 +104,7 @@ def test_available_roles_for_dropdown_uses_show_grants_for_streamlit_viewer(monk
     assert rbac_service.get_available_roles_for_dropdown(session) == [
         "FR_MFQ_ANALYST",
         "FR_MFQ_APPDEV",
+        "OTHER_ROLE",
     ]
     assert any('SHOW GRANTS TO USER "APATIL"' in query for query in session.queries)
     assert any("RESULT_SCAN(LAST_QUERY_ID())" in query for query in session.queries)
@@ -182,14 +183,18 @@ def test_get_available_roles_returns_dropdown_options_and_owner_role_context():
     )
 
 
-def test_selected_app_role_defaults_to_appdev_when_available(monkeypatch):
+def test_selected_app_role_defaults_to_viewer_default_role_when_available(monkeypatch):
     monkeypatch.setattr(rbac_service.st, "user", {"user_name": "APATIL"}, raising=False)
     monkeypatch.setattr(rbac_service.st, "experimental_user", None, raising=False)
+    rbac_service.st.session_state.pop("selected_role", None)
     rbac_service.st.session_state.pop("selected_app_role", None)
     rbac_service.st.session_state.pop("selected_sf_role", None)
+    rbac_service.st.session_state.pop("role_default_initialized", None)
     session = _FakeSession(
         [
             ("SHOW GRANTS TO USER", []),
+            ("SHOW USERS LIKE", []),
+            ("default_role", [{"DEFAULT_ROLE": "FR_MFQ_APPDEV"}]),
             (
                 "RESULT_SCAN(LAST_QUERY_ID())",
                 [
@@ -202,5 +207,7 @@ def test_selected_app_role_defaults_to_appdev_when_available(monkeypatch):
     )
 
     assert rbac_service.get_selected_sf_role(session) == "FR_MFQ_APPDEV"
+    assert rbac_service.st.session_state["selected_role"] == "FR_MFQ_APPDEV"
     assert rbac_service.st.session_state["selected_app_role"] == "FR_MFQ_APPDEV"
     assert rbac_service.st.session_state["selected_sf_role"] == "FR_MFQ_APPDEV"
+    assert any("SHOW USERS LIKE 'APATIL'" in query for query in session.queries)

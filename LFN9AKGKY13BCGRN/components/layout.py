@@ -62,7 +62,8 @@ def _render_role_selector(session, current_role: str) -> None:
         role_options = [current_role]
 
     selected_context_role = _clean_profile_value(
-        st.session_state.get("selected_app_role")
+        st.session_state.get("selected_role")
+        or st.session_state.get("selected_app_role")
         or st.session_state.get("selected_sf_role")
     )
     if selected_context_role and selected_context_role in role_options:
