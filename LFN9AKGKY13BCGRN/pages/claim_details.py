@@ -33,7 +33,11 @@ from services.claim_service import (
     update_claim_status,
 )
 from services.rbac_service import can_edit_claim
-from utils.navigation import is_claim_details_route_active, navigate_to_dashboard
+from utils.navigation import (
+    is_claim_details_route_active,
+    navigate_to_dashboard,
+    set_dashboard_route,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -556,7 +560,11 @@ def _render_header(session, ctx, claim_id: str, claim: dict) -> None:
 
 def _go_back_to_dashboard() -> None:
     st.query_params.clear()
-    navigate_to_dashboard()
+    # This handler is wired to a Streamlit button callback. Streamlit already
+    # reruns after callbacks, so calling st.rerun() here only emits a no-op
+    # warning in newer runtimes. Update the route state and let the callback
+    # rerun finish the navigation cleanly.
+    set_dashboard_route()
 
 
 def _render_breadcrumb(claim_id: str) -> None:
