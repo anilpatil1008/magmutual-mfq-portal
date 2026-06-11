@@ -3,10 +3,20 @@ from __future__ import annotations
 from dataclasses import dataclass
 import logging
 import math
+import os
 
 import streamlit as st
 
 logger = logging.getLogger(__name__)
+
+
+def _is_role_debug_enabled() -> bool:
+    return os.getenv("APP_DEBUG", "false").lower() in ("1", "true", "yes", "y")
+
+
+def _debug_log(message: str, *args: object) -> None:
+    if _is_role_debug_enabled():
+        logger.debug(message, *args)
 
 
 @dataclass(frozen=True)
@@ -48,10 +58,6 @@ def _dedupe_sorted(values: list[str]) -> list[str]:
     )
 
 
-def _quote_snowflake_identifier(value: str) -> str:
-    return '"' + value.replace('"', '""') + '"'
-
-
 def _clean_context_value(value: object) -> str:
     if value is None:
         return ""
@@ -68,7 +74,7 @@ def _get_streamlit_user_value(attribute_name: str) -> str:
         try:
             user = getattr(st, user_container_name, None)
         except Exception as ex:  # pragma: no cover - runtime compatibility guard
-            logger.debug(
+            _debug_log(
                 "Unable to read st.%s.%s: %s", user_container_name, attribute_name, ex
             )
             continue
@@ -80,7 +86,7 @@ def _get_streamlit_user_value(attribute_name: str) -> str:
         try:
             value = getattr(user, attribute_name, "")
         except Exception as ex:  # pragma: no cover - runtime compatibility guard
-            logger.debug(
+            _debug_log(
                 "Unable to read st.%s.%s attribute: %s",
                 user_container_name,
                 attribute_name,
@@ -91,7 +97,7 @@ def _get_streamlit_user_value(attribute_name: str) -> str:
             try:
                 value = user.get(attribute_name, "")
             except Exception as ex:  # pragma: no cover - runtime compatibility guard
-                logger.debug(
+                _debug_log(
                     "Unable to read st.%s[%s]: %s",
                     user_container_name,
                     attribute_name,
@@ -110,7 +116,7 @@ def _get_current_user_from_sql(_session) -> str:
         row = _session.sql("SELECT CURRENT_USER() AS USER_NAME").to_pandas().iloc[0]
     except Exception as ex:
         # pragma: no cover - safety path for local/non-Snowflake runtimes
-        logger.warning("Unable to fetch CURRENT_USER(): %s", ex)
+        _debug_log("Unable to fetch CURRENT_USER(): %s", ex)
         return ""
     return _get_first_row_value(row, "USER_NAME", "CURRENT_USER")
 
@@ -140,7 +146,7 @@ def _get_current_role_from_sql(_session) -> str:
         row = _session.sql("SELECT CURRENT_ROLE() AS ROLE_NAME").to_pandas().iloc[0]
     except Exception as ex:
         # pragma: no cover - safety path for local/non-Snowflake runtimes
-        logger.warning("Unable to fetch CURRENT_ROLE(): %s", ex)
+        _debug_log("Unable to fetch CURRENT_ROLE(): %s", ex)
         return ""
     return _get_first_row_value(row, "ROLE_NAME", "CURRENT_ROLE")
 
@@ -157,7 +163,7 @@ def _get_available_roles_from_current_available_roles(_session) -> list[str]:
             ORDER BY ROLE_NAME
         """).to_pandas()
     except Exception as ex:
-        logger.warning("Unable to fetch CURRENT_AVAILABLE_ROLES(): %s", ex)
+        _debug_log("Unable to fetch CURRENT_AVAILABLE_ROLES(): %s", ex)
         return []
 
     if roles_df.empty:
@@ -166,80 +172,93 @@ def _get_available_roles_from_current_available_roles(_session) -> list[str]:
     return _dedupe_sorted(_extract_column_values(roles_df, "ROLE_NAME", "VALUE"))
 
 
-def _get_grants_to_user_candidates(username: str) -> list[str]:
+def _quote_sql_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _get_streamlit_viewer_user_name() -> str:
+    """Return the Snowflake Streamlit viewer username from st.user.user_name."""
+    try:
+        user = getattr(st, "user", None)
+    except Exception as ex:  # pragma: no cover - runtime compatibility guard
+        _debug_log("Unable to read st.user.user_name: %s", ex)
+        return ""
+
+    if user is None:
+        return ""
+
+    value = ""
+    try:
+        value = getattr(user, "user_name", "")
+    except Exception as ex:  # pragma: no cover - runtime compatibility guard
+        _debug_log("Unable to read st.user.user_name attribute: %s", ex)
+
+    if not value and hasattr(user, "get"):
+        try:
+            value = user.get("user_name", "")
+        except Exception as ex:  # pragma: no cover - runtime compatibility guard
+            _debug_log("Unable to read st.user['user_name']: %s", ex)
+
+    return _clean_context_value(value)
+
+
+def _with_public_role(roles: list[str]) -> list[str]:
+    return _dedupe_sorted([*roles, "PUBLIC"])
+
+
+def _get_directly_granted_roles_from_account_usage(_session, username: str) -> list[str]:
     cleaned_username = _clean_context_value(username)
     if not cleaned_username:
         return []
 
-    candidates = [cleaned_username]
-    uppercase_username = cleaned_username.upper()
-    if uppercase_username != cleaned_username:
-        candidates.append(uppercase_username)
-    return candidates
-
-
-def _show_grants_to_user(_session, username: str):
-    for candidate_username in _get_grants_to_user_candidates(username):
-        quoted_username = _quote_snowflake_identifier(candidate_username)
-        try:
-            return _session.sql(f"SHOW GRANTS TO USER {quoted_username}").to_pandas()
-        except Exception as ex:
-            logger.warning(
-                "Unable to fetch SHOW GRANTS TO USER for %s: %s",
-                candidate_username,
-                ex,
-            )
-    return None
-
-
-def _is_user_role_grant(granted_to: str) -> bool:
-    if not granted_to:
-        return True
-    return granted_to.casefold() in {"role", "user"}
-
-
-def _get_available_roles_from_user_grants(_session, username: str) -> list[str]:
-    roles_df = _show_grants_to_user(_session, username)
-    if roles_df is None or roles_df.empty:
+    try:
+        roles_df = _session.sql(f"""
+            SELECT ROLE AS ROLE_NAME
+            FROM SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS
+            WHERE GRANTEE_NAME = UPPER({_quote_sql_literal(cleaned_username)})
+              AND DELETED_ON IS NULL
+            ORDER BY ROLE_NAME
+        """).to_pandas()
+    except Exception as ex:
+        _debug_log(
+            "Unable to fetch SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS roles for %s: %s",
+            cleaned_username,
+            ex,
+        )
         return []
 
-    granted_roles = []
-    granted_to_values = _extract_column_values(roles_df, "granted_to", "GRANTED_TO")
-    role_values = _extract_column_values(roles_df, "role", "ROLE")
-    name_values = _extract_column_values(roles_df, "name", "NAME")
+    return _with_public_role(_extract_column_values(roles_df, "ROLE_NAME", "ROLE"))
 
-    if role_values:
-        for index, role_name in enumerate(role_values):
-            granted_to = (
-                granted_to_values[index]
-                if index < len(granted_to_values)
-                else "user"
-            )
-            if _is_user_role_grant(granted_to):
-                granted_roles.append(role_name)
-    elif name_values:
-        for index, name in enumerate(name_values):
-            granted_to = (
-                granted_to_values[index]
-                if index < len(granted_to_values)
-                else "user"
-            )
-            if _is_user_role_grant(granted_to):
-                granted_roles.append(name)
 
-    return _dedupe_sorted(granted_roles)
+def get_available_roles_for_dropdown(session) -> list[str]:
+    """Load Snowflake role options for the header dropdown without crashing.
+
+    Local development keeps using CURRENT_AVAILABLE_ROLES(). In Snowflake
+    Streamlit, st.user.user_name identifies the viewer while SQL executes in
+    the owner/session context, so query ACCOUNT_USAGE for the viewer's direct
+    grants before falling back to session-scoped role functions.
+    """
+    viewer_username = _get_streamlit_viewer_user_name()
+    if viewer_username:
+        viewer_roles = _get_directly_granted_roles_from_account_usage(
+            session, viewer_username
+        )
+        if viewer_roles:
+            return viewer_roles
+
+    session_roles = _get_available_roles_from_current_available_roles(session)
+    if session_roles:
+        return session_roles
+
+    current_role = get_current_role(session)
+    if current_role:
+        return [current_role]
+
+    return ["Unknown"]
 
 
 def get_available_roles_for_current_user(_session) -> list[str]:
-    roles = _get_available_roles_from_current_available_roles(_session)
-    username = get_current_user(_session)
-    granted_roles = _get_available_roles_from_user_grants(_session, username)
-    roles = _dedupe_sorted([*roles, *granted_roles])
-    if roles:
-        return roles
-
-    current_role = get_current_role(_session)
-    return [current_role] if current_role else []
+    return get_available_roles_for_dropdown(_session)
 
 
 def get_available_roles(session) -> tuple[list[str], str]:
