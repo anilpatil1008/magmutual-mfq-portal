@@ -61,8 +61,9 @@ def _get_first_row_value(row: object, *candidate_names: str) -> str:
     return ""
 
 
-def _quote_sql_literal(value: str) -> str:
-    return "'" + value.replace("'", "''") + "'"
+def quote_snowflake_identifier(identifier: str) -> str:
+    """Return a safely double-quoted Snowflake identifier."""
+    return '"' + str(identifier or "").replace('"', '""') + '"'
 
 
 def _get_streamlit_user_value(attribute_name: str) -> str:
@@ -158,69 +159,81 @@ def get_current_owner_role(session) -> str:
     return _get_first_row_value(row, "ROLE_NAME", "CURRENT_ROLE")
 
 
-def _get_roles_from_current_available_roles(session) -> list[str]:
-    try:
-        roles_df = session.sql("""
-            SELECT VALUE::STRING AS ROLE_NAME
-            FROM TABLE(FLATTEN(INPUT => PARSE_JSON(CURRENT_AVAILABLE_ROLES())))
-            ORDER BY ROLE_NAME
-        """).to_pandas()
-    except Exception as ex:
-        _debug_log("Unable to fetch CURRENT_AVAILABLE_ROLES(): %s", ex)
-        return []
-
-    if roles_df.empty:
-        return []
-
-    return _dedupe_sorted(_extract_column_values(roles_df, "ROLE_NAME", "VALUE"))
+def _set_role_debug_context(**updates: object) -> None:
+    debug_context = dict(st.session_state.get("role_debug_context") or {})
+    debug_context.update(updates)
+    st.session_state["role_debug_context"] = debug_context
 
 
-def _with_public_role(roles: list[str]) -> list[str]:
-    return _dedupe_sorted([*roles, "PUBLIC"])
+def _read_show_grants_roles(session) -> list[str]:
+    rows = session.sql("""
+        SELECT "name" AS ROLE_NAME
+        FROM TABLE(RESULT_SCAN(LAST_QUERY_ID()))
+        WHERE UPPER("granted_on") = 'ROLE'
+        ORDER BY ROLE_NAME
+    """).collect()
+
+    roles: list[str] = []
+    for row in rows:
+        try:
+            role_name = row["ROLE_NAME"]
+        except Exception:
+            try:
+                role_name = getattr(row, "ROLE_NAME")
+            except Exception:
+                role_name = row[0] if row else ""
+        cleaned_role = _clean_context_value(role_name)
+        if cleaned_role and cleaned_role.upper().startswith("FR_MFQ_"):
+            roles.append(cleaned_role.upper())
+    return _dedupe_sorted(roles)
 
 
-def _get_roles_from_account_usage(session, viewer_username: str) -> list[str]:
+def _get_roles_from_show_grants(session, viewer_username: str) -> list[str]:
     cleaned_username = _clean_context_value(viewer_username)
     if not cleaned_username or cleaned_username == "Unknown":
         return []
 
+    safe_user = quote_snowflake_identifier(cleaned_username.upper())
     try:
-        roles_df = session.sql(f"""
-            SELECT ROLE AS ROLE_NAME
-            FROM SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS
-            WHERE UPPER(GRANTEE_NAME) = UPPER({_quote_sql_literal(cleaned_username)})
-              AND DELETED_ON IS NULL
-            ORDER BY ROLE_NAME
-        """).to_pandas()
+        session.sql(f"SHOW GRANTS TO USER {safe_user}").collect()
+        roles = _read_show_grants_roles(session)
+        _set_role_debug_context(show_grants_error="", show_grants_roles=roles)
+        return roles
     except Exception as ex:
-        _debug_log(
-            "Unable to fetch SNOWFLAKE.ACCOUNT_USAGE.GRANTS_TO_USERS roles for %s: %s",
-            cleaned_username,
-            ex,
+        warning = (
+            f"Unable to dynamically fetch user roles: {ex}. "
+            "Ask the Snowflake admin/lead to allow the app owner role to view user grants "
+            "or approve another secure approach."
         )
+        _debug_log("Unable to fetch SHOW GRANTS roles for %s: %s", cleaned_username, ex)
+        _set_role_debug_context(show_grants_error=warning, show_grants_roles=[])
+        try:
+            st.warning(warning)
+        except Exception:  # pragma: no cover - non-Streamlit test/runtime guard
+            pass
         return []
-
-    return _with_public_role(_extract_column_values(roles_df, "ROLE_NAME", "ROLE"))
 
 
 def get_viewer_granted_roles(session) -> list[str]:
-    """Return roles granted to the Streamlit viewer, with safe fallbacks."""
+    """Return FR_MFQ roles granted to the Streamlit viewer, with safe fallbacks."""
     viewer = get_viewer_user(session)
     viewer_username = _clean_context_value(viewer.get("user_name"))
+    st_user_name = _get_streamlit_user_value("user_name")
 
-    viewer_roles = _get_roles_from_account_usage(session, viewer_username)
+    viewer_roles = _get_roles_from_show_grants(session, viewer_username)
     if viewer_roles:
-        return viewer_roles
+        roles = viewer_roles
+    else:
+        owner_role = get_current_owner_role(session)
+        roles = [owner_role] if owner_role else ["Unknown"]
 
-    session_roles = _get_roles_from_current_available_roles(session)
-    if session_roles:
-        return session_roles
-
-    owner_role = get_current_owner_role(session)
-    if owner_role:
-        return [owner_role]
-
-    return ["Unknown"]
+    roles = _dedupe_sorted(roles)
+    _set_role_debug_context(
+        st_user_name=st_user_name,
+        viewer_user=viewer_username,
+        final_dropdown_roles=roles,
+    )
+    return roles
 
 
 def get_role_dropdown_options(session) -> list[str]:
@@ -232,6 +245,7 @@ def set_selected_app_role(role_name: object) -> str:
     """Store the app-level selected role without switching SQL execution role."""
     selected_role = _clean_context_value(role_name) or "Unknown"
     st.session_state[_SELECTED_APP_ROLE_KEY] = selected_role
+    st.session_state["selected_role"] = selected_role
     # Keep the legacy key synchronized so existing cache scopes and page state
     # continue to behave exactly as before while the canonical key moves to
     # selected_app_role.
@@ -248,6 +262,10 @@ def get_selected_app_role(session) -> str:
     selected_role = _clean_context_value(st.session_state.get(_SELECTED_APP_ROLE_KEY))
     if selected_role and selected_role in role_options:
         return set_selected_app_role(selected_role)
+
+    dropdown_role = _clean_context_value(st.session_state.get("selected_role"))
+    if dropdown_role and dropdown_role in role_options:
+        return set_selected_app_role(dropdown_role)
 
     legacy_role = _clean_context_value(st.session_state.get(_LEGACY_SELECTED_ROLE_KEY))
     if legacy_role and legacy_role in role_options:
@@ -267,6 +285,50 @@ def get_selected_app_role(session) -> str:
     return set_selected_app_role("Unknown")
 
 
+
+
+def _safe_scalar_sql(session, query: str, column_name: str) -> str:
+    try:
+        row = session.sql(query).to_pandas().iloc[0]
+    except Exception as ex:
+        return f"Unavailable: {ex}"
+    return _get_first_row_value(row, column_name) or "Unavailable"
+
+
+def render_role_debug_expander(session) -> None:
+    """Render temporary Snowflake-only role diagnostics for deployed debugging."""
+    try:
+        from core.snowflake_session import is_active_session_available
+
+        if not is_active_session_available():
+            return
+    except Exception:
+        return
+
+    debug_context = dict(st.session_state.get("role_debug_context") or {})
+    debug_context["current_user"] = _safe_scalar_sql(
+        session, "SELECT CURRENT_USER() AS CURRENT_USER", "CURRENT_USER"
+    )
+    debug_context["current_role"] = _safe_scalar_sql(
+        session, "SELECT CURRENT_ROLE() AS CURRENT_ROLE", "CURRENT_ROLE"
+    )
+    debug_context["selected_role"] = _clean_context_value(
+        st.session_state.get("selected_role")
+        or st.session_state.get(_SELECTED_APP_ROLE_KEY)
+        or st.session_state.get(_LEGACY_SELECTED_ROLE_KEY)
+    )
+
+    with st.expander("Role dropdown debug", expanded=False):
+        st.write("st.user.user_name", debug_context.get("st_user_name") or "Unavailable")
+        st.write("SELECT CURRENT_USER()", debug_context.get("current_user") or "Unavailable")
+        st.write("SELECT CURRENT_ROLE()", debug_context.get("current_role") or "Unavailable")
+        st.write("Roles fetched from SHOW GRANTS", debug_context.get("show_grants_roles") or [])
+        st.write("Final dropdown roles", debug_context.get("final_dropdown_roles") or [])
+        st.write("selected_role", debug_context.get("selected_role") or "Unavailable")
+        if debug_context.get("show_grants_error"):
+            st.warning(debug_context["show_grants_error"])
+
+
 def has_app_role(role_name: object) -> bool:
     """Check the selected app role first, then loaded viewer role grants."""
     requested_role = _clean_context_value(role_name).casefold()
@@ -275,6 +337,7 @@ def has_app_role(role_name: object) -> bool:
 
     selected_role = _clean_context_value(
         st.session_state.get(_SELECTED_APP_ROLE_KEY)
+        or st.session_state.get("selected_role")
         or st.session_state.get(_LEGACY_SELECTED_ROLE_KEY)
     )
     if selected_role.casefold() == requested_role:
