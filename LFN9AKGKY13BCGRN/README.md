@@ -5,7 +5,8 @@ Production-style Streamlit in Snowflake prototype for Medical Faculty Questionna
 ## Repository layout
 
 - `streamlit_app.py`: app entry point + page routing.
-- `pyproject.toml`: Snowflake Streamlit dependency manifest.
+- `environment.yml`: Snowflake Streamlit runtime dependency manifest.
+- `pyproject.toml`: Local/project Python package metadata.
 - `components/`: reusable UI modules.
 - `pages/`: role-based page modules.
 - `services/`: Snowflake session, RBAC, claims, dashboard, and notification services.
@@ -35,6 +36,6 @@ Then seed demo data as needed:
 ## Local development
 
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
