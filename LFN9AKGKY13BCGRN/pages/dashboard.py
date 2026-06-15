@@ -772,13 +772,7 @@ def _render_dashboard_view(session, ctx) -> None:
         )
         claim_counts = claim_count_loader(session, shared_filters)
         for bucket in CLAIM_BUCKET_OPTIONS:
-            search_text = _claims_search_text(bucket).strip()
-            if search_text:
-                claim_counts[bucket] = claim_service.get_filtered_claims_count(
-                    session,
-                    _claim_bucket_filters(shared_filters, bucket, search_text),
-                )
-            else:
+            if not _claims_search_text(bucket).strip():
                 claim_counts.setdefault(bucket, 0)
 
         selected_view = st.session_state.get(
@@ -820,8 +814,6 @@ def _render_dashboard_view(session, ctx) -> None:
         _reset_claims_page_on_context_change(card_key, selected_bucket, search)
 
         bucket_filters = _claim_bucket_filters(filters, selected_bucket, search)
-        total_claims = claim_counts[selected_bucket]
-        st.session_state["dashboard_filtered_claims_count"] = total_claims
         page_state_key = _claim_bucket_page_state_key(selected_bucket)
         page_size_state_key = _claim_bucket_page_size_state_key(selected_bucket)
         current_page_size = int(
@@ -835,18 +827,32 @@ def _render_dashboard_view(session, ctx) -> None:
             current_page_size = DASHBOARD_RECENT_CLAIMS_PAGE_SIZE
             st.session_state[page_size_state_key] = current_page_size
         requested_page = max(1, int(st.session_state.get(page_state_key, 1)))
+        recent_claims, total_claims = claim_service.get_claims_page(
+            session,
+            filters,
+            selected_bucket,
+            requested_page,
+            current_page_size,
+            sort_column="DATE_REQUESTED",
+            sort_direction="desc",
+        )
         total_pages = max(
             1, (total_claims + current_page_size - 1) // current_page_size
         )
         current_page = min(requested_page, total_pages)
         if current_page != requested_page:
             st.session_state[page_state_key] = current_page
-        recent_claims = claim_service.get_filtered_recent_claims(
-            session,
-            bucket_filters,
-            current_page,
-            current_page_size,
-        )
+            recent_claims, total_claims = claim_service.get_claims_page(
+                session,
+                filters,
+                selected_bucket,
+                current_page,
+                current_page_size,
+                sort_column="DATE_REQUESTED",
+                sort_direction="desc",
+            )
+        claim_counts[selected_bucket] = total_claims
+        st.session_state["dashboard_filtered_claims_count"] = total_claims
         logger.info(
             "dashboard_recent_claims_ms=%d bucket=%s rows=%d total=%d filters=%s",
             int((perf_counter() - t1) * 1000),

@@ -194,7 +194,13 @@ def _select_columns_for_available_view(desired_columns: list[str], available_col
     select_expressions: list[str] = []
     for column in desired_columns:
         if column.upper() in available_columns:
-            select_expressions.append(f"{column} AS {column}")
+            if column.upper() == "AI_CONFIDENCE":
+                select_expressions.append(
+                    "IFF(TRY_TO_DOUBLE(AI_CONFIDENCE) BETWEEN 0 AND 1, "
+                    "TRY_TO_DOUBLE(AI_CONFIDENCE) * 100, TRY_TO_DOUBLE(AI_CONFIDENCE)) AS AI_CONFIDENCE"
+                )
+            else:
+                select_expressions.append(f"{column} AS {column}")
         else:
             select_expressions.append(f"NULL AS {column}")
     return ",\n            ".join(select_expressions)
@@ -259,6 +265,16 @@ def build_claim_filter_where_clause(
             ai_confidence_predicates.append("AI_CONFIDENCE < 80")
     if ai_confidence_predicates:
         predicates.append("(" + " OR ".join(ai_confidence_predicates) + ")")
+
+    due_date_from = filters.get("due_date_from")
+    if due_date_from is not None and _has_column(available_columns, "DUE_DATE"):
+        predicates.append("DATE(DUE_DATE) >= ?")
+        params.append(due_date_from)
+
+    due_date_to = filters.get("due_date_to")
+    if due_date_to is not None and _has_column(available_columns, "DUE_DATE"):
+        predicates.append("DATE(DUE_DATE) <= ?")
+        params.append(due_date_to)
 
     date_requested_from = filters.get("date_requested_from")
     if date_requested_from is not None and _has_column(available_columns, "DATE_REQUESTED"):
@@ -382,6 +398,58 @@ def get_filtered_recent_claims(session, filters: dict | None, page: int, page_si
     )
     return _normalize_snowflake_dataframe_columns(df)
 
+
+
+def get_claims_page(
+    session,
+    filters: dict | None,
+    page: int,
+    page_size: int,
+    sort_column: str = "DATE_REQUESTED",
+    sort_direction: str = "desc",
+) -> tuple[pd.DataFrame, int]:
+    """Return one Snowflake-filtered claims page plus its total row count.
+
+    This is the dashboard fast path: all filters/search/bucket predicates are
+    pushed into Snowflake and only the requested page is materialized in
+    Streamlit memory.
+    """
+    available_columns = table_columns(session, obj.VW_MFQ_CLAIMS)
+    where_clause, params = build_claim_filter_where_clause(filters, available_columns)
+    normalized_page_size = max(1, int(page_size))
+    offset = max(0, (max(1, int(page)) - 1) * normalized_page_size)
+    select_columns = _select_columns_for_available_view(CLAIM_FILTER_SELECT_COLUMNS, available_columns)
+
+    requested_sort = str(sort_column or "DATE_REQUESTED").strip().upper()
+    if requested_sort not in set(CLAIM_FILTER_SELECT_COLUMNS) or requested_sort not in available_columns:
+        requested_sort = "DATE_REQUESTED" if "DATE_REQUESTED" in available_columns else "CLAIM_ID"
+    direction = "ASC" if str(sort_direction or "desc").strip().lower() == "asc" else "DESC"
+    nulls = "NULLS FIRST" if direction == "ASC" else "NULLS LAST"
+    order_by_clause = f"ORDER BY {requested_sort} {direction} {nulls}, CLAIM_ID ASC"
+
+    count_df = execute_query_df(
+        session,
+        f"SELECT COUNT(*) AS TOTAL_COUNT FROM {obj.VW_MFQ_CLAIMS}{where_clause}",
+        params=params,
+        query_name="claims.get_claims_page.count",
+    )
+    count_df = _normalize_snowflake_dataframe_columns(count_df)
+    total_count = 0 if count_df.empty else int(count_df.iloc[0].get("TOTAL_COUNT") or 0)
+
+    rows_df = execute_query_df(
+        session,
+        f"""
+        SELECT
+            {select_columns}
+        FROM {obj.VW_MFQ_CLAIMS}
+        {where_clause}
+        {order_by_clause}
+        LIMIT ? OFFSET ?
+        """,
+        params=[*params, normalized_page_size, offset],
+        query_name="claims.get_claims_page.rows",
+    )
+    return _normalize_snowflake_dataframe_columns(rows_df), total_count
 
 def get_available_claim_statuses(session) -> list[str]:
     df = execute_query_df(
