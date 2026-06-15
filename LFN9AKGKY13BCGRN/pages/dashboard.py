@@ -559,15 +559,19 @@ def _render_dashboard_view(session, ctx) -> None:
 
         selected_view = st.session_state.get(RECENT_CLAIMS_VIEW_STATE_KEY, CLAIM_BUCKET_DEFAULT)
         selected_index = CLAIM_BUCKET_OPTIONS.index(selected_view) if selected_view in CLAIM_BUCKET_OPTIONS else 0
+        radio_kwargs = {
+            "horizontal": True,
+            "key": RECENT_CLAIMS_VIEW_RADIO_KEY,
+            "format_func": lambda bucket: _claim_bucket_label(bucket, claim_counts),
+            "label_visibility": "collapsed",
+            "on_change": _on_recent_claims_view_change,
+        }
+        if RECENT_CLAIMS_VIEW_RADIO_KEY not in st.session_state:
+            radio_kwargs["index"] = selected_index
         selected_bucket = st.radio(
             "Recent Claims Tabs",
             CLAIM_BUCKET_OPTIONS,
-            horizontal=True,
-            key=RECENT_CLAIMS_VIEW_RADIO_KEY,
-            index=selected_index,
-            format_func=lambda bucket: _claim_bucket_label(bucket, claim_counts),
-            label_visibility="collapsed",
-            on_change=_on_recent_claims_view_change,
+            **radio_kwargs,
         )
         selected_bucket = str(st.session_state.get(RECENT_CLAIMS_VIEW_STATE_KEY) or selected_bucket or CLAIM_BUCKET_DEFAULT).strip().lower()
         if selected_bucket not in CLAIM_BUCKET_OPTIONS:
