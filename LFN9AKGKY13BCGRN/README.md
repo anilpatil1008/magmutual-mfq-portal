@@ -41,3 +41,13 @@ Use Python 3.11 locally to match the supported Snowflake Streamlit warehouse run
 python -m pip install -r requirements.txt
 streamlit run streamlit_app.py
 ```
+
+### Optional local Snowflake authentication storage
+
+For local development only, Snowflake's connector can persist browser-auth tokens more securely when the optional secure local storage extra is installed:
+
+```bash
+pip install "snowflake-connector-python[secure-local-storage]"
+```
+
+Do not add this extra to the Snowflake Streamlit deployment dependencies unless the target runtime explicitly supports it.

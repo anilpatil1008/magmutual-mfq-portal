@@ -43,14 +43,17 @@ def execute_query(
         duration_ms = (time.perf_counter() - start) * 1000
         if app_debug_enabled() or duration_ms >= SLOW_QUERY_THRESHOLD_MS:
             level = logging.DEBUG if app_debug_enabled() else logging.WARNING
-            logger.log(level, "query=%s duration_ms=%.1f rows=%s", query_name, duration_ms, len(result))
+            logger.log(level, "query_name=%s duration_ms=%.1f rows_count=%s", query_name, duration_ms, len(result))
 
         if as_dataframe:
             return result
         return result.to_dict(orient="records") if not result.empty else []
     except Exception as exc:  # pragma: no cover
         duration_ms = (time.perf_counter() - start) * 1000
-        logger.exception("query_failed=%s duration_ms=%.1f", query_name, duration_ms)
+        if app_debug_enabled():
+            logger.exception("query_failed=%s duration_ms=%.1f", query_name, duration_ms)
+        else:
+            logger.warning("query_failed=%s duration_ms=%.1f error=%s", query_name, duration_ms, exc)
         if fallback is not None:
             return fallback
         return pd.DataFrame() if as_dataframe else []

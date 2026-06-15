@@ -15,11 +15,8 @@ def _cached_notifications(username: str, limit: int) -> pd.DataFrame:
 
 
 def get_user_notifications(session, username: str, limit: int = 10) -> pd.DataFrame:
-    fallback = pd.DataFrame(
-        [{"NOTIFICATION_ID": "local-1", "TITLE": "Welcome", "MESSAGE": "Portal initialized with demo fallback notifications.", "SEVERITY": "info", "CREATED_TS": None, "IS_READ": False}]
-    )
-    df = _cached_notifications(username, int(limit))
-    return df if not df.empty else fallback
+    del session
+    return _cached_notifications(username, int(limit))
 
 
 def mark_notification_read(session, notification_id: str) -> None:
