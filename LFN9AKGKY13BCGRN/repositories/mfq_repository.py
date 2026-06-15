@@ -50,6 +50,24 @@ def get_mfq_sections(session) -> pd.DataFrame:
     return get_active_mfq_sections_and_questions(session)
 
 
+def get_claim_sections_by_id(session, claim_id: str) -> pd.DataFrame:
+    """Return section reference rows used by one claim's lazy MFQ tab."""
+    del claim_id
+    df = get_active_mfq_sections_and_questions(session)
+    section_columns = [
+        column
+        for column in ["SECTION_ID", "SECTION_KEY", "SECTION_NAME", "SECTION_DESCRIPTION", "SECTION_ORDER"]
+        if column in df.columns
+    ]
+    return df[section_columns].drop_duplicates() if section_columns else pd.DataFrame()
+
+
+def get_claim_questions_by_id(session, claim_id: str) -> pd.DataFrame:
+    """Return active question reference rows for one claim's lazy MFQ tab."""
+    del claim_id
+    return get_active_mfq_sections_and_questions(session)
+
+
 def get_current_mfq_answers_by_claim_id(session, claim_id: str) -> pd.DataFrame:
     """Return current MFQ answers for one claim in one query."""
     return execute_query_df(
@@ -93,6 +111,11 @@ def get_current_mfq_answers_by_claim_id(session, claim_id: str) -> pd.DataFrame:
 
 def get_mfq_answers_by_claim_id(session, claim_id: str) -> pd.DataFrame:
     """Backward-compatible alias for current MFQ answers by claim."""
+    return get_current_mfq_answers_by_claim_id(session, claim_id)
+
+
+def get_claim_answers_by_id(session, claim_id: str) -> pd.DataFrame:
+    """Return current MFQ answers for exactly one selected claim."""
     return get_current_mfq_answers_by_claim_id(session, claim_id)
 
 

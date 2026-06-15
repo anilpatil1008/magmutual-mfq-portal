@@ -15,6 +15,7 @@ from config import snowflake_objects as obj
 from repositories import assignment_repository, claims_repository, mfq_repository
 from services.snowflake_service import quote_sql, safe_collect_df
 from utils.claim_lifecycle import classify_claim_bucket
+from utils.streamlit_compat import is_debug_enabled
 
 
 CLAIMS_VIEW = obj.MFQ_RECENT_CLAIMS_VIEW
@@ -448,12 +449,13 @@ def _fetch_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
             for key, value in defendant_df.iloc[0].to_dict().items():
                 if _is_blank_value(detail.get(key)):
                     detail[key] = value
-    logger.info(
-        "get_claim_detail_by_id_ms=%d selected_claim_id=%s raw_mfq_status=%s",
-        int((perf_counter() - started) * 1000),
-        claim_id,
-        "" if detail is None else str(detail.get("MFQ_STATUS") or "").strip(),
-    )
+    if is_debug_enabled():
+        logger.info(
+            "claim_summary_query_ms=%d selected_claim_id=%s raw_mfq_status=%s",
+            int((perf_counter() - started) * 1000),
+            claim_id,
+            "" if detail is None else str(detail.get("MFQ_STATUS") or "").strip(),
+        )
     return detail
 
 
@@ -479,6 +481,10 @@ def clear_claim_read_caches() -> None:
         st.session_state["dashboard_metrics_cache_version"] = current_version + 1
 
 
+def get_claim_summary_by_id(session, claim_id: str) -> dict[str, Any] | None:
+    return get_claim_detail_by_id(session, claim_id)
+
+
 def get_claim_detail_by_id(session, claim_id: str) -> dict[str, Any] | None:
     normalized_claim_id = str(claim_id or "").strip()
     if not normalized_claim_id:
@@ -495,6 +501,16 @@ def _get_active_mfq_sections_and_questions_cached(_session, cache_scope: str) ->
     df = mfq_repository.get_active_mfq_sections_and_questions(_session)
     logger.info("get_active_mfq_sections_and_questions_ms=%d rows=%d", int((perf_counter() - started) * 1000), len(df))
     return df
+
+
+def get_claim_sections_by_id(session, claim_id: str) -> pd.DataFrame:
+    del claim_id
+    return get_active_mfq_sections_and_questions(session)
+
+
+def get_claim_questions_by_id(session, claim_id: str) -> pd.DataFrame:
+    del claim_id
+    return get_active_mfq_sections_and_questions(session)
 
 
 def get_active_mfq_sections_and_questions(session) -> pd.DataFrame:
@@ -516,6 +532,10 @@ def _session_claim_cache(cache_name: str) -> dict[str, Any]:
     return cache
 
 
+def get_claim_answers_by_id(session, claim_id: str) -> pd.DataFrame:
+    return get_current_mfq_answers_by_claim_id(session, claim_id)
+
+
 def get_current_mfq_answers_by_claim_id(session, claim_id: str) -> pd.DataFrame:
     started = perf_counter()
     df = mfq_repository.get_current_mfq_answers_by_claim_id(session, claim_id)
@@ -532,6 +552,10 @@ def get_claim_history_by_claim_id(session, claim_id: str) -> pd.DataFrame:
     df = claims_repository.get_claim_history_by_claim_id(session, claim_id)
     logger.info("get_claim_history_by_claim_id_ms=%d claim_id=%s rows=%d", int((perf_counter() - started) * 1000), claim_id, len(df))
     return df
+
+
+def get_claim_documents_by_id(session, claim_id: str) -> pd.DataFrame:
+    return get_claim_documents_by_claim_id(session, claim_id)
 
 
 def get_claim_documents_by_claim_id(session, claim_id: str) -> pd.DataFrame:

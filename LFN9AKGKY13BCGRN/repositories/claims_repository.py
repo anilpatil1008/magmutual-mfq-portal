@@ -561,6 +561,11 @@ def get_claim_detail(session, claim_id: str) -> pd.DataFrame:
     return get_claim_detail_by_id(session, claim_id)
 
 
+def get_claim_summary_by_id(session, claim_id: str) -> pd.DataFrame:
+    """Compatibility alias for the lightweight single-claim summary query."""
+    return get_claim_detail_by_id(session, claim_id)
+
+
 def get_claim_status_snapshot(session, claim_id: str) -> pd.DataFrame:
     available_columns = table_columns(session, obj.VW_MFQ_CLAIMS)
     select_columns = _select_columns_for_available_view(
@@ -613,6 +618,10 @@ def get_claim_defendants(session, claim_id: str) -> pd.DataFrame:
         query_name="claims.get_claim_defendants",
     )
     return _normalize_snowflake_dataframe_columns(df)
+
+
+def get_claim_documents_by_id(session, claim_id: str) -> pd.DataFrame:
+    return get_claim_documents(session, claim_id)
 
 
 def get_claim_documents(session, claim_id: str) -> pd.DataFrame:

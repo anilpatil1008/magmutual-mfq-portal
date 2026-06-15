@@ -10,7 +10,7 @@ from time import perf_counter
 
 import pandas as pd
 import streamlit as st
-from utils.streamlit_compat import has_dialog, safe_button, safe_child_container, safe_columns, safe_container, safe_dataframe, safe_dialog, safe_rerun
+from utils.streamlit_compat import has_dialog, is_debug_enabled, safe_button, safe_child_container, safe_columns, safe_container, safe_dataframe, safe_dialog, safe_rerun
 
 from components.badges import (
     format_status_label,
@@ -1401,6 +1401,7 @@ def render_claim_detail_tabs(active_tab: str) -> str:
                 if safe_button(label, key=button_key, use_container_width=True):
                     selected_tab = tab_name
                     st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY] = tab_name
+                    st.session_state.pop("claim_details_initial_summary_claim_id", None)
                     safe_rerun()
 
     return selected_tab
@@ -1452,12 +1453,14 @@ def render_documents_tab(session, claim_id: str) -> None:
 
 
 def render(session, ctx) -> None:
+    render_started = perf_counter()
     claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
-    logger.info(
-        "render_claim_details called current_view=%s claim_id=%s",
-        st.session_state.get("current_view"),
-        claim_id,
-    )
+    if is_debug_enabled():
+        logger.info(
+            "render_claim_details_start current_view=%s claim_id=%s",
+            st.session_state.get("current_view"),
+            claim_id,
+        )
     if not is_claim_details_route_active():
         navigate_to_dashboard()
         st.warning("No claim is selected. Open a claim from Dashboard.")
@@ -1487,7 +1490,12 @@ def render(session, ctx) -> None:
 
     review_started = st.session_state.get("review_click_started_at")
     if isinstance(review_started, (int, float)):
-        logger.info("review_click_to_claim_header_ms=%d claim_id=%s", int((perf_counter() - review_started) * 1000), claim_id)
+        if is_debug_enabled():
+            logger.info(
+                "review_click_to_claim_header_ms=%d claim_id=%s",
+                int((perf_counter() - review_started) * 1000),
+                claim_id,
+            )
         st.session_state.pop("review_click_started_at", None)
 
     with safe_child_container(header_slot):
@@ -1522,6 +1530,21 @@ def render(session, ctx) -> None:
 
     selected_tab = render_claim_detail_tabs(st.session_state[SELECTED_CLAIM_DETAIL_TAB_KEY])
 
+    if st.session_state.get("claim_details_initial_summary_claim_id") == claim_id:
+        if is_debug_enabled():
+            logger.info(
+                "claim_details_initial_summary_only claim_id=%s skipped_tab=%s",
+                claim_id,
+                selected_tab,
+            )
+            logger.info(
+                "claim_details_total_render_ms=%d claim_id=%s",
+                int((perf_counter() - render_started) * 1000),
+                claim_id,
+            )
+        return
+
+    tab_started = perf_counter()
     if selected_tab == "MFQ Form":
         render_mfq_form_tab(session, ctx, claim_id, claim)
     elif selected_tab == "Records Summary":
@@ -1538,3 +1561,15 @@ def render(session, ctx) -> None:
         render_enquiries_tab(session, claim_id)
     elif selected_tab == "AI Assist":
         render_ai_assist_tab()
+    if is_debug_enabled():
+        logger.info(
+            "claim_detail_tab_render_ms=%d claim_id=%s tab=%s",
+            int((perf_counter() - tab_started) * 1000),
+            claim_id,
+            selected_tab,
+        )
+        logger.info(
+            "claim_details_total_render_ms=%d claim_id=%s",
+            int((perf_counter() - render_started) * 1000),
+            claim_id,
+        )
