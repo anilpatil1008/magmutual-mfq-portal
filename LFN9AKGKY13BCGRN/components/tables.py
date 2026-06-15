@@ -786,7 +786,7 @@ def render_recent_claims_table(
 
         with safe_container(key=f"{pagination_key_base}_bar"):
             summary_col, controls_col = safe_columns(
-                [1.1, 2.9], gap="medium", vertical_alignment="center"
+                [1.0, 3.2], gap="medium", vertical_alignment="center"
             )
             summary_col.markdown(
                 f"<div class='recent-claims-pagination-summary'>{summary_text}</div>",
@@ -795,7 +795,7 @@ def render_recent_claims_table(
 
             with controls_col:
                 pager_cols = safe_columns(
-                    [0.7, 0.95, 0.58, 0.48, 1.0, 0.62, 0.55, 0.92, 0.7],
+                    [0.68, 0.9, 0.58, 0.48, 1.0, 0.62, 0.55, 1.18, 0.92],
                     gap="small",
                     vertical_alignment="center",
                 )
@@ -862,15 +862,16 @@ def render_recent_claims_table(
                     unsafe_allow_html=True,
                 )
                 with pager_cols[8]:
-                    st.selectbox(
-                        "Rows per page",
-                        options=list(page_size_options),
-                        index=(
-                            list(page_size_options).index(int(page_size))
-                            if int(page_size) in page_size_options
-                            else 0
-                        ),
-                        key=page_size_key,
-                        label_visibility="collapsed",
-                        on_change=_reset_to_first_page,
-                    )
+                    with safe_container(key=f"{pagination_key_base}_rows_select"):
+                        st.selectbox(
+                            "Rows per page",
+                            options=list(page_size_options),
+                            index=(
+                                list(page_size_options).index(int(page_size))
+                                if int(page_size) in page_size_options
+                                else 0
+                            ),
+                            key=page_size_key,
+                            label_visibility="collapsed",
+                            on_change=_reset_to_first_page,
+                        )
