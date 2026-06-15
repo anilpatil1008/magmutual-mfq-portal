@@ -3692,7 +3692,7 @@ div[class*="st-key-"][class*="recent_claims_pagination_bar"] [data-testid="colum
 }
 
 div[class*="st-key-"][class*="recent_claims_pagination_bar"] .recent-claims-pagination-summary,
-div[class*="st-key-"][class*="recent_claims_pagination_bar"] .recent-claims-pagination-page-status,
+div[class*="st-key-"][class*="recent_claims_pagination_bar"] .recent-claims-pagination-ellipsis,
 div[class*="st-key-"][class*="recent_claims_pagination_bar"] .recent-claims-rows-label {
   min-height: 36px;
   display: flex;
@@ -3709,20 +3709,24 @@ div[class*="st-key-"][class*="recent_claims_pagination_bar"] .recent-claims-pagi
   font-weight: 600;
 }
 
-div[class*="st-key-"][class*="recent_claims_pagination_bar"] .recent-claims-pagination-page-status,
+div[class*="st-key-"][class*="recent_claims_pagination_bar"] .recent-claims-pagination-ellipsis,
 div[class*="st-key-"][class*="recent_claims_pagination_bar"] .recent-claims-rows-label {
   justify-content: center;
   width: 100%;
 }
 
+div[class*="st-key-"][class*="recent_claims_pagination_bar"] .recent-claims-pagination-ellipsis {
+  color: #6f6f6f;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
 div[class*="st-key-"][class*="recent_claims_pagination_bar"] .stButton,
-div[class*="st-key-"][class*="recent_claims_pagination_bar"] [data-testid="stNumberInput"],
 div[class*="st-key-"][class*="recent_claims_pagination_bar"] [data-testid="stSelectbox"] {
   width: 100%;
 }
 
 div[class*="st-key-"][class*="recent_claims_pagination_bar"] .stButton > button,
-div[class*="st-key-"][class*="recent_claims_pagination_bar"] [data-testid="stNumberInput"] input,
 div[class*="st-key-"][class*="recent_claims_pagination_bar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {
   min-height: 36px;
   height: 36px;
@@ -3736,8 +3740,9 @@ div[class*="st-key-"][class*="recent_claims_pagination_bar"] [data-testid="stSel
 }
 
 div[class*="st-key-"][class*="recent_claims_pagination_bar"] .stButton > button {
-  padding: 0 0.72rem;
-  font-weight: 600;
+  min-width: 36px;
+  padding: 0 0.48rem;
+  font-weight: 700;
   transition: background-color 120ms ease, border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
 }
 
@@ -3757,20 +3762,18 @@ div[class*="st-key-"][class*="recent_claims_pagination_bar"] .stButton > button[
   opacity: 1;
 }
 
-div[class*="st-key-"][class*="recent_claims_pagination_bar"] [data-testid="stNumberInput"] input {
-  padding: 0 0.5rem;
-  text-align: center;
+div[class*="st-key-"][class*="recent_claims_pagination_page_num_active"] .stButton > button:disabled,
+div[class*="st-key-"][class*="recent_claims_pagination_page_num_active"] .stButton > button[disabled] {
+  border-color: #0f62fe;
+  background: #0f62fe;
+  color: #ffffff;
+  cursor: default;
+  box-shadow: 0 1px 3px rgba(15, 98, 254, 0.2);
 }
 
-div[class*="st-key-"][class*="recent_claims_pagination_bar"] [data-testid="stNumberInput"] input:focus,
 div[class*="st-key-"][class*="recent_claims_pagination_bar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div:focus-within {
   border-color: #0f62fe;
   box-shadow: 0 0 0 2px rgba(15, 98, 254, 0.14);
-}
-
-div[class*="st-key-"][class*="recent_claims_pagination_bar"] [data-testid="stNumberInput"] button {
-  height: 18px;
-  width: 18px;
 }
 
 div[class*="st-key-"][class*="recent_claims_pagination_bar"] [data-testid="stSelectbox"] [data-baseweb="select"] > div {

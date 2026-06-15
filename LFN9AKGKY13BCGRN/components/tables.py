@@ -768,100 +768,116 @@ def render_recent_claims_table(
                 st.session_state["last_review_event"] = None
                 _open_claim_details(claim_id)
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
-        page_status_text = f"Page {current_page} of {total_pages}"
-        jump_key = f"{pagination_key_base}_jump_page"
-        jump_sync_key = f"{pagination_key_base}_jump_synced_page"
-        if (
-            jump_key not in st.session_state
-            or st.session_state.get(jump_sync_key) != current_page
-        ):
-            st.session_state[jump_key] = current_page
-            st.session_state[jump_sync_key] = current_page
 
-        def _jump_to_entered_page() -> None:
-            target_page = max(
-                1, min(int(st.session_state.get(jump_key) or current_page), total_pages)
-            )
-            st.session_state[page_state_key] = target_page
+        def _visible_page_numbers() -> list[int]:
+            visible_count = 5
+            if total_pages <= visible_count:
+                return list(range(1, total_pages + 1))
+            half_window = visible_count // 2
+            first_visible = current_page - half_window
+            last_visible = current_page + half_window
+            if first_visible < 1:
+                first_visible = 1
+                last_visible = visible_count
+            elif last_visible > total_pages:
+                last_visible = total_pages
+                first_visible = total_pages - visible_count + 1
+            return list(range(first_visible, last_visible + 1))
+
+        visible_pages = _visible_page_numbers()
+        show_leading_ellipsis = bool(visible_pages and visible_pages[0] > 1)
+        show_trailing_ellipsis = bool(visible_pages and visible_pages[-1] < total_pages)
+
+        def _set_current_page(target_page: int) -> None:
+            st.session_state[page_state_key] = max(1, min(target_page, total_pages))
+            safe_rerun()
 
         with safe_container(key=f"{pagination_key_base}_bar"):
-            summary_col, controls_col = safe_columns(
-                [1.0, 3.2], gap="medium", vertical_alignment="center"
+            summary_col, pager_col, rows_col = safe_columns(
+                [1.45, 2.65, 1.1], gap="medium", vertical_alignment="center"
             )
             summary_col.markdown(
                 f"<div class='recent-claims-pagination-summary'>{summary_text}</div>",
                 unsafe_allow_html=True,
             )
 
-            with controls_col:
+            with pager_col:
+                pager_items = ["first", "prev"]
+                if show_leading_ellipsis:
+                    pager_items.append("leading_ellipsis")
+                pager_items.extend(
+                    [f"page_{page_number}" for page_number in visible_pages]
+                )
+                if show_trailing_ellipsis:
+                    pager_items.append("trailing_ellipsis")
+                pager_items.extend(["next", "last"])
                 pager_cols = safe_columns(
-                    [0.68, 0.9, 0.58, 0.48, 1.0, 0.62, 0.55, 1.18, 0.92],
-                    gap="small",
-                    vertical_alignment="center",
+                    [0.46] * len(pager_items), gap="small", vertical_alignment="center"
                 )
-                with pager_cols[0]:
-                    if safe_button(
-                        "First",
-                        key=f"{pagination_key_base}_first",
-                        disabled=current_page <= 1,
-                        use_container_width=True,
-                    ):
-                        st.session_state[page_state_key] = 1
-                        safe_rerun()
-                with pager_cols[1]:
-                    if safe_button(
-                        "Previous",
-                        key=f"{pagination_key_base}_prev",
-                        disabled=current_page <= 1,
-                        use_container_width=True,
-                    ):
-                        target_page = max(1, current_page - 1)
-                        st.session_state[page_state_key] = target_page
-                        safe_rerun()
-                with pager_cols[2]:
-                    st.number_input(
-                        "Page",
-                        min_value=1,
-                        max_value=total_pages,
-                        step=1,
-                        key=jump_key,
-                        label_visibility="collapsed",
-                        on_change=_jump_to_entered_page,
-                    )
-                with pager_cols[3]:
-                    if safe_button(
-                        "Go", key=f"{pagination_key_base}_go", use_container_width=True
-                    ):
-                        _jump_to_entered_page()
-                        safe_rerun()
-                pager_cols[4].markdown(
-                    f"<div class='recent-claims-pagination-page-status'>{page_status_text}</div>",
-                    unsafe_allow_html=True,
+
+                for item, pager_item_col in zip(pager_items, pager_cols):
+                    with pager_item_col:
+                        if item == "first":
+                            if safe_button(
+                                "|<",
+                                key=f"{pagination_key_base}_first",
+                                disabled=current_page <= 1,
+                                use_container_width=True,
+                            ):
+                                _set_current_page(1)
+                        elif item == "prev":
+                            if safe_button(
+                                "<",
+                                key=f"{pagination_key_base}_prev",
+                                disabled=current_page <= 1,
+                                use_container_width=True,
+                            ):
+                                _set_current_page(current_page - 1)
+                        elif item == "next":
+                            if safe_button(
+                                ">",
+                                key=f"{pagination_key_base}_next",
+                                disabled=current_page >= total_pages,
+                                use_container_width=True,
+                            ):
+                                _set_current_page(current_page + 1)
+                        elif item == "last":
+                            if safe_button(
+                                ">|",
+                                key=f"{pagination_key_base}_last",
+                                disabled=current_page >= total_pages,
+                                use_container_width=True,
+                            ):
+                                _set_current_page(total_pages)
+                        elif item.endswith("ellipsis"):
+                            st.markdown(
+                                "<div class='recent-claims-pagination-ellipsis'>...</div>",
+                                unsafe_allow_html=True,
+                            )
+                        else:
+                            page_number = int(item.rsplit("_", 1)[1])
+                            is_active_page = page_number == current_page
+                            if safe_button(
+                                str(page_number),
+                                key=(
+                                    f"{pagination_key_base}_page_num_active_{page_number}"
+                                    if is_active_page
+                                    else f"{pagination_key_base}_page_num_{page_number}"
+                                ),
+                                disabled=is_active_page,
+                                use_container_width=True,
+                            ):
+                                _set_current_page(page_number)
+
+            with rows_col:
+                rows_label_col, rows_select_col = safe_columns(
+                    [1.1, 0.72], gap="small", vertical_alignment="center"
                 )
-                with pager_cols[5]:
-                    if safe_button(
-                        "Next",
-                        key=f"{pagination_key_base}_next",
-                        disabled=current_page >= total_pages,
-                        use_container_width=True,
-                    ):
-                        target_page = min(total_pages, current_page + 1)
-                        st.session_state[page_state_key] = target_page
-                        safe_rerun()
-                with pager_cols[6]:
-                    if safe_button(
-                        "Last",
-                        key=f"{pagination_key_base}_last",
-                        disabled=current_page >= total_pages,
-                        use_container_width=True,
-                    ):
-                        st.session_state[page_state_key] = total_pages
-                        safe_rerun()
-                pager_cols[7].markdown(
+                rows_label_col.markdown(
                     "<div class='recent-claims-rows-label'>Rows per page</div>",
                     unsafe_allow_html=True,
                 )
-                with pager_cols[8]:
+                with rows_select_col:
                     with safe_container(key=f"{pagination_key_base}_rows_select"):
                         st.selectbox(
                             "Rows per page",
