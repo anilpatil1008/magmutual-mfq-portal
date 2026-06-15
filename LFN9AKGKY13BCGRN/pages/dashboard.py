@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from html import escape
+import inspect
 import logging
 from time import perf_counter
 
@@ -74,6 +75,28 @@ CLAIM_BUCKET_LEGACY_STATE_KEY = getattr(
     "DASHBOARD_CLAIMS_VIEW_LEGACY_STATE_KEY",
     "claim_scope",
 )
+
+
+def _render_recent_claims_table_with_page_size_state(**kwargs) -> None:
+    """Render recent claims while tolerating older table component signatures.
+
+    Some Streamlit deployments can keep an older ``components.tables`` module in
+    memory while loading a newer dashboard page. In that mixed-version state, the
+    table renderer may not yet accept ``page_size_state_key``. Drop only that
+    optional keyword when necessary so the dashboard remains renderable until the
+    app process reloads all modules.
+    """
+    table_kwargs = dict(kwargs)
+    signature = inspect.signature(render_recent_claims_table)
+    has_var_kwargs = any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in signature.parameters.values()
+    )
+    if not has_var_kwargs and "page_size_state_key" not in signature.parameters:
+        table_kwargs.pop("page_size_state_key", None)
+
+    render_recent_claims_table(**table_kwargs)
+
 RECENT_CLAIMS_VIEW_STATE_KEY = "recent_claims_view"
 RECENT_CLAIMS_VIEW_RADIO_KEY = "recent_claims_view_radio"
 STATUS_FILTER_OPTIONS = ["MFQ Generated", "Assigned", "Approved", "Rejected", "On Hold"]
@@ -815,8 +838,8 @@ def _render_dashboard_view(session, ctx) -> None:
         )
 
         dashboard_route_instance = st.session_state.get("dashboard_route_instance", 0)
-        render_recent_claims_table(
-            recent_claims,
+        _render_recent_claims_table_with_page_size_state(
+            df=recent_claims,
             key_prefix="dash",
             empty_message=(
                 "No matching claims found"

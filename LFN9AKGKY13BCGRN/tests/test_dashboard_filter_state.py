@@ -234,3 +234,34 @@ def test_hidden_selected_statuses_are_pruned_before_render(monkeypatch):
     assert session_state["dash_recent_claims_pagination_page"] == 1
     assert session_state["ongoing_current_page"] == 1
     assert session_state["history_current_page"] == 1
+
+
+def test_recent_claims_table_call_tolerates_older_component_signature(monkeypatch):
+    captured = {}
+
+    def older_render_recent_claims_table(*, df, key_prefix, page_size, pagination_state_key):
+        captured.update(
+            df=df,
+            key_prefix=key_prefix,
+            page_size=page_size,
+            pagination_state_key=pagination_state_key,
+        )
+
+    monkeypatch.setattr(
+        dashboard, "render_recent_claims_table", older_render_recent_claims_table
+    )
+
+    dashboard._render_recent_claims_table_with_page_size_state(
+        df=[{"CLAIM_ID": "123"}],
+        key_prefix="dash",
+        page_size=25,
+        pagination_state_key="ongoing_current_page",
+        page_size_state_key="ongoing_rows_per_page",
+    )
+
+    assert captured == {
+        "df": [{"CLAIM_ID": "123"}],
+        "key_prefix": "dash",
+        "page_size": 25,
+        "pagination_state_key": "ongoing_current_page",
+    }
