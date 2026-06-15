@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import time
 from collections.abc import Sequence
 from typing import Any
@@ -9,6 +10,10 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 SLOW_QUERY_THRESHOLD_MS = 1200
+
+
+def app_debug_enabled() -> bool:
+    return str(os.getenv("APP_DEBUG", "")).strip().lower() in {"1", "true", "yes", "on"}
 
 
 def execute_query(
@@ -36,8 +41,9 @@ def execute_query(
         statement = session.sql(sql, params=params) if params else session.sql(sql)
         result = statement.to_pandas()
         duration_ms = (time.perf_counter() - start) * 1000
-        level = logging.WARNING if duration_ms >= SLOW_QUERY_THRESHOLD_MS else logging.INFO
-        logger.log(level, "query=%s duration_ms=%.1f rows=%s", query_name, duration_ms, len(result))
+        if app_debug_enabled() or duration_ms >= SLOW_QUERY_THRESHOLD_MS:
+            level = logging.DEBUG if app_debug_enabled() else logging.WARNING
+            logger.log(level, "query=%s duration_ms=%.1f rows=%s", query_name, duration_ms, len(result))
 
         if as_dataframe:
             return result
