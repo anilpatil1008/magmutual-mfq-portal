@@ -304,6 +304,44 @@ def build_claim_filter_where_clause(
     return " WHERE " + " AND ".join(predicates), params
 
 
+def get_filtered_claim_bucket_counts(session, filters: dict | None) -> dict[str, int]:
+    """Return Ongoing and History claim counts in one Snowflake query."""
+    available_columns = table_columns(session, obj.VW_MFQ_CLAIMS)
+    shared_filters = dict(filters or {})
+    shared_filters.pop("claim_bucket", None)
+    where_clause, params = build_claim_filter_where_clause(
+        shared_filters, available_columns
+    )
+    if "MFQ_STATUS" not in available_columns:
+        total_df = execute_query_df(
+            session,
+            f"SELECT COUNT(*) AS ONGOING_COUNT, 0 AS HISTORY_COUNT FROM {obj.VW_MFQ_CLAIMS}{where_clause}",
+            params=params,
+            query_name="claims.get_filtered_claim_bucket_counts.no_mfq_status",
+        )
+    else:
+        total_df = execute_query_df(
+            session,
+            f"""
+            SELECT
+                SUM(IFF(UPPER(TRIM(COALESCE(MFQ_STATUS, ''))) <> 'APPROVED', 1, 0)) AS ONGOING_COUNT,
+                SUM(IFF(UPPER(TRIM(COALESCE(MFQ_STATUS, ''))) = 'APPROVED', 1, 0)) AS HISTORY_COUNT
+            FROM {obj.VW_MFQ_CLAIMS}
+            {where_clause}
+            """,
+            params=params,
+            query_name="claims.get_filtered_claim_bucket_counts",
+        )
+    df = _normalize_snowflake_dataframe_columns(total_df)
+    if df.empty:
+        return {"ongoing": 0, "history": 0}
+    row = df.iloc[0]
+    return {
+        "ongoing": int(row.get("ONGOING_COUNT") or 0),
+        "history": int(row.get("HISTORY_COUNT") or 0),
+    }
+
+
 def get_filtered_claims_count(session, filters: dict | None) -> int:
     available_columns = table_columns(session, obj.VW_MFQ_CLAIMS)
     where_clause, params = build_claim_filter_where_clause(filters, available_columns)

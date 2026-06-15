@@ -12,7 +12,7 @@ from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 from config import column_mappings as col
 from config import snowflake_objects as obj
-from repositories import assignment_repository, claims_repository, faculty_repository, mfq_repository, user_repository
+from repositories import assignment_repository, claims_repository, mfq_repository
 from services.snowflake_service import quote_sql, safe_collect_df
 from utils.claim_lifecycle import classify_claim_bucket
 
@@ -330,6 +330,22 @@ def get_filtered_claims_count_local(claims: pd.DataFrame, filters: dict | None) 
     return len(_local_dashboard_filters(claims, filters))
 
 
+@st.cache_data(ttl=120, show_spinner=False)
+def _get_filtered_claim_bucket_counts_cached(
+    _session, cache_scope: str, filters: dict | None
+) -> dict[str, int]:
+    del cache_scope
+    return claims_repository.get_filtered_claim_bucket_counts(_session, filters)
+
+
+def get_filtered_claim_bucket_counts(session, filters: dict | None) -> dict[str, int]:
+    if _in_streamlit_runtime():
+        return _get_filtered_claim_bucket_counts_cached(
+            session, _claims_cache_scope(session), filters or {}
+        )
+    return claims_repository.get_filtered_claim_bucket_counts(session, filters)
+
+
 def get_filtered_claims_count(session, filters: dict | None) -> int:
     if _in_streamlit_runtime():
         return _get_filtered_claims_count_cached(session, _claims_cache_scope(session), filters or {})
@@ -410,6 +426,7 @@ def clear_claim_read_caches() -> None:
     _load_claims_queue_cached.clear()
     _get_filtered_recent_claims_cached.clear()
     _get_filtered_claims_count_cached.clear()
+    _get_filtered_claim_bucket_counts_cached.clear()
     _get_available_claim_statuses_cached.clear()
     _get_available_claim_types_cached.clear()
     _load_claim_detail_by_id_cached.clear()

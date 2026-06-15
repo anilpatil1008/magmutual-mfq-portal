@@ -17,12 +17,7 @@ from utils.streamlit_compat import (
 
 from components.cards import render_kpi_cards
 from components.tables import render_live_claims_search, render_recent_claims_table
-from services.claim_service import (
-    get_available_claim_statuses,
-    get_available_claim_types,
-    get_filtered_claims_count,
-    get_filtered_recent_claims,
-)
+import services.claim_service as claim_service
 from services.dashboard_service import get_dashboard_metrics
 from services.rbac_service import get_session_context_snapshot
 from utils import navigation
@@ -579,10 +574,10 @@ def _render_dashboard_filter_controls(session) -> None:
         _clear_all_dashboard_filters_before_widgets()
 
     _prune_hidden_selected_statuses()
-    status_options = _user_facing_status_options(get_available_claim_statuses(session))
+    status_options = _user_facing_status_options(claim_service.get_available_claim_statuses(session))
     claim_type_options = _merge_filter_options(
         [],
-        get_available_claim_types(session),
+        claim_service.get_available_claim_types(session),
     )
 
     st.markdown(
@@ -696,6 +691,19 @@ def _resolve_user_display_name(ctx) -> str:
     )
 
 
+def _fallback_filtered_claim_bucket_counts(
+    session, shared_filters: dict[str, object]
+) -> dict[str, int]:
+    """Support older hot-reloaded service modules until Snowflake restarts."""
+    return {
+        bucket: claim_service.get_filtered_claims_count(
+            session,
+            _claim_bucket_filters(shared_filters, bucket, _claims_search_text(bucket)),
+        )
+        for bucket in CLAIM_BUCKET_OPTIONS
+    }
+
+
 def _render_dashboard_view(session, ctx) -> None:
     logger.info("render_dashboard called")
     _init_dashboard_filter_state()
@@ -757,15 +765,21 @@ def _render_dashboard_view(session, ctx) -> None:
         filters = _dashboard_filters(search)
         t1 = perf_counter()
         shared_filters = _dashboard_filters("")
-        claim_counts = {
-            bucket: get_filtered_claims_count(
-                session,
-                _claim_bucket_filters(
-                    shared_filters, bucket, _claims_search_text(bucket)
-                ),
-            )
-            for bucket in CLAIM_BUCKET_OPTIONS
-        }
+        claim_count_loader = getattr(
+            claim_service,
+            "get_filtered_claim_bucket_counts",
+            _fallback_filtered_claim_bucket_counts,
+        )
+        claim_counts = claim_count_loader(session, shared_filters)
+        for bucket in CLAIM_BUCKET_OPTIONS:
+            search_text = _claims_search_text(bucket).strip()
+            if search_text:
+                claim_counts[bucket] = claim_service.get_filtered_claims_count(
+                    session,
+                    _claim_bucket_filters(shared_filters, bucket, search_text),
+                )
+            else:
+                claim_counts.setdefault(bucket, 0)
 
         selected_view = st.session_state.get(
             RECENT_CLAIMS_VIEW_STATE_KEY, CLAIM_BUCKET_DEFAULT
@@ -827,7 +841,7 @@ def _render_dashboard_view(session, ctx) -> None:
         current_page = min(requested_page, total_pages)
         if current_page != requested_page:
             st.session_state[page_state_key] = current_page
-        recent_claims = get_filtered_recent_claims(
+        recent_claims = claim_service.get_filtered_recent_claims(
             session,
             bucket_filters,
             current_page,
