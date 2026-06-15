@@ -2,13 +2,11 @@ from __future__ import annotations
 
 import logging
 
-import pandas as pd
 import streamlit as st
 from streamlit.runtime.scriptrunner import get_script_run_ctx
 
 from config import snowflake_objects as obj
 from repositories.dashboard_repository import get_dashboard_summary
-from services.claim_service import get_claims_queue
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +31,7 @@ def _show_dashboard_summary_error() -> None:
 
 
 @st.cache_data(ttl=300, show_spinner=False)
-def _get_dashboard_summary_cached(_session, cache_scope: str) -> pd.DataFrame:
+def _get_dashboard_summary_cached(_session, cache_scope: str):
     del cache_scope
     return get_dashboard_summary(_session)
 
@@ -74,19 +72,3 @@ def get_dashboard_metrics(session, username: str) -> dict[str, int]:
         )
         _show_dashboard_summary_error()
     return metrics
-
-
-def get_dashboard_charts(session, username: str) -> dict[str, pd.DataFrame]:
-    claims = get_claims_queue(session, username=username)
-    if claims.empty:
-        return {
-            "status": pd.DataFrame(columns=["STATUS", "COUNT"]),
-            "specialty": pd.DataFrame(columns=["SPECIALTY", "COUNT"]),
-            "priority": pd.DataFrame(columns=["PRIORITY", "COUNT"]),
-        }
-
-    return {
-        "status": claims.groupby("STATUS").size().reset_index(name="COUNT"),
-        "specialty": claims.groupby("SPECIALTY").size().reset_index(name="COUNT"),
-        "priority": claims.groupby("PRIORITY").size().reset_index(name="COUNT"),
-    }

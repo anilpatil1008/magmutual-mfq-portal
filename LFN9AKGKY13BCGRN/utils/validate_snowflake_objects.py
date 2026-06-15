@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-
 import streamlit as st
 
 from config import snowflake_objects as obj

@@ -11,8 +11,6 @@ from services.snowflake_context import (
     get_selected_app_role,
     get_viewer_granted_roles,
     get_viewer_user,
-    has_app_role,
-    set_selected_app_role,
 )
 
 

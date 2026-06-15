@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 import os
 from contextlib import contextmanager
-from typing import Any, Callable, Iterator
+from typing import Any, Iterator
 
 import streamlit as st
 
