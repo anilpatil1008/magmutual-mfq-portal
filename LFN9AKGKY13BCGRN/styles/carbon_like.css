@@ -3317,44 +3317,68 @@ section[data-testid="stSidebar"] .stButton button {
   gap: 0.65rem !important;
 }
 
+
 .mfq-dashboard-filter-panel-marker {
   display: none !important;
 }
 
-.mfq-filter-popover-heading {
-  margin: 0 0 12px !important;
-  color: #0f172a !important;
-  font-size: 1rem !important;
-  font-weight: 800 !important;
-  line-height: 1.2 !important;
+/* Modern enterprise filter panel for Dashboard > Filter Claims. */
+.mfq-filter-panel,
+[data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) {
+  background: #ffffff !important;
+  border: 1px solid rgba(208, 215, 222, 0.95) !important;
+  border-radius: 18px !important;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18), 0 4px 14px rgba(15, 23, 42, 0.08) !important;
+  padding: 18px !important;
+  min-width: 420px !important;
+  max-width: min(560px, calc(100vw - 40px)) !important;
 }
 
-.mfq-filter-section-label {
-  margin: 12px 0 7px !important;
-  padding-top: 4px !important;
-  color: #334155 !important;
-  font-size: 0.76rem !important;
-  font-weight: 800 !important;
-  letter-spacing: 0.02em !important;
+.mfq-filter-popover-heading {
+  margin: 0 0 16px !important;
+  padding-bottom: 12px !important;
+  border-bottom: 1px solid #e5e7eb !important;
+  color: #004b7a !important;
+  font-size: 1.05rem !important;
+  font-weight: 850 !important;
   line-height: 1.2 !important;
+  letter-spacing: -0.01em !important;
+}
+
+.mfq-filter-section,
+[data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) [data-testid="stVerticalBlock"] > div:has(.mfq-filter-section-label) {
+  margin-top: 14px !important;
+}
+
+.mfq-filter-title,
+.mfq-filter-section-label {
+  margin: 16px 0 9px !important;
+  padding-top: 7px !important;
+  color: #1f2937 !important;
+  font-size: 0.78rem !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.035em !important;
+  line-height: 1.2 !important;
+  text-transform: uppercase !important;
 }
 
 [data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) [data-testid="column"] {
-  padding: 0 4px !important;
+  padding: 0 5px !important;
 }
 
 [data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) .stButton {
-  margin-bottom: 7px !important;
+  margin-bottom: 9px !important;
 }
 
+.mfq-filter-chip,
 div[class*="st-key-filter_chip_"] .stButton button {
-  min-height: 34px !important;
+  min-height: 36px !important;
   height: auto !important;
   max-width: 100% !important;
-  padding: 7px 11px !important;
+  padding: 8px 12px !important;
   border-radius: 999px !important;
-  font-size: 0.76rem !important;
-  font-weight: 700 !important;
+  font-size: 0.77rem !important;
+  font-weight: 800 !important;
   line-height: 1.15 !important;
   white-space: normal !important;
   overflow-wrap: anywhere !important;
@@ -3371,31 +3395,92 @@ div[class*="st-key-filter_chip_"] .stButton button span {
   line-height: 1.15 !important;
 }
 
+.mfq-chip-active,
 div[class*="st-key-filter_chip_"][class*="_selected"] .stButton button {
-  background: #00457c !important;
-  border: 1px solid #00457c !important;
   color: #ffffff !important;
-  box-shadow: 0 4px 10px rgba(0, 69, 124, 0.22) !important;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.20) !important;
 }
 
 div[class*="st-key-filter_chip_"][class*="_selected"] .stButton button:hover {
-  background: #003a70 !important;
-  border-color: #003a70 !important;
   color: #ffffff !important;
+  filter: brightness(0.94) !important;
+  transform: translateY(-1px) !important;
 }
 
 div[class*="st-key-filter_chip_"][class*="_unselected"] .stButton button {
   background: #ffffff !important;
-  border: 1px solid #d9dee7 !important;
+  border: 1px solid #d0d7de !important;
   color: #1f2937 !important;
 }
 
 div[class*="st-key-filter_chip_"][class*="_unselected"] .stButton button:hover {
-  background: #f1f7ff !important;
-  border-color: #9db5d1 !important;
-  color: #003a70 !important;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08) !important;
+  background: #eaf4fb !important;
+  border-color: #91b9d4 !important;
+  color: #004b7a !important;
+  box-shadow: 0 5px 13px rgba(15, 23, 42, 0.10) !important;
   transform: translateY(-1px) !important;
+}
+
+/* Selected chip color coding by filter type. */
+div[class*="mfq-chip-status-all"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-priority-all"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-claimtype-all"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-confidence-all"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-date-all"][class*="_selected"] .stButton button { background: #004b7a !important; border-color: #004b7a !important; }
+div[class*="mfq-chip-status-generated"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-claimtype-claim"][class*="_selected"] .stButton button { background: #005a8b !important; border-color: #005a8b !important; }
+div[class*="mfq-chip-status-assigned"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-claimtype-suit"][class*="_selected"] .stButton button { background: #8a3ffc !important; border-color: #8a3ffc !important; }
+div[class*="mfq-chip-status-approved"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-priority-low"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-confidence-high"][class*="_selected"] .stButton button { background: #198038 !important; border-color: #198038 !important; }
+div[class*="mfq-chip-status-rejected"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-priority-high"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-confidence-low"][class*="_selected"] .stButton button { background: #da1e28 !important; border-color: #da1e28 !important; }
+div[class*="mfq-chip-status-onhold"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-priority-medium"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-confidence-medium"][class*="_selected"] .stButton button { background: #ff832b !important; border-color: #ff832b !important; }
+div[class*="mfq-chip-priority-unknown"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-priority-blank"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-claimtype-other"][class*="_selected"] .stButton button,
+div[class*="mfq-chip-claimtype-unknown"][class*="_selected"] .stButton button { background: #6b7280 !important; border-color: #6b7280 !important; }
+
+/* Date/search/action controls inside the popover. */
+[data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) .stDateInput input,
+[data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) .stTextInput input {
+  border-radius: 12px !important;
+  border: 1px solid #d0d7de !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  min-height: 38px !important;
+}
+
+[data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) .stDateInput input:focus,
+[data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) .stTextInput input:focus {
+  border-color: #005a8b !important;
+  box-shadow: 0 0 0 3px rgba(0, 90, 139, 0.16) !important;
+}
+
+.mfq-filter-clear-all + div .stButton button,
+div[class*="st-key-dashboard_clear_all_filters"] .stButton button {
+  margin-top: 10px !important;
+  min-height: 40px !important;
+  border-radius: 12px !important;
+  border: 1px solid #004b7a !important;
+  background: #eaf4fb !important;
+  color: #004b7a !important;
+  font-weight: 850 !important;
+}
+
+.mfq-filter-clear-all + div .stButton button:hover,
+div[class*="st-key-dashboard_clear_all_filters"] .stButton button:hover {
+  background: #004b7a !important;
+  color: #ffffff !important;
+}
+
+.dashboard-filter-button-wrapper button[kind="secondary"] {
+  border-radius: 999px !important;
+  font-weight: 800 !important;
 }
 
 @media (max-width: 640px) {
@@ -3405,6 +3490,10 @@ div[class*="st-key-filter_chip_"][class*="_unselected"] .stButton button:hover {
     max-width: calc(100vw - 32px) !important;
     min-width: 0 !important;
     padding: 14px !important;
+  }
+
+  [data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) [data-testid="column"] {
+    min-width: 33.333% !important;
   }
 }
 

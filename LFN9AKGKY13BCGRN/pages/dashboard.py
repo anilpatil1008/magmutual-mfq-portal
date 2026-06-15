@@ -86,9 +86,9 @@ HIDDEN_STATUS_FILTER_VALUES = {
 }
 PRIORITY_FILTER_OPTIONS = ["High", "Medium", "Low"]
 AI_CONFIDENCE_FILTER_OPTIONS = [
-    ("High", "High (90%+)"),
-    ("Medium", "Medium (80-89%)"),
-    ("Low", "Low (<80%)"),
+    ("High", "More than 90%"),
+    ("Medium", "75-90%"),
+    ("Low", "Less than 75%"),
 ]
 DATE_REQUESTED_QUICK_FILTERS = [
     "All Dates",
@@ -237,6 +237,34 @@ def _toggle_dashboard_multi_filter(
         safe_rerun()
 
 
+def _filter_chip_tone_class(group_key: str, value: str) -> str:
+    normalized_value = str(value or "").strip().lower()
+    slug = _filter_button_slug(normalized_value)
+    group_slug = _filter_button_slug(group_key)
+
+    tone_aliases = {
+        "all_statuses": "all",
+        "all_priorities": "all",
+        "all_claim_types": "all",
+        "all_scores": "all",
+        "mfq_generated": "generated",
+        "on_hold": "onhold",
+        "more_than_90": "high",
+        "75_90": "medium",
+        "less_than_75": "low",
+        "suit": "suit",
+        "claim": "claim",
+    }
+    tone = tone_aliases.get(slug, slug or "unknown")
+
+    if group_slug == "ai_confidence":
+        group_slug = "confidence"
+    elif group_slug == "claim_type":
+        group_slug = "claimtype"
+
+    return f"mfq-chip-{group_slug}-{tone}"
+
+
 def _render_filter_chip_group(
     title: str,
     state_key: str,
@@ -257,9 +285,8 @@ def _render_filter_chip_group(
             not selected_values if value == all_label else value in selected_values
         )
         state_suffix = "selected" if selected else "unselected"
-        chip_key = (
-            f"filter_chip_{group_key}_{_filter_button_slug(str(value))}_{state_suffix}"
-        )
+        chip_tone_class = _filter_chip_tone_class(group_key, str(value))
+        chip_key = f"filter_chip_{group_key}_{_filter_button_slug(str(value))}_{chip_tone_class}_{state_suffix}"
         with columns[index % 3]:
             with safe_container(key=chip_key):
                 if safe_button(
@@ -326,9 +353,7 @@ def _render_date_requested_filter() -> None:
     for index, label in enumerate(DATE_REQUESTED_QUICK_FILTERS):
         selected = _date_quick_filter_is_selected(label)
         state_suffix = "selected" if selected else "unselected"
-        chip_key = (
-            f"filter_chip_date_requested_{_filter_button_slug(label)}_{state_suffix}"
-        )
+        chip_key = f"filter_chip_date_requested_{_filter_button_slug(label)}_mfq-chip-date-all_{state_suffix}"
         with chip_columns[index % 3]:
             with safe_container(key=chip_key):
                 if safe_button(
@@ -487,10 +512,14 @@ def _status_filter_is_user_facing(value: str) -> bool:
 
 
 def _user_facing_status_options(dynamic_options: list[str]) -> list[str]:
-    return _merge_filter_options(
-        STATUS_FILTER_OPTIONS,
-        [value for value in dynamic_options if _status_filter_is_user_facing(value)],
-    )
+    allowed_statuses = {value.upper() for value in STATUS_FILTER_OPTIONS}
+    dynamic_visible_statuses = [
+        value
+        for value in dynamic_options
+        if _status_filter_is_user_facing(value)
+        and str(value or "").strip().upper() in allowed_statuses
+    ]
+    return _merge_filter_options(STATUS_FILTER_OPTIONS, dynamic_visible_statuses)
 
 
 def _prune_hidden_selected_statuses() -> None:
