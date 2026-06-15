@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 import pandas as pd
 import streamlit as st
-from utils.streamlit_compat import safe_button, safe_columns, safe_container, safe_rerun
+from utils.streamlit_compat import is_debug_enabled, safe_button, safe_columns, safe_container, safe_rerun
 import streamlit.components.v1 as components
 
 from components.badges import (
@@ -19,7 +19,7 @@ from components.badges import (
     safe_display,
     status_badge,
 )
-from utils.navigation import navigate_to_claim_details
+from utils.navigation import CLAIM_DETAILS_PAGE, CLAIM_DETAILS_VIEW
 
 logger = logging.getLogger(__name__)
 
@@ -501,23 +501,35 @@ def filter_recent_claims_by_search(df: pd.DataFrame, search_text: str) -> pd.Dat
 
 
 def _open_claim_details(claim_id: str) -> None:
+    """Store the selected claim and immediately reroute without more table work."""
     started = perf_counter()
     claim_id = str(claim_id).strip()
     if (
         str(st.session_state.get("current_view") or "").strip().lower()
-        == "claim_details"
+        == CLAIM_DETAILS_VIEW
         and str(st.session_state.get("selected_claim_id") or "").strip() == claim_id
     ):
         return
+
     st.session_state["review_click_started_at"] = started
+    st.session_state["selected_claim_id"] = claim_id
+    st.session_state["selected_claim"] = None
+    st.session_state["current_view"] = CLAIM_DETAILS_VIEW
+    st.session_state["active_page"] = CLAIM_DETAILS_PAGE
+    st.session_state["claim_detail_view"] = True
+    st.session_state["show_claim_details_nav"] = True
+    st.session_state["page"] = CLAIM_DETAILS_PAGE
+    st.session_state["claim_details_initial_summary_claim_id"] = claim_id
     st.session_state["last_review_event"] = None
     st.session_state["last_processed_review_claim_id"] = claim_id
-    logger.info(
-        "review_click_state_update_ms=%d claim_id=%s",
-        int((perf_counter() - started) * 1000),
-        claim_id,
-    )
-    navigate_to_claim_details(claim_id)
+    if is_debug_enabled():
+        logger.info(
+            "review_click_start selected_claim_id=%s state_update_ms=%d",
+            claim_id,
+            int((perf_counter() - started) * 1000),
+        )
+    safe_rerun(st)
+    st.stop()
 
 
 def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
