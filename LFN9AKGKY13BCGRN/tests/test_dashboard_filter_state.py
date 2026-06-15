@@ -189,3 +189,48 @@ def test_dashboard_imports_when_navigation_claim_view_constants_are_missing(monk
     assert module.CLAIM_BUCKET_DEFAULT == "ongoing"
     assert module.CLAIM_BUCKET_STATE_KEY == "selected_claim_view"
     assert module.CLAIM_BUCKET_LEGACY_STATE_KEY == "claim_scope"
+
+
+def test_user_facing_status_options_hide_backend_only_statuses():
+    options = dashboard._user_facing_status_options(
+        [
+            "INTAKE_COMPLETE",
+            "READY_FOR_EMBEDDING",
+            "INSUFFICIENT_EVIDENCE",
+            "INSUFFICIENT_EVIDEN",
+            "FAILED",
+            "Assigned",
+            "On Hold",
+        ]
+    )
+
+    assert "All Statuses" not in options
+    assert "MFQ Generated" in options
+    assert "Assigned" in options
+    assert "Approved" in options
+    assert "Rejected" in options
+    assert "On Hold" in options
+    assert "INTAKE_COMPLETE" not in options
+    assert "READY_FOR_EMBEDDING" not in options
+    assert "INSUFFICIENT_EVIDENCE" not in options
+    assert "INSUFFICIENT_EVIDEN" not in options
+    assert "FAILED" not in options
+
+
+def test_hidden_selected_statuses_are_pruned_before_render(monkeypatch):
+    session_state = {
+        "selected_statuses": ["Assigned", "FAILED", "READY_FOR_EMBEDDING"],
+        "claims_page_number": 3,
+        "dash_recent_claims_pagination_page": 3,
+        "ongoing_current_page": 2,
+        "history_current_page": 4,
+    }
+    monkeypatch.setattr(dashboard, "st", SimpleNamespace(session_state=session_state))
+
+    dashboard._prune_hidden_selected_statuses()
+
+    assert session_state["selected_statuses"] == ["Assigned"]
+    assert session_state["claims_page_number"] == 1
+    assert session_state["dash_recent_claims_pagination_page"] == 1
+    assert session_state["ongoing_current_page"] == 1
+    assert session_state["history_current_page"] == 1

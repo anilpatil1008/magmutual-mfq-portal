@@ -76,7 +76,14 @@ CLAIM_BUCKET_LEGACY_STATE_KEY = getattr(
 )
 RECENT_CLAIMS_VIEW_STATE_KEY = "recent_claims_view"
 RECENT_CLAIMS_VIEW_RADIO_KEY = "recent_claims_view_radio"
-STATUS_FILTER_OPTIONS = ["MFQ Generated", "Assigned", "Approved", "Rejected"]
+STATUS_FILTER_OPTIONS = ["MFQ Generated", "Assigned", "Approved", "Rejected", "On Hold"]
+HIDDEN_STATUS_FILTER_VALUES = {
+    "INTAKE_COMPLETE",
+    "READY_FOR_EMBEDDING",
+    "INSUFFICIENT_EVIDENCE",
+    "INSUFFICIENT_EVIDEN",
+    "FAILED",
+}
 PRIORITY_FILTER_OPTIONS = ["High", "Medium", "Low"]
 AI_CONFIDENCE_FILTER_OPTIONS = [
     ("High", "High (90%+)"),
@@ -474,6 +481,28 @@ def _reset_claims_page_on_context_change(
     st.session_state[f"{card_key}_prev_search"] = search
 
 
+def _status_filter_is_user_facing(value: str) -> bool:
+    normalized = str(value or "").strip().upper()
+    return normalized not in HIDDEN_STATUS_FILTER_VALUES
+
+
+def _user_facing_status_options(dynamic_options: list[str]) -> list[str]:
+    return _merge_filter_options(
+        STATUS_FILTER_OPTIONS,
+        [value for value in dynamic_options if _status_filter_is_user_facing(value)],
+    )
+
+
+def _prune_hidden_selected_statuses() -> None:
+    selected_statuses = _selected_list("selected_statuses")
+    visible_statuses = [
+        status for status in selected_statuses if _status_filter_is_user_facing(status)
+    ]
+    if visible_statuses != selected_statuses:
+        st.session_state["selected_statuses"] = visible_statuses
+        _reset_recent_claims_pagination()
+
+
 def _merge_filter_options(
     default_options: list[str], dynamic_options: list[str]
 ) -> list[str]:
@@ -492,10 +521,8 @@ def _render_dashboard_filter_controls(session) -> None:
     if st.session_state.pop("dashboard_filters_clear_requested", False):
         _clear_all_dashboard_filters_before_widgets()
 
-    status_options = _merge_filter_options(
-        STATUS_FILTER_OPTIONS,
-        get_available_claim_statuses(session),
-    )
+    _prune_hidden_selected_statuses()
+    status_options = _user_facing_status_options(get_available_claim_statuses(session))
     claim_type_options = _merge_filter_options(
         [],
         get_available_claim_types(session),
@@ -507,7 +534,7 @@ def _render_dashboard_filter_controls(session) -> None:
         unsafe_allow_html=True,
     )
     _render_filter_chip_group(
-        "Status", "selected_statuses", status_options, "status", "All Statuses"
+        "MFQ Status", "selected_statuses", status_options, "status", "All Statuses"
     )
     _render_filter_chip_group(
         "Priority",
