@@ -82,9 +82,10 @@ def _render_recent_claims_table_with_page_size_state(**kwargs) -> None:
 
     Some Streamlit deployments can keep an older ``components.tables`` module in
     memory while loading a newer dashboard page. In that mixed-version state, the
-    table renderer may not yet accept ``page_size_state_key``. Drop only that
-    optional keyword when necessary so the dashboard remains renderable until the
-    app process reloads all modules.
+    table renderer may not yet accept newer optional keywords such as
+    ``page_size_state_key`` or ``page_size_options``. Drop only unsupported
+    keywords when necessary so the dashboard remains renderable until the app
+    process reloads all modules.
     """
     table_kwargs = dict(kwargs)
     signature = inspect.signature(render_recent_claims_table)
@@ -92,8 +93,12 @@ def _render_recent_claims_table_with_page_size_state(**kwargs) -> None:
         parameter.kind is inspect.Parameter.VAR_KEYWORD
         for parameter in signature.parameters.values()
     )
-    if not has_var_kwargs and "page_size_state_key" not in signature.parameters:
-        table_kwargs.pop("page_size_state_key", None)
+    if not has_var_kwargs:
+        table_kwargs = {
+            key: value
+            for key, value in table_kwargs.items()
+            if key in signature.parameters
+        }
 
     render_recent_claims_table(**table_kwargs)
 

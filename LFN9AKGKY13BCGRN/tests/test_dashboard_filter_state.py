@@ -257,6 +257,9 @@ def test_recent_claims_table_call_tolerates_older_component_signature(monkeypatc
         page_size=25,
         pagination_state_key="ongoing_current_page",
         page_size_state_key="ongoing_rows_per_page",
+        page_size_options=(10, 25, 50),
+        table_key="recent_claims_table",
+        component_key="recent_claims_component",
     )
 
     assert captured == {
