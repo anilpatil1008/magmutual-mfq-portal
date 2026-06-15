@@ -783,8 +783,6 @@ def render_recent_claims_table(
                 1, min(int(st.session_state.get(jump_key) or current_page), total_pages)
             )
             st.session_state[page_state_key] = target_page
-            st.session_state[jump_key] = target_page
-            st.session_state[jump_sync_key] = target_page
 
         pager_cols = safe_columns(
             [2.4, 0.8, 1, 1, 0.8, 1.2, 1, 0.8, 1.5], vertical_alignment="center"
@@ -801,8 +799,6 @@ def render_recent_claims_table(
                 use_container_width=True,
             ):
                 st.session_state[page_state_key] = 1
-                st.session_state[jump_key] = 1
-                st.session_state[jump_sync_key] = 1
                 safe_rerun()
         with pager_cols[2]:
             if safe_button(
@@ -813,8 +809,6 @@ def render_recent_claims_table(
             ):
                 target_page = max(1, current_page - 1)
                 st.session_state[page_state_key] = target_page
-                st.session_state[jump_key] = target_page
-                st.session_state[jump_sync_key] = target_page
                 safe_rerun()
         with pager_cols[3]:
             st.number_input(
@@ -845,8 +839,6 @@ def render_recent_claims_table(
             ):
                 target_page = min(total_pages, current_page + 1)
                 st.session_state[page_state_key] = target_page
-                st.session_state[jump_key] = target_page
-                st.session_state[jump_sync_key] = target_page
                 safe_rerun()
         with pager_cols[7]:
             if safe_button(
@@ -856,8 +848,6 @@ def render_recent_claims_table(
                 use_container_width=True,
             ):
                 st.session_state[page_state_key] = total_pages
-                st.session_state[jump_key] = total_pages
-                st.session_state[jump_sync_key] = total_pages
                 safe_rerun()
         with pager_cols[8]:
             st.selectbox(
