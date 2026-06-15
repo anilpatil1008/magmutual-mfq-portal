@@ -606,6 +606,11 @@ def render_recent_claims_table(
     if page_size_key not in st.session_state:
         st.session_state[page_size_key] = int(page_size)
 
+    page_size = int(st.session_state.get(page_size_key, page_size) or page_size)
+    if page_size not in page_size_options:
+        page_size = page_size_options[0]
+        st.session_state[page_size_key] = page_size
+
     def _reset_to_first_page() -> None:
         st.session_state[page_state_key] = 1
 
