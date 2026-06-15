@@ -62,13 +62,28 @@ ENTERPRISE_COLUMNS = [
 ]
 RECENT_CLAIMS_COLUMNS = [
     {"key": "CLAIM_ID", "label": "Claim ID", "width": 110, "sortable": True},
-    {"key": "PATIENT_DEFENDANT", "label": "Patient / Defendant", "width": 280, "sortable": True},
+    {
+        "key": "PATIENT_DEFENDANT",
+        "label": "Patient / Defendant",
+        "width": 280,
+        "sortable": True,
+    },
     {"key": "MFQ_STATUS", "label": "MFQ Status", "width": 180, "sortable": True},
-    {"key": "WORKFLOW_STATUS", "label": "Workflow Status", "width": 200, "sortable": True},
+    {
+        "key": "WORKFLOW_STATUS",
+        "label": "Workflow Status",
+        "width": 200,
+        "sortable": True,
+    },
     {"key": "PRIORITY", "label": "Priority", "width": 130, "sortable": True},
     {"key": "CLAIM_STATUS", "label": "Claim Status", "width": 200, "sortable": True},
     {"key": "CLAIM_TYPE", "label": "Claim Type", "width": 150, "sortable": True},
-    {"key": "DATE_REQUESTED", "label": "Date Requested", "width": 160, "sortable": True},
+    {
+        "key": "DATE_REQUESTED",
+        "label": "Date Requested",
+        "width": 160,
+        "sortable": True,
+    },
     {"key": "AI_CONFIDENCE", "label": "AI Conf.", "width": 130, "sortable": True},
     {"key": "ACTIONS", "label": "Actions", "width": 130, "sortable": False},
 ]
@@ -81,7 +96,9 @@ def _normalize_claim_columns(df: pd.DataFrame) -> pd.DataFrame:
     """Normalize known Snowflake column names to the uppercase names used by renderers."""
     normalized = df.copy()
     case_map = {str(column).casefold(): column for column in normalized.columns}
-    for target in set(VISIBLE_COLUMNS + ENTERPRISE_COLUMNS + ["CLAIM_PRIORITY", "STATUS"]):
+    for target in set(
+        VISIBLE_COLUMNS + ENTERPRISE_COLUMNS + ["CLAIM_PRIORITY", "STATUS"]
+    ):
         actual = case_map.get(target.casefold())
         if actual is not None and actual != target and target not in normalized.columns:
             normalized[target] = normalized[actual]
@@ -113,7 +130,9 @@ def _load_recent_claims_table_css() -> str:
     return ""
 
 
-def _top_scroll_sync_script(root_selector: str, wrapper_selector: str, table_selector: str) -> str:
+def _top_scroll_sync_script(
+    root_selector: str, wrapper_selector: str, table_selector: str
+) -> str:
     return f"""
     <script>
         (() => {{
@@ -305,7 +324,10 @@ def _run_regeneration(claim_id: str, row: pd.Series) -> tuple[bool, str]:
         return (
             (True, "MFQ regenerated successfully.")
             if result
-            else (False, "Unable to regenerate MFQ. Please try again or contact support.")
+            else (
+                False,
+                "Unable to regenerate MFQ. Please try again or contact support.",
+            )
         )
 
     if isinstance(result, dict):
@@ -313,7 +335,11 @@ def _run_regeneration(claim_id: str, row: pd.Series) -> tuple[bool, str]:
         message = str(
             result.get(
                 "message",
-                "MFQ regenerated successfully." if ok else "Unable to regenerate MFQ. Please try again or contact support.",
+                (
+                    "MFQ regenerated successfully."
+                    if ok
+                    else "Unable to regenerate MFQ. Please try again or contact support."
+                ),
             )
         )
         return ok, message
@@ -321,7 +347,9 @@ def _run_regeneration(claim_id: str, row: pd.Series) -> tuple[bool, str]:
     return True, "MFQ regenerated successfully."
 
 
-def _toggle_sort_direction(current_column: str, selected_column: str, current_direction: str) -> str:
+def _toggle_sort_direction(
+    current_column: str, selected_column: str, current_direction: str
+) -> str:
     if current_column != selected_column:
         return "asc"
     return "desc" if current_direction == "asc" else "asc"
@@ -336,7 +364,9 @@ def _claim_id_sort_series(series: pd.Series) -> pd.Series:
 
 
 def _confidence_sort_series(series: pd.Series) -> pd.Series:
-    cleaned = series.fillna("").astype(str).str.replace("%", "", regex=False).str.strip()
+    cleaned = (
+        series.fillna("").astype(str).str.replace("%", "", regex=False).str.strip()
+    )
     numeric = pd.to_numeric(cleaned, errors="coerce")
     numeric = numeric.where((numeric > 1) | numeric.isna(), numeric * 100)
     return numeric.fillna(-1)
@@ -347,29 +377,56 @@ def _priority_sort_series(series: pd.Series) -> pd.Series:
     return normalized.map(PRIORITY_ORDER).fillna(PRIORITY_ORDER["unknown"])
 
 
-def _recent_claim_sort_series(df: pd.DataFrame, sort_column: str) -> pd.Series | pd.DataFrame:
+def _recent_claim_sort_series(
+    df: pd.DataFrame, sort_column: str
+) -> pd.Series | pd.DataFrame:
     if sort_column == "CLAIM_ID":
-        return _claim_id_sort_series(df.get("CLAIM_ID", pd.Series(index=df.index, dtype="object")))
+        return _claim_id_sort_series(
+            df.get("CLAIM_ID", pd.Series(index=df.index, dtype="object"))
+        )
     if sort_column == "PATIENT_DEFENDANT":
-        return df.get("PATIENT_DEFENDANT", pd.Series(index=df.index, dtype="object")).fillna("").astype(str).str.lower()
+        return (
+            df.get("PATIENT_DEFENDANT", pd.Series(index=df.index, dtype="object"))
+            .fillna("")
+            .astype(str)
+            .str.lower()
+        )
     if sort_column in {"MFQ_STATUS", "WORKFLOW_STATUS", "CLAIM_TYPE", "CLAIM_STATUS"}:
-        return df.get(sort_column, pd.Series(index=df.index, dtype="object")).fillna("").astype(str).str.lower()
+        return (
+            df.get(sort_column, pd.Series(index=df.index, dtype="object"))
+            .fillna("")
+            .astype(str)
+            .str.lower()
+        )
     if sort_column == "PRIORITY":
-        return _priority_sort_series(df.get("PRIORITY", pd.Series(index=df.index, dtype="object")))
+        return _priority_sort_series(
+            df.get("PRIORITY", pd.Series(index=df.index, dtype="object"))
+        )
     if sort_column == "DATE_REQUESTED":
-        return pd.to_datetime(df.get("DATE_REQUESTED", pd.Series(index=df.index, dtype="object")), errors="coerce")
+        return pd.to_datetime(
+            df.get("DATE_REQUESTED", pd.Series(index=df.index, dtype="object")),
+            errors="coerce",
+        )
     if sort_column == "AI_CONFIDENCE":
-        return _confidence_sort_series(df.get("AI_CONFIDENCE", pd.Series(index=df.index, dtype="object")))
+        return _confidence_sort_series(
+            df.get("AI_CONFIDENCE", pd.Series(index=df.index, dtype="object"))
+        )
     return pd.Series(index=df.index, dtype="object")
 
 
-def _sort_recent_claims(df: pd.DataFrame, sort_column: str | None, sort_direction: str) -> pd.DataFrame:
+def _sort_recent_claims(
+    df: pd.DataFrame, sort_column: str | None, sort_direction: str
+) -> pd.DataFrame:
     if not sort_column:
         return df
 
     ascending = sort_direction == "asc"
     sort_value = _recent_claim_sort_series(df, sort_column)
-    claim_ids = df.get("CLAIM_ID", pd.Series(index=df.index, dtype="object")).fillna("").astype(str)
+    claim_ids = (
+        df.get("CLAIM_ID", pd.Series(index=df.index, dtype="object"))
+        .fillna("")
+        .astype(str)
+    )
 
     if isinstance(sort_value, pd.DataFrame):
         sortable = df.assign(
@@ -381,11 +438,18 @@ def _sort_recent_claims(df: pd.DataFrame, sort_column: str | None, sort_directio
             by=["_sort_key_numeric", "_sort_key_text", "_claim_id_tiebreaker"],
             ascending=[ascending, ascending, True],
             na_position="first",
-        ).drop(columns=["_sort_key_numeric", "_sort_key_text", "_claim_id_tiebreaker"], errors="ignore")
+        ).drop(
+            columns=["_sort_key_numeric", "_sort_key_text", "_claim_id_tiebreaker"],
+            errors="ignore",
+        )
 
     return (
         df.assign(_sort_key=sort_value, _claim_id_tiebreaker=claim_ids)
-        .sort_values(by=["_sort_key", "_claim_id_tiebreaker"], ascending=[ascending, True], na_position="first")
+        .sort_values(
+            by=["_sort_key", "_claim_id_tiebreaker"],
+            ascending=[ascending, True],
+            na_position="first",
+        )
         .drop(columns=["_sort_key", "_claim_id_tiebreaker"], errors="ignore")
     )
 
@@ -440,14 +504,19 @@ def _open_claim_details(claim_id: str) -> None:
     started = perf_counter()
     claim_id = str(claim_id).strip()
     if (
-        str(st.session_state.get("current_view") or "").strip().lower() == "claim_details"
+        str(st.session_state.get("current_view") or "").strip().lower()
+        == "claim_details"
         and str(st.session_state.get("selected_claim_id") or "").strip() == claim_id
     ):
         return
     st.session_state["review_click_started_at"] = started
     st.session_state["last_review_event"] = None
     st.session_state["last_processed_review_claim_id"] = claim_id
-    logger.info("review_click_state_update_ms=%d claim_id=%s", int((perf_counter() - started) * 1000), claim_id)
+    logger.info(
+        "review_click_state_update_ms=%d claim_id=%s",
+        int((perf_counter() - started) * 1000),
+        claim_id,
+    )
     navigate_to_claim_details(claim_id)
 
 
@@ -463,7 +532,9 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
         show_df["PATIENT_DEFENDANT"] = "Unknown Patient"
         show_df = show_df[[c for c in VISIBLE_COLUMNS if c in show_df.columns]]
     else:
-        show_df["PATIENT_DEFENDANT"] = show_df["PATIENT_DEFENDANT"].apply(_display_patient_defendant)
+        show_df["PATIENT_DEFENDANT"] = show_df["PATIENT_DEFENDANT"].apply(
+            _display_patient_defendant
+        )
 
     for status_column in ("MFQ_STATUS", "STATUS"):
         if status_column in show_df.columns:
@@ -494,7 +565,11 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
         f"<table class='mm-table claims-scroll-table'><thead><tr>{head_html}</tr></thead><tbody>{''.join(rows)}</tbody></table>"
         "</div>"
         "</div>"
-        + _top_scroll_sync_script('.claims-table-scroll-frame', '.claims-table-wrapper', '.claims-scroll-table')
+        + _top_scroll_sync_script(
+            ".claims-table-scroll-frame",
+            ".claims-table-wrapper",
+            ".claims-scroll-table",
+        )
     )
     components.html(table_html, height=560, scrolling=False)
 
@@ -508,6 +583,8 @@ def render_recent_claims_table(
     page: int | None = None,
     page_size: int = 10,
     pagination_state_key: str | None = None,
+    page_size_state_key: str | None = None,
+    page_size_options: tuple[int, ...] = (10, 25, 50, 100),
     table_key: str | None = None,
     component_key: str | None = None,
 ) -> None:
@@ -516,6 +593,20 @@ def render_recent_claims_table(
     pagination_key_base = f"{key_prefix}_recent_claims_pagination"
     page_state_key = pagination_state_key or f"{pagination_key_base}_page"
     if page_state_key not in st.session_state:
+        st.session_state[page_state_key] = 1
+    page_size_key = page_size_state_key or f"{pagination_key_base}_page_size"
+    page_size_options = tuple(int(option) for option in page_size_options) or (
+        10,
+        25,
+        50,
+        100,
+    )
+    if page_size not in page_size_options:
+        page_size = page_size_options[0]
+    if page_size_key not in st.session_state:
+        st.session_state[page_size_key] = int(page_size)
+
+    def _reset_to_first_page() -> None:
         st.session_state[page_state_key] = 1
 
     if df.empty and not total_claims:
@@ -528,15 +619,23 @@ def render_recent_claims_table(
         show_df["PATIENT_DEFENDANT"] = "Unknown Patient"
         show_df = show_df[[c for c in ENTERPRISE_COLUMNS if c in show_df.columns]]
     else:
-        show_df["PATIENT_DEFENDANT"] = show_df["PATIENT_DEFENDANT"].apply(_display_patient_defendant)
+        show_df["PATIENT_DEFENDANT"] = show_df["PATIENT_DEFENDANT"].apply(
+            _display_patient_defendant
+        )
     is_server_paginated = total_claims is not None or page is not None
     total_claims = int(total_claims if total_claims is not None else len(show_df))
     total_pages = max(1, (total_claims + page_size - 1) // page_size)
-    current_page = int(page if page is not None else st.session_state.get(page_state_key, 1))
+    current_page = int(
+        page if page is not None else st.session_state.get(page_state_key, 1)
+    )
     current_page = max(1, min(current_page, total_pages))
     st.session_state[page_state_key] = current_page
     start_idx = (current_page - 1) * page_size
-    end_idx = min(start_idx + len(show_df), total_claims) if is_server_paginated else min(start_idx + page_size, total_claims)
+    end_idx = (
+        min(start_idx + len(show_df), total_claims)
+        if is_server_paginated
+        else min(start_idx + page_size, total_claims)
+    )
     if not is_server_paginated:
         show_df = show_df.iloc[start_idx:end_idx].copy()
 
@@ -550,7 +649,11 @@ def render_recent_claims_table(
             col_key = column["key"]
             label = column["label"]
             width_px = column["width"]
-            th_classes = "recent-claims-th sticky-actions-header" if col_key == "ACTIONS" else "recent-claims-th"
+            th_classes = (
+                "recent-claims-th sticky-actions-header"
+                if col_key == "ACTIONS"
+                else "recent-claims-th"
+            )
             if column["sortable"]:
                 sort_type = "text"
                 if col_key in {"CLAIM_ID", "AI_CONFIDENCE"}:
@@ -565,7 +668,9 @@ def render_recent_claims_table(
                 )
             else:
                 header_label = escape(label)
-            header_cells.append(f"<th class='{th_classes}' style='width:{width_px}px'>{header_label}</th>")
+            header_cells.append(
+                f"<th class='{th_classes}' style='width:{width_px}px'>{header_label}</th>"
+            )
 
         rows_html: list[str] = []
         for _, row in show_df.iterrows():
@@ -573,17 +678,31 @@ def render_recent_claims_table(
             patient_defendant = _display_patient_defendant(row.get("PATIENT_DEFENDANT"))
             requested = _format_date(row.get("DATE_REQUESTED"))
             requested_ts = pd.to_datetime(row.get("DATE_REQUESTED"), errors="coerce")
-            requested_sort = str(int(requested_ts.timestamp())) if not pd.isna(requested_ts) else "-1"
+            requested_sort = (
+                str(int(requested_ts.timestamp()))
+                if not pd.isna(requested_ts)
+                else "-1"
+            )
             claim_id_sort_value = str(pd.to_numeric(str(claim_id), errors="coerce"))
             if claim_id_sort_value == "nan":
                 claim_id_sort_value = "-1"
             patient_sort_value = patient_defendant.lower()
-            mfq_sort_value = _display_status_label(str(row.get("MFQ_STATUS", "")).strip()).lower()
-            workflow_sort_value = _display_status_label(str(row.get("WORKFLOW_STATUS", "")).strip()).lower()
+            mfq_sort_value = _display_status_label(
+                str(row.get("MFQ_STATUS", "")).strip()
+            ).lower()
+            workflow_sort_value = _display_status_label(
+                str(row.get("WORKFLOW_STATUS", "")).strip()
+            ).lower()
             priority_sort_value = normalize_badge_value(row.get("PRIORITY"))
-            priority_sort_rank = str(PRIORITY_ORDER.get(priority_sort_value, PRIORITY_ORDER["unknown"]))
-            claim_status_sort_value = _display_status_label(str(row.get("CLAIM_STATUS", "")).strip()).lower()
-            ai_confidence_sort = str(_confidence_sort_series(pd.Series([row.get("AI_CONFIDENCE")])).iloc[0])
+            priority_sort_rank = str(
+                PRIORITY_ORDER.get(priority_sort_value, PRIORITY_ORDER["unknown"])
+            )
+            claim_status_sort_value = _display_status_label(
+                str(row.get("CLAIM_STATUS", "")).strip()
+            ).lower()
+            ai_confidence_sort = str(
+                _confidence_sort_series(pd.Series([row.get("AI_CONFIDENCE")])).iloc[0]
+            )
 
             patient_title = patient_defendant
             patient_html = f"<span class='patient-name' title='{escape(patient_title)}'>{escape(patient_defendant)}</span>"
@@ -619,7 +738,9 @@ def render_recent_claims_table(
             + "</tbody></table></div>"
             "</div>"
             + _top_scroll_sync_script(
-                '.recent-claims-table-frame', '.recent-claims-table-wrapper', '.recent-claims-table'
+                ".recent-claims-table-frame",
+                ".recent-claims-table-wrapper",
+                ".recent-claims-table",
             )
             + _recent_claims_sort_script()
         )
@@ -633,23 +754,120 @@ def render_recent_claims_table(
             claim_id = str(review_event.get("claim_id", "")).strip()
             event_id = str(review_event.get("event_id", "")).strip()
             last_event_key = f"{key_prefix}_recent_claims_last_review_event_id"
-            last_processed_claim_id = str(st.session_state.get("last_processed_review_claim_id", "")).strip()
-            is_new_event = bool(event_id) and st.session_state.get(last_event_key) != event_id
-            is_new_claim_without_event_id = bool(claim_id) and not event_id and claim_id != last_processed_claim_id
+            last_processed_claim_id = str(
+                st.session_state.get("last_processed_review_claim_id", "")
+            ).strip()
+            is_new_event = (
+                bool(event_id) and st.session_state.get(last_event_key) != event_id
+            )
+            is_new_claim_without_event_id = (
+                bool(claim_id) and not event_id and claim_id != last_processed_claim_id
+            )
             if claim_id and (is_new_event or is_new_claim_without_event_id):
                 st.session_state[last_event_key] = event_id
                 st.session_state["last_review_event"] = None
                 _open_claim_details(claim_id)
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
-        pager_cols = safe_columns([3, 1], vertical_alignment="center")
-        pager_cols[0].markdown(f"<div class='recent-claims-pagination-summary'>{summary_text}</div>", unsafe_allow_html=True)
+        page_status_text = f"Page {current_page} of {total_pages}"
+        jump_key = f"{pagination_key_base}_jump_page"
+        jump_sync_key = f"{pagination_key_base}_jump_synced_page"
+        if (
+            jump_key not in st.session_state
+            or st.session_state.get(jump_sync_key) != current_page
+        ):
+            st.session_state[jump_key] = current_page
+            st.session_state[jump_sync_key] = current_page
+
+        def _jump_to_entered_page() -> None:
+            target_page = max(
+                1, min(int(st.session_state.get(jump_key) or current_page), total_pages)
+            )
+            st.session_state[page_state_key] = target_page
+            st.session_state[jump_key] = target_page
+            st.session_state[jump_sync_key] = target_page
+
+        pager_cols = safe_columns(
+            [2.4, 0.8, 1, 1, 0.8, 1.2, 1, 0.8, 1.5], vertical_alignment="center"
+        )
+        pager_cols[0].markdown(
+            f"<div class='recent-claims-pagination-summary'>{summary_text}</div>",
+            unsafe_allow_html=True,
+        )
         with pager_cols[1]:
-            prev_col, next_col = safe_columns(2)
-            with prev_col:
-                if safe_button("Previous", key=f"{pagination_key_base}_prev", disabled=current_page <= 1, use_container_width=True):
-                    st.session_state[page_state_key] = max(1, current_page - 1)
-                    safe_rerun()
-            with next_col:
-                if safe_button("Next", key=f"{pagination_key_base}_next", disabled=current_page >= total_pages, use_container_width=True):
-                    st.session_state[page_state_key] = min(total_pages, current_page + 1)
-                    safe_rerun()
+            if safe_button(
+                "First",
+                key=f"{pagination_key_base}_first",
+                disabled=current_page <= 1,
+                use_container_width=True,
+            ):
+                st.session_state[page_state_key] = 1
+                st.session_state[jump_key] = 1
+                st.session_state[jump_sync_key] = 1
+                safe_rerun()
+        with pager_cols[2]:
+            if safe_button(
+                "Previous",
+                key=f"{pagination_key_base}_prev",
+                disabled=current_page <= 1,
+                use_container_width=True,
+            ):
+                target_page = max(1, current_page - 1)
+                st.session_state[page_state_key] = target_page
+                st.session_state[jump_key] = target_page
+                st.session_state[jump_sync_key] = target_page
+                safe_rerun()
+        with pager_cols[3]:
+            st.number_input(
+                "Page",
+                min_value=1,
+                max_value=total_pages,
+                step=1,
+                key=jump_key,
+                label_visibility="collapsed",
+                on_change=_jump_to_entered_page,
+            )
+        with pager_cols[4]:
+            if safe_button(
+                "Go", key=f"{pagination_key_base}_go", use_container_width=True
+            ):
+                _jump_to_entered_page()
+                safe_rerun()
+        pager_cols[5].markdown(
+            f"<div class='recent-claims-pagination-summary'>{page_status_text}</div>",
+            unsafe_allow_html=True,
+        )
+        with pager_cols[6]:
+            if safe_button(
+                "Next",
+                key=f"{pagination_key_base}_next",
+                disabled=current_page >= total_pages,
+                use_container_width=True,
+            ):
+                target_page = min(total_pages, current_page + 1)
+                st.session_state[page_state_key] = target_page
+                st.session_state[jump_key] = target_page
+                st.session_state[jump_sync_key] = target_page
+                safe_rerun()
+        with pager_cols[7]:
+            if safe_button(
+                "Last",
+                key=f"{pagination_key_base}_last",
+                disabled=current_page >= total_pages,
+                use_container_width=True,
+            ):
+                st.session_state[page_state_key] = total_pages
+                st.session_state[jump_key] = total_pages
+                st.session_state[jump_sync_key] = total_pages
+                safe_rerun()
+        with pager_cols[8]:
+            st.selectbox(
+                "Rows per page",
+                options=list(page_size_options),
+                index=(
+                    list(page_size_options).index(int(page_size))
+                    if int(page_size) in page_size_options
+                    else 0
+                ),
+                key=page_size_key,
+                on_change=_reset_to_first_page,
+            )
