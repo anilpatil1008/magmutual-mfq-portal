@@ -572,50 +572,13 @@ def render_recent_claims_table(
     key_prefix: str = "recent_claims",
     *,
     empty_message: str = "No claims found for this filter context.",
-    total_claims: int | None = None,
-    page: int | None = None,
-    page_size: int = 10,
-    pagination_state_key: str | None = None,
-    page_size_state_key: str | None = None,
-    page_size_options: tuple[int, ...] = (10, 25, 50, 100),
     table_key: str | None = None,
     component_key: str | None = None,
 ) -> None:
     stable_table_key = table_key or f"{key_prefix}_recent_claims_table"
     stable_component_key = component_key or f"{stable_table_key}_component"
-    pagination_key_base = f"{key_prefix}_recent_claims_pagination"
-    page_state_key = pagination_state_key or f"{pagination_key_base}_page"
-    if page_state_key not in st.session_state:
-        st.session_state[page_state_key] = 1
-    page_size_key = page_size_state_key or f"{pagination_key_base}_page_size"
-    page_size_options = tuple(int(option) for option in page_size_options) or (
-        10,
-        25,
-        50,
-        100,
-    )
-    if page_size not in page_size_options:
-        page_size = page_size_options[0]
-    if page_size_key not in st.session_state:
-        st.session_state[page_size_key] = int(page_size)
 
-    page_size = int(st.session_state.get(page_size_key, page_size) or page_size)
-    if page_size not in page_size_options:
-        page_size = page_size_options[0]
-        st.session_state[page_size_key] = page_size
-
-    page_size_widget_key = f"{page_size_key}_widget"
-    if page_size_widget_key not in st.session_state:
-        st.session_state[page_size_widget_key] = page_size
-
-    def _sync_page_size_and_reset_to_first_page() -> None:
-        selected_page_size = int(st.session_state.get(page_size_widget_key, page_size))
-        if selected_page_size not in page_size_options:
-            selected_page_size = page_size_options[0]
-        st.session_state[page_size_key] = selected_page_size
-        st.session_state[page_state_key] = 1
-
-    if df.empty and not total_claims:
+    if df.empty:
         st.info(empty_message)
         return
 
@@ -628,22 +591,6 @@ def render_recent_claims_table(
         show_df["PATIENT_DEFENDANT"] = show_df["PATIENT_DEFENDANT"].apply(
             _display_patient_defendant
         )
-    is_server_paginated = total_claims is not None or page is not None
-    total_claims = int(total_claims if total_claims is not None else len(show_df))
-    total_pages = max(1, (total_claims + page_size - 1) // page_size)
-    current_page = int(
-        page if page is not None else st.session_state.get(page_state_key, 1)
-    )
-    current_page = max(1, min(current_page, total_pages))
-    st.session_state[page_state_key] = current_page
-    start_idx = (current_page - 1) * page_size
-    end_idx = (
-        min(start_idx + len(show_df), total_claims)
-        if is_server_paginated
-        else min(start_idx + page_size, total_claims)
-    )
-    if not is_server_paginated:
-        show_df = show_df.iloc[start_idx:end_idx].copy()
 
     if show_df.empty:
         st.info(empty_message)
@@ -684,35 +631,18 @@ def render_recent_claims_table(
             patient_defendant = _display_patient_defendant(row.get("PATIENT_DEFENDANT"))
             requested = _format_date(row.get("DATE_REQUESTED"))
             requested_ts = pd.to_datetime(row.get("DATE_REQUESTED"), errors="coerce")
-            requested_sort = (
-                str(int(requested_ts.timestamp()))
-                if not pd.isna(requested_ts)
-                else "-1"
-            )
+            requested_sort = str(int(requested_ts.timestamp())) if not pd.isna(requested_ts) else "-1"
             claim_id_sort_value = str(pd.to_numeric(str(claim_id), errors="coerce"))
             if claim_id_sort_value == "nan":
                 claim_id_sort_value = "-1"
             patient_sort_value = patient_defendant.lower()
-            mfq_sort_value = _display_status_label(
-                str(row.get("MFQ_STATUS", "")).strip()
-            ).lower()
-            workflow_sort_value = _display_status_label(
-                str(row.get("WORKFLOW_STATUS", "")).strip()
-            ).lower()
+            mfq_sort_value = _display_status_label(str(row.get("MFQ_STATUS", "")).strip()).lower()
+            workflow_sort_value = _display_status_label(str(row.get("WORKFLOW_STATUS", "")).strip()).lower()
             priority_sort_value = normalize_badge_value(row.get("PRIORITY"))
-            priority_sort_rank = str(
-                PRIORITY_ORDER.get(priority_sort_value, PRIORITY_ORDER["unknown"])
-            )
-            claim_status_sort_value = _display_status_label(
-                str(row.get("CLAIM_STATUS", "")).strip()
-            ).lower()
-            ai_confidence_sort = str(
-                _confidence_sort_series(pd.Series([row.get("AI_CONFIDENCE")])).iloc[0]
-            )
-
-            patient_title = patient_defendant
-            patient_html = f"<span class='patient-name' title='{escape(patient_title)}'>{escape(patient_defendant)}</span>"
-
+            priority_sort_rank = str(PRIORITY_ORDER.get(priority_sort_value, PRIORITY_ORDER["unknown"]))
+            claim_status_sort_value = _display_status_label(str(row.get("CLAIM_STATUS", "")).strip()).lower()
+            ai_confidence_sort = str(_confidence_sort_series(pd.Series([row.get("AI_CONFIDENCE")])).iloc[0])
+            patient_html = f"<span class='patient-name' title='{escape(patient_defendant)}'>{escape(patient_defendant)}</span>"
             mfq_status = safe_display(row.get("MFQ_STATUS"))
             workflow_status = safe_display(row.get("WORKFLOW_STATUS"))
             claim_status = safe_display(row.get("CLAIM_STATUS"))
@@ -743,11 +673,7 @@ def render_recent_claims_table(
             + "".join(rows_html)
             + "</tbody></table></div>"
             "</div>"
-            + _top_scroll_sync_script(
-                ".recent-claims-table-frame",
-                ".recent-claims-table-wrapper",
-                ".recent-claims-table",
-            )
+            + _top_scroll_sync_script(".recent-claims-table-frame", ".recent-claims-table-wrapper", ".recent-claims-table")
             + _recent_claims_sort_script()
         )
         review_event = _RECENT_CLAIMS_TABLE_COMPONENT(
@@ -760,140 +686,10 @@ def render_recent_claims_table(
             claim_id = str(review_event.get("claim_id", "")).strip()
             event_id = str(review_event.get("event_id", "")).strip()
             last_event_key = f"{key_prefix}_recent_claims_last_review_event_id"
-            last_processed_claim_id = str(
-                st.session_state.get("last_processed_review_claim_id", "")
-            ).strip()
-            is_new_event = (
-                bool(event_id) and st.session_state.get(last_event_key) != event_id
-            )
-            is_new_claim_without_event_id = (
-                bool(claim_id) and not event_id and claim_id != last_processed_claim_id
-            )
+            last_processed_claim_id = str(st.session_state.get("last_processed_review_claim_id", "")).strip()
+            is_new_event = bool(event_id) and st.session_state.get(last_event_key) != event_id
+            is_new_claim_without_event_id = bool(claim_id) and not event_id and claim_id != last_processed_claim_id
             if claim_id and (is_new_event or is_new_claim_without_event_id):
                 st.session_state[last_event_key] = event_id
                 st.session_state["last_review_event"] = None
                 _open_claim_details(claim_id)
-        summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
-
-        def _visible_page_numbers() -> list[int]:
-            visible_count = 5
-            if total_pages <= visible_count:
-                return list(range(1, total_pages + 1))
-            half_window = visible_count // 2
-            first_visible = current_page - half_window
-            last_visible = current_page + half_window
-            if first_visible < 1:
-                first_visible = 1
-                last_visible = visible_count
-            elif last_visible > total_pages:
-                last_visible = total_pages
-                first_visible = total_pages - visible_count + 1
-            return list(range(first_visible, last_visible + 1))
-
-        visible_pages = _visible_page_numbers()
-        show_leading_ellipsis = bool(visible_pages and visible_pages[0] > 1)
-        show_trailing_ellipsis = bool(visible_pages and visible_pages[-1] < total_pages)
-
-        def _set_current_page(target_page: int) -> None:
-            st.session_state[page_state_key] = max(1, min(target_page, total_pages))
-            safe_rerun()
-
-        with safe_container(key=f"{pagination_key_base}_bar"):
-            summary_col, pager_col, rows_col = safe_columns(
-                [1.45, 2.65, 1.1], gap="medium", vertical_alignment="center"
-            )
-            summary_col.markdown(
-                f"<div class='recent-claims-pagination-summary'>{summary_text}</div>",
-                unsafe_allow_html=True,
-            )
-
-            with pager_col:
-                pager_items = ["first", "prev"]
-                if show_leading_ellipsis:
-                    pager_items.append("leading_ellipsis")
-                pager_items.extend(
-                    [f"page_{page_number}" for page_number in visible_pages]
-                )
-                if show_trailing_ellipsis:
-                    pager_items.append("trailing_ellipsis")
-                pager_items.extend(["next", "last"])
-                pager_cols = safe_columns(
-                    [0.46] * len(pager_items), gap="small", vertical_alignment="center"
-                )
-
-                for item, pager_item_col in zip(pager_items, pager_cols):
-                    with pager_item_col:
-                        if item == "first":
-                            if safe_button(
-                                "|<",
-                                key=f"{pagination_key_base}_first",
-                                disabled=current_page <= 1,
-                                use_container_width=True,
-                            ):
-                                _set_current_page(1)
-                        elif item == "prev":
-                            if safe_button(
-                                "<",
-                                key=f"{pagination_key_base}_prev",
-                                disabled=current_page <= 1,
-                                use_container_width=True,
-                            ):
-                                _set_current_page(current_page - 1)
-                        elif item == "next":
-                            if safe_button(
-                                ">",
-                                key=f"{pagination_key_base}_next",
-                                disabled=current_page >= total_pages,
-                                use_container_width=True,
-                            ):
-                                _set_current_page(current_page + 1)
-                        elif item == "last":
-                            if safe_button(
-                                ">|",
-                                key=f"{pagination_key_base}_last",
-                                disabled=current_page >= total_pages,
-                                use_container_width=True,
-                            ):
-                                _set_current_page(total_pages)
-                        elif item.endswith("ellipsis"):
-                            st.markdown(
-                                "<div class='recent-claims-pagination-ellipsis'>...</div>",
-                                unsafe_allow_html=True,
-                            )
-                        else:
-                            page_number = int(item.rsplit("_", 1)[1])
-                            is_active_page = page_number == current_page
-                            if safe_button(
-                                str(page_number),
-                                key=(
-                                    f"{pagination_key_base}_page_num_active_{page_number}"
-                                    if is_active_page
-                                    else f"{pagination_key_base}_page_num_{page_number}"
-                                ),
-                                disabled=is_active_page,
-                                use_container_width=True,
-                            ):
-                                _set_current_page(page_number)
-
-            with rows_col:
-                rows_label_col, rows_select_col = safe_columns(
-                    [1.1, 0.72], gap="small", vertical_alignment="center"
-                )
-                rows_label_col.markdown(
-                    "<div class='recent-claims-rows-label'>Rows per page</div>",
-                    unsafe_allow_html=True,
-                )
-                with rows_select_col:
-                    with safe_container(key=f"{pagination_key_base}_rows_select"):
-                        st.selectbox(
-                            "Rows per page",
-                            options=list(page_size_options),
-                            index=(
-                                list(page_size_options).index(int(page_size))
-                                if int(page_size) in page_size_options
-                                else 0
-                            ),
-                            key=page_size_widget_key,
-                            label_visibility="collapsed",
-                            on_change=_sync_page_size_and_reset_to_first_page,
-                        )
