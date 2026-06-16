@@ -130,3 +130,25 @@ def test_recent_claims_bucket_filter_uses_precomputed_bucket_and_shared_filters(
 
     assert result["ongoing"]["CLAIM_ID"].tolist() == ["CLM-1"]
     assert result["history"]["CLAIM_ID"].tolist() == ["CLM-2"]
+
+
+def test_filtered_claim_bucket_counts_treats_nan_sums_as_zero(monkeypatch):
+    monkeypatch.setattr(
+        claim_service.claims_repository,
+        "table_columns",
+        lambda session, table_name: {"MFQ_STATUS", "DATE_REQUESTED"},
+    )
+    monkeypatch.setattr(
+        claim_service.claims_repository,
+        "execute_query_df",
+        lambda *args, **kwargs: pd.DataFrame(
+            [{"ONGOING_COUNT": float("nan"), "HISTORY_COUNT": float("nan")}]
+        ),
+    )
+
+    result = claim_service.claims_repository.get_filtered_claim_bucket_counts(
+        session=object(),
+        filters={"date_range": "today"},
+    )
+
+    assert result == {"ongoing": 0, "history": 0}
