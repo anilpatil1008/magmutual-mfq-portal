@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, timedelta
 from html import escape
+import inspect
 import logging
 from time import perf_counter
 
@@ -23,6 +24,14 @@ from utils import navigation
 
 logger = logging.getLogger(__name__)
 
+DASHBOARD_RECENT_CLAIMS_PAGE_SIZE = 10
+DASHBOARD_RECENT_CLAIMS_PAGE_SIZE_OPTIONS = (10, 25, 50, 100)
+DASHBOARD_ONGOING_CLAIMS_PAGE_SIZE_STATE_KEY = "ongoing_rows_per_page"
+DASHBOARD_HISTORY_CLAIMS_PAGE_SIZE_STATE_KEY = "history_rows_per_page"
+DASHBOARD_ONGOING_CLAIMS_PAGE_STATE_KEY = "ongoing_current_page"
+DASHBOARD_HISTORY_CLAIMS_PAGE_STATE_KEY = "history_current_page"
+DASHBOARD_LEGACY_CLAIMS_PAGE_SIZE_STATE_KEY = "claims_page_size"
+DASHBOARD_LEGACY_CLAIMS_PAGE_STATE_KEY = "claims_page_number"
 DASHBOARD_CLAIMS_VIEW_FALLBACK_OPTIONS = ("ongoing", "history")
 DASHBOARD_CLAIMS_VIEW_FALLBACK_DEFAULT = "ongoing"
 DASHBOARD_VIEW = getattr(navigation, "DASHBOARD_VIEW", "dashboard")
@@ -63,6 +72,30 @@ CLAIM_BUCKET_LEGACY_STATE_KEY = getattr(
 )
 
 
+def _render_recent_claims_table_with_page_size_state(**kwargs) -> None:
+    """Render recent claims while tolerating older table component signatures.
+
+    Some Streamlit deployments can keep an older ``components.tables`` module in
+    memory while loading a newer dashboard page. In that mixed-version state, the
+    table renderer may not yet accept newer optional keywords such as
+    ``page_size_state_key`` or ``page_size_options``. Drop only unsupported
+    keywords when necessary so the dashboard remains renderable until the app
+    process reloads all modules.
+    """
+    table_kwargs = dict(kwargs)
+    signature = inspect.signature(render_recent_claims_table)
+    has_var_kwargs = any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        for parameter in signature.parameters.values()
+    )
+    if not has_var_kwargs:
+        table_kwargs = {
+            key: value
+            for key, value in table_kwargs.items()
+            if key in signature.parameters
+        }
+
+    render_recent_claims_table(**table_kwargs)
 
 RECENT_CLAIMS_VIEW_STATE_KEY = "recent_claims_view"
 RECENT_CLAIMS_VIEW_RADIO_KEY = "recent_claims_view_radio"
@@ -103,6 +136,12 @@ def _init_dashboard_filter_state() -> None:
         "date_requested_from": None,
         "date_requested_to": None,
         "date_requested_widget_version": 0,
+        DASHBOARD_LEGACY_CLAIMS_PAGE_STATE_KEY: 1,
+        DASHBOARD_LEGACY_CLAIMS_PAGE_SIZE_STATE_KEY: DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
+        DASHBOARD_ONGOING_CLAIMS_PAGE_STATE_KEY: 1,
+        DASHBOARD_HISTORY_CLAIMS_PAGE_STATE_KEY: 1,
+        DASHBOARD_ONGOING_CLAIMS_PAGE_SIZE_STATE_KEY: DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
+        DASHBOARD_HISTORY_CLAIMS_PAGE_SIZE_STATE_KEY: DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
         "dash_recent_claims_search": "",
         "dash_ongoing_claims_search": "",
         "dash_history_claims_search": "",
@@ -154,6 +193,34 @@ def _init_dashboard_filter_state() -> None:
             st.session_state[state_key] = [str(legacy_value)]
 
 
+def _claim_bucket_page_state_key(claim_bucket: str) -> str:
+    bucket_key = str(claim_bucket or "ongoing").strip().lower()
+    if bucket_key == "history":
+        return DASHBOARD_HISTORY_CLAIMS_PAGE_STATE_KEY
+    return DASHBOARD_ONGOING_CLAIMS_PAGE_STATE_KEY
+
+
+def _claim_bucket_page_size_state_key(claim_bucket: str) -> str:
+    bucket_key = str(claim_bucket or "ongoing").strip().lower()
+    if bucket_key == "history":
+        return DASHBOARD_HISTORY_CLAIMS_PAGE_SIZE_STATE_KEY
+    return DASHBOARD_ONGOING_CLAIMS_PAGE_SIZE_STATE_KEY
+
+
+def _reset_recent_claims_pagination() -> None:
+    st.session_state[DASHBOARD_LEGACY_CLAIMS_PAGE_STATE_KEY] = 1
+    st.session_state["dash_recent_claims_pagination_page"] = 1
+    st.session_state[DASHBOARD_ONGOING_CLAIMS_PAGE_STATE_KEY] = 1
+    st.session_state[DASHBOARD_HISTORY_CLAIMS_PAGE_STATE_KEY] = 1
+
+
+def _reset_claim_bucket_pagination(claim_bucket: str) -> None:
+    page_state_key = _claim_bucket_page_state_key(claim_bucket)
+    st.session_state[page_state_key] = 1
+    if claim_bucket not in {"ongoing", "history"}:
+        st.session_state[DASHBOARD_LEGACY_CLAIMS_PAGE_STATE_KEY] = 1
+        st.session_state["dash_recent_claims_pagination_page"] = 1
+
 
 def _refresh_date_requested_widgets() -> None:
     current_version = int(st.session_state.get("date_requested_widget_version", 0) or 0)
@@ -189,6 +256,7 @@ def _toggle_dashboard_multi_filter(
 
     if current_values != new_values:
         st.session_state[state_key] = new_values
+        _reset_recent_claims_pagination()
         safe_rerun()
 
 
@@ -279,6 +347,7 @@ def _set_date_requested_quick_filter(label: str) -> None:
         st.session_state["date_requested_from"] = from_date
         st.session_state["date_requested_to"] = to_date
         _refresh_date_requested_widgets()
+        _reset_recent_claims_pagination()
         safe_rerun()
 
 
@@ -323,6 +392,7 @@ def _render_date_requested_filter() -> None:
             value=st.session_state.get("date_requested_from"),
             key=f"date_requested_from_widget_{widget_version}",
             format="MM/DD/YYYY",
+            on_change=_reset_recent_claims_pagination,
         )
     with to_col:
         to_date = st.date_input(
@@ -330,6 +400,7 @@ def _render_date_requested_filter() -> None:
             value=st.session_state.get("date_requested_to"),
             key=f"date_requested_to_widget_{widget_version}",
             format="MM/DD/YYYY",
+            on_change=_reset_recent_claims_pagination,
         )
 
     if st.session_state.get("date_requested_from") != from_date:
@@ -347,7 +418,11 @@ def _clear_all_dashboard_filters_before_widgets() -> None:
             "selected_claim_types": [],
             "date_requested_from": None,
             "date_requested_to": None,
-                        "dash_recent_claims_search": "",
+            DASHBOARD_LEGACY_CLAIMS_PAGE_STATE_KEY: 1,
+            "dash_recent_claims_pagination_page": 1,
+            DASHBOARD_ONGOING_CLAIMS_PAGE_STATE_KEY: 1,
+            DASHBOARD_HISTORY_CLAIMS_PAGE_STATE_KEY: 1,
+            "dash_recent_claims_search": "",
             "dash_ongoing_claims_search": "",
             "dash_history_claims_search": "",
             RECENT_CLAIMS_VIEW_STATE_KEY: CLAIM_BUCKET_DEFAULT,
@@ -443,6 +518,16 @@ def _on_recent_claims_view_change() -> None:
     st.session_state[CLAIM_BUCKET_LEGACY_STATE_KEY] = selected_view
 
 
+def _reset_claims_page_on_context_change(
+    card_key: str, selected_bucket: str, search: str
+) -> None:
+    previous_bucket = st.session_state.get(f"{card_key}_prev_bucket")
+    previous_search = st.session_state.get(f"{card_key}_prev_search", "")
+    if previous_bucket == selected_bucket and str(previous_search) != str(search):
+        _reset_claim_bucket_pagination(selected_bucket)
+    st.session_state[f"{card_key}_prev_bucket"] = selected_bucket
+    st.session_state[f"{card_key}_prev_search"] = search
+
 
 def _status_filter_is_user_facing(value: str) -> bool:
     normalized = str(value or "").strip().upper()
@@ -467,11 +552,7 @@ def _prune_hidden_selected_statuses() -> None:
     ]
     if visible_statuses != selected_statuses:
         st.session_state["selected_statuses"] = visible_statuses
-
-
-def _sync_dashboard_status_filter_state() -> None:
-    """Normalize selected status filters before rendering dashboard controls."""
-    _prune_hidden_selected_statuses()
+        _reset_recent_claims_pagination()
 
 
 def _merge_filter_options(
@@ -492,7 +573,7 @@ def _render_dashboard_filter_controls(session) -> None:
     if st.session_state.pop("dashboard_filters_clear_requested", False):
         _clear_all_dashboard_filters_before_widgets()
 
-    _sync_dashboard_status_filter_state()
+    _prune_hidden_selected_statuses()
     status_options = _user_facing_status_options(claim_service.get_available_claim_statuses(session))
     claim_type_options = _merge_filter_options(
         [],
@@ -643,6 +724,7 @@ def _render_dashboard_view(session, ctx) -> None:
     logger.info("dashboard_metrics_ms=%d", int((perf_counter() - t0) * 1000))
     render_kpi_cards(metrics)
 
+    card_key = "dashboard_claims"
     selected_bucket_for_search = (
         str(st.session_state.get(RECENT_CLAIMS_VIEW_STATE_KEY) or CLAIM_BUCKET_DEFAULT)
         .strip()
@@ -729,13 +811,46 @@ def _render_dashboard_view(session, ctx) -> None:
         if selected_bucket != selected_bucket_for_search:
             search = _claims_search_text(selected_bucket)
             filters = _dashboard_filters(search)
+        _reset_claims_page_on_context_change(card_key, selected_bucket, search)
 
         bucket_filters = _claim_bucket_filters(filters, selected_bucket, search)
-        all_recent_claims = claim_service.get_cached_recent_claims(session)
-        recent_claims = claim_service.get_filtered_recent_claims_local_all(
-            all_recent_claims, bucket_filters
+        page_state_key = _claim_bucket_page_state_key(selected_bucket)
+        page_size_state_key = _claim_bucket_page_size_state_key(selected_bucket)
+        current_page_size = int(
+            st.session_state.get(
+                page_size_state_key,
+                DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
+            )
+            or DASHBOARD_RECENT_CLAIMS_PAGE_SIZE
         )
-        total_claims = len(recent_claims)
+        if current_page_size not in DASHBOARD_RECENT_CLAIMS_PAGE_SIZE_OPTIONS:
+            current_page_size = DASHBOARD_RECENT_CLAIMS_PAGE_SIZE
+            st.session_state[page_size_state_key] = current_page_size
+        requested_page = max(1, int(st.session_state.get(page_state_key, 1)))
+        recent_claims, total_claims = claim_service.get_claims_page(
+            session,
+            filters,
+            selected_bucket,
+            requested_page,
+            current_page_size,
+            sort_column="DATE_REQUESTED",
+            sort_direction="desc",
+        )
+        total_pages = max(
+            1, (total_claims + current_page_size - 1) // current_page_size
+        )
+        current_page = min(requested_page, total_pages)
+        if current_page != requested_page:
+            st.session_state[page_state_key] = current_page
+            recent_claims, total_claims = claim_service.get_claims_page(
+                session,
+                filters,
+                selected_bucket,
+                current_page,
+                current_page_size,
+                sort_column="DATE_REQUESTED",
+                sort_direction="desc",
+            )
         claim_counts[selected_bucket] = total_claims
         st.session_state["dashboard_filtered_claims_count"] = total_claims
         logger.info(
@@ -748,7 +863,7 @@ def _render_dashboard_view(session, ctx) -> None:
         )
 
         dashboard_route_instance = st.session_state.get("dashboard_route_instance", 0)
-        render_recent_claims_table(
+        _render_recent_claims_table_with_page_size_state(
             df=recent_claims,
             key_prefix="dash",
             empty_message=(
@@ -764,8 +879,14 @@ def _render_dashboard_view(session, ctx) -> None:
                     )
                 )
             ),
+            total_claims=total_claims,
+            page=current_page,
+            page_size=current_page_size,
+            pagination_state_key=page_state_key,
+            page_size_state_key=page_size_state_key,
+            page_size_options=DASHBOARD_RECENT_CLAIMS_PAGE_SIZE_OPTIONS,
             table_key="recent_claims_table",
-            component_key=f"recent_claims_table_{selected_bucket}_{dashboard_route_instance}",
+            component_key=f"recent_claims_table_{selected_bucket}_{dashboard_route_instance}_{current_page}_{current_page_size}",
         )
 
 

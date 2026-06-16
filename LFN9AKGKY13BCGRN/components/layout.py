@@ -87,15 +87,13 @@ def _render_role_selector(session, current_role: str) -> None:
         if selected_context_role in role_options
         else role_options[0]
     )
-    # Initialize or repair the widget state before rendering it. Do not pass an
-    # explicit selectbox default while also mutating the same key, because
-    # Streamlit warns when widget defaults and Session State compete.
     if st.session_state.get("header_role_select") not in role_options:
         st.session_state["header_role_select"] = default_role
 
     selected_role = st.selectbox(
         "Role",
         role_options,
+        index=role_options.index(default_role),
         key="header_role_select",
         label_visibility="collapsed",
     )
