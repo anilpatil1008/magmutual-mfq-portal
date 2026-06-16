@@ -59,8 +59,28 @@ def _object_exists_cached(_session, session_cache_key: str, object_name: str) ->
     return not df.empty
 
 
+def _object_exists_cache_scope(session) -> str:
+    """Return a stable scope so object existence checks survive reruns.
+
+    Streamlit can recreate Snowpark wrapper objects between reruns, making
+    ``id(session)`` too volatile for cache keys. Object visibility is primarily
+    scoped by Snowflake user/role/database/schema, so prefer those values when
+    available and fall back to a process-local scope for tests.
+    """
+    parts = []
+    for attr_name in ("get_current_user", "get_current_role", "get_current_database", "get_current_schema"):
+        getter = getattr(session, attr_name, None)
+        if callable(getter):
+            try:
+                parts.append(str(getter() or "").upper())
+            except Exception:
+                parts.append("")
+    scope = ":".join(part for part in parts if part)
+    return scope or "default"
+
+
 def object_exists(session, object_name: str) -> bool:
-    return _object_exists_cached(session, str(id(session)), str(object_name))
+    return _object_exists_cached(session, _object_exists_cache_scope(session), str(object_name).upper())
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
