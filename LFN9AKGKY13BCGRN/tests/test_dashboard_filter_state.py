@@ -204,3 +204,36 @@ def test_hidden_selected_statuses_are_pruned_before_render(monkeypatch):
     dashboard._prune_hidden_selected_statuses()
 
     assert session_state["selected_statuses"] == ["Assigned"]
+
+
+def test_dashboard_filter_controls_sync_statuses_before_render(monkeypatch):
+    session_state = {
+        "selected_statuses": ["Assigned", "FAILED", "READY_FOR_EMBEDDING"],
+    }
+    monkeypatch.setattr(
+        dashboard,
+        "st",
+        SimpleNamespace(
+            session_state=session_state,
+            markdown=lambda *args, **kwargs: None,
+        ),
+    )
+    monkeypatch.setattr(
+        dashboard.claim_service,
+        "get_available_claim_statuses",
+        lambda *args, **kwargs: ["Assigned", "FAILED"],
+    )
+    monkeypatch.setattr(
+        dashboard.claim_service,
+        "get_available_claim_types",
+        lambda *args, **kwargs: [],
+    )
+    monkeypatch.setattr(
+        dashboard, "_render_filter_chip_group", lambda *args, **kwargs: None
+    )
+    monkeypatch.setattr(dashboard, "_render_date_requested_filter", lambda: None)
+    monkeypatch.setattr(dashboard, "safe_button", lambda *args, **kwargs: None)
+
+    dashboard._render_dashboard_filter_controls(session=None)
+
+    assert session_state["selected_statuses"] == ["Assigned"]

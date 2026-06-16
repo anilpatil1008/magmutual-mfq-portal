@@ -469,6 +469,11 @@ def _prune_hidden_selected_statuses() -> None:
         st.session_state["selected_statuses"] = visible_statuses
 
 
+def _sync_dashboard_status_filter_state() -> None:
+    """Normalize selected status filters before rendering dashboard controls."""
+    _prune_hidden_selected_statuses()
+
+
 def _merge_filter_options(
     default_options: list[str], dynamic_options: list[str]
 ) -> list[str]:
@@ -487,7 +492,7 @@ def _render_dashboard_filter_controls(session) -> None:
     if st.session_state.pop("dashboard_filters_clear_requested", False):
         _clear_all_dashboard_filters_before_widgets()
 
-    _prune_hidden_selected_statuses()
+    _sync_dashboard_status_filter_state()
     status_options = _user_facing_status_options(claim_service.get_available_claim_statuses(session))
     claim_type_options = _merge_filter_options(
         [],
