@@ -1,4 +1,3 @@
-import pandas as pd
 import streamlit as st
 from utils.streamlit_compat import (
     is_debug_enabled,
@@ -125,23 +124,14 @@ def _normalize_navigation_state() -> None:
 _sync_claim_details_route_from_query_params()
 _normalize_navigation_state()
 
+notifications = get_user_notifications(session, ctx.username, limit=6)
+render_header(session, ctx, notifications)
+render_sidebar(ctx)
+
 current_view = (
     str(st.session_state.get("current_view") or DASHBOARD_VIEW).strip().lower()
 )
 selected_claim_id = str(st.session_state.get("selected_claim_id") or "").strip()
-
-# Keep Review navigation light: Claim Details does not need dashboard/header
-# notification data, and the notifications repository independently handles a
-# missing view by returning this same empty shape.
-if current_view == CLAIM_DETAILS_VIEW and selected_claim_id:
-    notifications = pd.DataFrame(
-        columns=["NOTIFICATION_ID", "TITLE", "MESSAGE", "SEVERITY", "CREATED_TS", "IS_READ"]
-    )
-else:
-    notifications = get_user_notifications(session, ctx.username, limit=6)
-
-render_header(session, ctx, notifications)
-render_sidebar(ctx)
 
 # Keep the routed page body in a single replaceable slot.  This prevents stale
 # Dashboard elements (especially custom-component iframes from Recent Claims)

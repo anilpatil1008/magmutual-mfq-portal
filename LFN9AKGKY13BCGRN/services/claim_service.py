@@ -212,6 +212,68 @@ def build_claim_filter_where_clause(filters: dict | None) -> tuple[str, list[obj
     return claims_repository.build_claim_filter_where_clause(filters)
 
 
+@st.cache_data(ttl=120, show_spinner="Loading recent claims...")
+def _get_filtered_recent_claims_cached(
+    _session, cache_scope: str, filters: dict | None, page: int, page_size: int
+) -> pd.DataFrame:
+    del cache_scope
+    return claims_repository.get_filtered_recent_claims(_session, filters, page, page_size)
+
+
+@st.cache_data(ttl=120, show_spinner="Loading recent claims...")
+def _get_claims_page_cached(
+    _session,
+    cache_scope: str,
+    filters: dict | None,
+    page: int,
+    page_size: int,
+    sort_column: str,
+    sort_direction: str,
+) -> tuple[pd.DataFrame, int]:
+    del cache_scope
+    return claims_repository.get_claims_page(
+        _session, filters, page, page_size, sort_column, sort_direction
+    )
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _get_filtered_claims_count_cached(_session, cache_scope: str, filters: dict | None) -> int:
+    del cache_scope
+    return claims_repository.get_filtered_claims_count(_session, filters)
+
+
+def get_filtered_recent_claims(session, filters: dict | None, page: int, page_size: int) -> pd.DataFrame:
+    if _in_streamlit_runtime():
+        return _get_filtered_recent_claims_cached(session, _claims_cache_scope(session), filters or {}, int(page), int(page_size))
+    return claims_repository.get_filtered_recent_claims(session, filters, page, page_size)
+
+
+def get_claims_page(
+    session,
+    filters: dict | None,
+    claim_bucket: str,
+    page: int,
+    rows_per_page: int,
+    sort_column: str = "DATE_REQUESTED",
+    sort_direction: str = "desc",
+) -> tuple[pd.DataFrame, int]:
+    page_filters = dict(filters or {})
+    if claim_bucket:
+        page_filters["claim_bucket"] = str(claim_bucket).strip().lower()
+    if _in_streamlit_runtime():
+        return _get_claims_page_cached(
+            session,
+            _claims_cache_scope(session),
+            page_filters,
+            int(page),
+            int(rows_per_page),
+            str(sort_column or "DATE_REQUESTED"),
+            str(sort_direction or "desc"),
+        )
+    return claims_repository.get_claims_page(
+        session, page_filters, page, rows_per_page, sort_column, sort_direction
+    )
+
 
 def get_cached_recent_claims(session) -> pd.DataFrame:
     """Load recent claims once per cache scope for fast in-memory dashboard filtering."""
@@ -277,7 +339,7 @@ def _local_dashboard_filters(df: pd.DataFrame, filters: dict | None) -> pd.DataF
 
 
 def get_filtered_recent_claims_local_all(claims: pd.DataFrame, filters: dict | None) -> pd.DataFrame:
-    """Return locally filtered dashboard rows without paginating the result set."""
+    """Return locally filtered dashboard rows without re-querying Snowflake."""
     return _local_dashboard_filters(claims, filters).copy()
 
 
@@ -300,6 +362,16 @@ def get_recent_claims_by_bucket_local(
             rows = _local_dashboard_filters(shared, {"claim_bucket": normalized_bucket})
         bucketed[normalized_bucket] = filter_claims_by_search(rows, search_text).copy()
     return bucketed
+
+
+def get_filtered_recent_claims_local(claims: pd.DataFrame, filters: dict | None, page: int, page_size: int) -> pd.DataFrame:
+    scoped = _local_dashboard_filters(claims, filters)
+    offset = max(0, (max(1, int(page)) - 1) * max(1, int(page_size)))
+    return scoped.iloc[offset : offset + max(1, int(page_size))].copy()
+
+
+def get_filtered_claims_count_local(claims: pd.DataFrame, filters: dict | None) -> int:
+    return len(_local_dashboard_filters(claims, filters))
 
 
 @st.cache_data(ttl=120, show_spinner=False)
@@ -397,8 +469,10 @@ def clear_claim_read_caches() -> None:
     """Clear cached read models after a write that can change claim/dashboard data."""
     _load_recent_claims_cached.clear()
     _load_claims_queue_cached.clear()
+    _get_filtered_recent_claims_cached.clear()
     _get_filtered_claims_count_cached.clear()
     _get_filtered_claim_bucket_counts_cached.clear()
+    _get_claims_page_cached.clear()
     _get_available_claim_statuses_cached.clear()
     _get_available_claim_types_cached.clear()
     _load_claim_detail_by_id_cached.clear()

@@ -9,21 +9,6 @@ from services.snowflake_service import quote_sql
 from utils.claim_lifecycle import claim_bucket_sql_predicate
 
 
-def _safe_int(value, default: int = 0) -> int:
-    """Return a safe integer count value for Snowflake/Pandas results."""
-    if value is None:
-        return default
-    try:
-        if pd.isna(value):
-            return default
-    except Exception:
-        pass
-    try:
-        return int(value)
-    except (TypeError, ValueError):
-        return default
-
-
 def _parse_snowflake_object_name(object_name: str) -> tuple[str | None, str | None, str]:
     parts = [part.strip().strip('"') for part in str(object_name).split(".") if part.strip()]
     if len(parts) == 3:
@@ -74,28 +59,8 @@ def _object_exists_cached(_session, session_cache_key: str, object_name: str) ->
     return not df.empty
 
 
-def _object_exists_cache_scope(session) -> str:
-    """Return a stable scope so object existence checks survive reruns.
-
-    Streamlit can recreate Snowpark wrapper objects between reruns, making
-    ``id(session)`` too volatile for cache keys. Object visibility is primarily
-    scoped by Snowflake user/role/database/schema, so prefer those values when
-    available and fall back to a process-local scope for tests.
-    """
-    parts = []
-    for attr_name in ("get_current_user", "get_current_role", "get_current_database", "get_current_schema"):
-        getter = getattr(session, attr_name, None)
-        if callable(getter):
-            try:
-                parts.append(str(getter() or "").upper())
-            except Exception:
-                parts.append("")
-    scope = ":".join(part for part in parts if part)
-    return scope or "default"
-
-
 def object_exists(session, object_name: str) -> bool:
-    return _object_exists_cached(session, _object_exists_cache_scope(session), str(object_name).upper())
+    return _object_exists_cached(session, str(id(session)), str(object_name))
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
@@ -388,8 +353,8 @@ def get_filtered_claim_bucket_counts(session, filters: dict | None) -> dict[str,
         return {"ongoing": 0, "history": 0}
     row = df.iloc[0]
     return {
-        "ongoing": _safe_int(row.get("ONGOING_COUNT")),
-        "history": _safe_int(row.get("HISTORY_COUNT")),
+        "ongoing": int(row.get("ONGOING_COUNT") or 0),
+        "history": int(row.get("HISTORY_COUNT") or 0),
     }
 
 
@@ -405,8 +370,86 @@ def get_filtered_claims_count(session, filters: dict | None) -> int:
     df = _normalize_snowflake_dataframe_columns(df)
     if df.empty or "TOTAL_COUNT" not in df.columns:
         return 0
-    return _safe_int(df.iloc[0].get("TOTAL_COUNT"))
+    return int(df.iloc[0].get("TOTAL_COUNT") or 0)
 
+
+def get_filtered_recent_claims(session, filters: dict | None, page: int, page_size: int) -> pd.DataFrame:
+    available_columns = table_columns(session, obj.VW_MFQ_CLAIMS)
+    where_clause, params = build_claim_filter_where_clause(filters, available_columns)
+    offset = max(0, (max(1, int(page)) - 1) * max(1, int(page_size)))
+    select_columns = _select_columns_for_available_view(CLAIM_FILTER_SELECT_COLUMNS, available_columns)
+    order_by_clause = (
+        "ORDER BY DATE_REQUESTED DESC NULLS LAST"
+        if "DATE_REQUESTED" in available_columns
+        else "ORDER BY CLAIM_ID"
+    )
+    df = execute_query_df(
+        session,
+        f"""
+        SELECT
+            {select_columns}
+        FROM {obj.VW_MFQ_CLAIMS}
+        {where_clause}
+        {order_by_clause}
+        LIMIT ? OFFSET ?
+        """,
+        params=[*params, int(page_size), offset],
+        query_name="claims.get_filtered_recent_claims",
+    )
+    return _normalize_snowflake_dataframe_columns(df)
+
+
+
+def get_claims_page(
+    session,
+    filters: dict | None,
+    page: int,
+    page_size: int,
+    sort_column: str = "DATE_REQUESTED",
+    sort_direction: str = "desc",
+) -> tuple[pd.DataFrame, int]:
+    """Return one Snowflake-filtered claims page plus its total row count.
+
+    This is the dashboard fast path: all filters/search/bucket predicates are
+    pushed into Snowflake and only the requested page is materialized in
+    Streamlit memory.
+    """
+    available_columns = table_columns(session, obj.VW_MFQ_CLAIMS)
+    where_clause, params = build_claim_filter_where_clause(filters, available_columns)
+    normalized_page_size = max(1, int(page_size))
+    offset = max(0, (max(1, int(page)) - 1) * normalized_page_size)
+    select_columns = _select_columns_for_available_view(CLAIM_FILTER_SELECT_COLUMNS, available_columns)
+
+    requested_sort = str(sort_column or "DATE_REQUESTED").strip().upper()
+    if requested_sort not in set(CLAIM_FILTER_SELECT_COLUMNS) or requested_sort not in available_columns:
+        requested_sort = "DATE_REQUESTED" if "DATE_REQUESTED" in available_columns else "CLAIM_ID"
+    direction = "ASC" if str(sort_direction or "desc").strip().lower() == "asc" else "DESC"
+    nulls = "NULLS FIRST" if direction == "ASC" else "NULLS LAST"
+    order_by_clause = f"ORDER BY {requested_sort} {direction} {nulls}, CLAIM_ID ASC"
+
+    count_df = execute_query_df(
+        session,
+        f"SELECT COUNT(*) AS TOTAL_COUNT FROM {obj.VW_MFQ_CLAIMS}{where_clause}",
+        params=params,
+        query_name="claims.get_claims_page.count",
+    )
+    count_df = _normalize_snowflake_dataframe_columns(count_df)
+    total_count = 0 if count_df.empty else int(count_df.iloc[0].get("TOTAL_COUNT") or 0)
+
+    rows_df = execute_query_df(
+        session,
+        f"""
+        SELECT
+            {select_columns}
+        FROM {obj.VW_MFQ_CLAIMS}
+        {where_clause}
+        {order_by_clause}
+        LIMIT ? OFFSET ?
+        """,
+        params=[*params, normalized_page_size, offset],
+        query_name="claims.get_claims_page.rows",
+    )
+    return _normalize_snowflake_dataframe_columns(rows_df), total_count
 
 def get_available_claim_statuses(session) -> list[str]:
     df = execute_query_df(
