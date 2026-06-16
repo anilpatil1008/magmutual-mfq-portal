@@ -119,6 +119,12 @@ def _normalize_snowflake_dataframe_columns(df: pd.DataFrame) -> pd.DataFrame:
     return deduped
 
 
+def _coerce_count(value: object) -> int:
+    if pd.isna(value):
+        return 0
+    return int(value or 0)
+
+
 def get_claims_queue(session) -> pd.DataFrame:
     select_columns = ",\n            ".join(f"{column} AS {column}" for column in CLAIMS_QUEUE_COLUMNS)
     df = execute_query_df(
@@ -340,8 +346,8 @@ def get_filtered_claim_bucket_counts(session, filters: dict | None) -> dict[str,
             session,
             f"""
             SELECT
-                SUM(IFF(UPPER(TRIM(COALESCE(MFQ_STATUS, ''))) <> 'APPROVED', 1, 0)) AS ONGOING_COUNT,
-                SUM(IFF(UPPER(TRIM(COALESCE(MFQ_STATUS, ''))) = 'APPROVED', 1, 0)) AS HISTORY_COUNT
+                COALESCE(SUM(IFF(UPPER(TRIM(COALESCE(MFQ_STATUS, ''))) <> 'APPROVED', 1, 0)), 0) AS ONGOING_COUNT,
+                COALESCE(SUM(IFF(UPPER(TRIM(COALESCE(MFQ_STATUS, ''))) = 'APPROVED', 1, 0)), 0) AS HISTORY_COUNT
             FROM {obj.VW_MFQ_CLAIMS}
             {where_clause}
             """,
@@ -353,8 +359,8 @@ def get_filtered_claim_bucket_counts(session, filters: dict | None) -> dict[str,
         return {"ongoing": 0, "history": 0}
     row = df.iloc[0]
     return {
-        "ongoing": int(row.get("ONGOING_COUNT") or 0),
-        "history": int(row.get("HISTORY_COUNT") or 0),
+        "ongoing": _coerce_count(row.get("ONGOING_COUNT")),
+        "history": _coerce_count(row.get("HISTORY_COUNT")),
     }
 
 
