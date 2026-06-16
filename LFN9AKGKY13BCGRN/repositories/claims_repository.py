@@ -9,6 +9,21 @@ from services.snowflake_service import quote_sql
 from utils.claim_lifecycle import claim_bucket_sql_predicate
 
 
+def _safe_int(value, default: int = 0) -> int:
+    """Return a safe integer count value for Snowflake/Pandas results."""
+    if value is None:
+        return default
+    try:
+        if pd.isna(value):
+            return default
+    except Exception:
+        pass
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return default
+
+
 def _parse_snowflake_object_name(object_name: str) -> tuple[str | None, str | None, str]:
     parts = [part.strip().strip('"') for part in str(object_name).split(".") if part.strip()]
     if len(parts) == 3:
@@ -373,8 +388,8 @@ def get_filtered_claim_bucket_counts(session, filters: dict | None) -> dict[str,
         return {"ongoing": 0, "history": 0}
     row = df.iloc[0]
     return {
-        "ongoing": int(row.get("ONGOING_COUNT") or 0),
-        "history": int(row.get("HISTORY_COUNT") or 0),
+        "ongoing": _safe_int(row.get("ONGOING_COUNT")),
+        "history": _safe_int(row.get("HISTORY_COUNT")),
     }
 
 
@@ -390,7 +405,7 @@ def get_filtered_claims_count(session, filters: dict | None) -> int:
     df = _normalize_snowflake_dataframe_columns(df)
     if df.empty or "TOTAL_COUNT" not in df.columns:
         return 0
-    return int(df.iloc[0].get("TOTAL_COUNT") or 0)
+    return _safe_int(df.iloc[0].get("TOTAL_COUNT"))
 
 
 def get_available_claim_statuses(session) -> list[str]:
