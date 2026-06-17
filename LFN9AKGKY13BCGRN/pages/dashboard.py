@@ -269,6 +269,82 @@ def _toggle_dashboard_multi_filter(
         safe_rerun()
 
 
+def _remove_dashboard_multi_filter(state_key: str, value: str) -> None:
+    current_values = _selected_list(state_key)
+    new_values = [item for item in current_values if item != value]
+    if current_values != new_values:
+        st.session_state[state_key] = new_values
+        _reset_recent_claims_pagination()
+        safe_rerun()
+
+
+def _clear_dashboard_date_requested_filter() -> None:
+    if (
+        st.session_state.get("date_requested_from") is not None
+        or st.session_state.get("date_requested_to") is not None
+    ):
+        st.session_state["date_requested_from"] = None
+        st.session_state["date_requested_to"] = None
+        _refresh_date_requested_widgets()
+        _reset_recent_claims_pagination()
+        safe_rerun()
+
+
+def _format_active_filter_date(value: object) -> str:
+    if value is None:
+        return ""
+    if hasattr(value, "strftime"):
+        return value.strftime("%m/%d/%Y")
+    return str(value)
+
+
+def _active_dashboard_filter_chips() -> list[dict[str, str]]:
+    chips: list[dict[str, str]] = []
+    chip_groups = (
+        ("MFQ Status", "selected_statuses"),
+        ("Priority", "selected_priorities"),
+        ("Claim Type", "selected_claim_types"),
+        ("AI Confidence", "selected_ai_confidence_buckets"),
+    )
+    confidence_labels = dict(AI_CONFIDENCE_FILTER_OPTIONS)
+    for label, state_key in chip_groups:
+        for value in _selected_list(state_key):
+            display_value = confidence_labels.get(value, value)
+            chips.append(
+                {
+                    "label": label,
+                    "value": value,
+                    "display": f"{label}: {display_value}",
+                    "state_key": state_key,
+                    "kind": "multi",
+                }
+            )
+
+    from_date = st.session_state.get("date_requested_from")
+    to_date = st.session_state.get("date_requested_to")
+    if from_date is not None or to_date is not None:
+        if from_date is not None and to_date is not None:
+            date_display = (
+                _format_active_filter_date(from_date)
+                if from_date == to_date
+                else f"{_format_active_filter_date(from_date)} - {_format_active_filter_date(to_date)}"
+            )
+        elif from_date is not None:
+            date_display = f"From {_format_active_filter_date(from_date)}"
+        else:
+            date_display = f"Through {_format_active_filter_date(to_date)}"
+        chips.append(
+            {
+                "label": "Date Requested",
+                "value": "date_requested",
+                "display": f"Date Requested: {date_display}",
+                "state_key": "date_requested",
+                "kind": "date",
+            }
+        )
+    return chips
+
+
 def _filter_chip_tone_class(group_key: str, value: str) -> str:
     normalized_value = str(value or "").strip().lower()
     slug = _filter_button_slug(normalized_value)
@@ -454,20 +530,45 @@ def _clear_all_dashboard_filters() -> None:
 
 
 def _active_dashboard_filter_count() -> int:
-    count = sum(
-        len(_selected_list(key))
-        for key in (
-            "selected_statuses",
-            "selected_priorities",
-            "selected_ai_confidence_buckets",
-            "selected_claim_types",
+    return len(_active_dashboard_filter_chips())
+
+
+def _render_active_dashboard_filters() -> None:
+    chips = _active_dashboard_filter_chips()
+    if not chips:
+        st.markdown(
+            "<div class='mfq-active-filters-empty'>No filters applied</div>",
+            unsafe_allow_html=True,
         )
+        return
+
+    st.markdown(
+        "<div class='mfq-active-filters-heading'>Active Filters</div>",
+        unsafe_allow_html=True,
     )
-    if st.session_state.get("date_requested_from") is not None:
-        count += 1
-    if st.session_state.get("date_requested_to") is not None:
-        count += 1
-    return count
+    chip_columns = safe_columns([1, 1, 1, 1, 0.7], gap="small")
+    for index, chip in enumerate(chips):
+        with chip_columns[index % 5]:
+            chip_key = (
+                "active_filter_chip_"
+                f"{_filter_button_slug(chip['state_key'])}_"
+                f"{_filter_button_slug(chip['value'])}_{index}"
+            )
+            with safe_container(key=chip_key):
+                if safe_button(
+                    f"{chip['display']} ×",
+                    key=f"{chip_key}_button",
+                    use_container_width=True,
+                ):
+                    if chip["kind"] == "date":
+                        _clear_dashboard_date_requested_filter()
+                    else:
+                        _remove_dashboard_multi_filter(chip["state_key"], chip["value"])
+
+    with chip_columns[len(chips) % 5]:
+        if safe_button("Clear all", key="active_filters_clear_all"):
+            _clear_all_dashboard_filters()
+            safe_rerun()
 
 
 def _dashboard_filters(search_text: str = "") -> dict[str, object]:
@@ -769,9 +870,11 @@ def _render_dashboard_view(session, ctx) -> None:
                         table_key="dashboard_claims_search",
                         placeholder="Search by patient, defendant, claim ID, file #, or status...",
                     )
-                    if live_search is not None and live_search != search:
-                        st.session_state[search_state_key] = live_search
-                        search = live_search
+        if live_search is not None and live_search != search:
+            st.session_state[search_state_key] = live_search
+            search = live_search
+
+        _render_active_dashboard_filters()
 
         filters = _dashboard_filters(search)
         t1 = perf_counter()
