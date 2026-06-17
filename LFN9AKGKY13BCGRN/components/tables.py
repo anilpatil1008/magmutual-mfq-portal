@@ -586,6 +586,43 @@ def render_claims_table(df: pd.DataFrame, key_prefix: str = "claims") -> None:
     components.html(table_html, height=560, scrolling=False)
 
 
+
+def _recent_claims_pagination_items(
+    current_page: int, total_pages: int, visible_count: int = 5
+) -> list[int | str]:
+    """Return pager tokens for first/prev, five page jumps, ellipses, next/last.
+
+    The Dashboard claims pager should always keep up to five numeric page
+    shortcuts visible around the current page and use compact icon/ellipsis
+    tokens for screen navigation.
+    """
+    total_pages = max(1, int(total_pages))
+    current_page = max(1, min(int(current_page), total_pages))
+    visible_count = max(1, int(visible_count))
+
+    if total_pages <= visible_count:
+        visible_pages = list(range(1, total_pages + 1))
+    else:
+        half_window = visible_count // 2
+        first_visible = current_page - half_window
+        last_visible = current_page + half_window
+        if first_visible < 1:
+            first_visible = 1
+            last_visible = visible_count
+        elif last_visible > total_pages:
+            last_visible = total_pages
+            first_visible = total_pages - visible_count + 1
+        visible_pages = list(range(first_visible, last_visible + 1))
+
+    items: list[int | str] = ["first", "prev"]
+    if visible_pages and visible_pages[0] > 1:
+        items.append("." if visible_pages[0] == 2 else "..")
+    items.extend(visible_pages)
+    if visible_pages and visible_pages[-1] < total_pages:
+        items.append("....")
+    items.extend(["next", "last"])
+    return items
+
 def render_recent_claims_table(
     df: pd.DataFrame,
     key_prefix: str = "recent_claims",
@@ -794,24 +831,6 @@ def render_recent_claims_table(
                 _open_claim_details(claim_id)
         summary_text = f"Showing {start_idx + 1}-{end_idx} of {total_claims} claims"
 
-        def _visible_page_numbers() -> list[int]:
-            visible_count = 5
-            if total_pages <= visible_count:
-                return list(range(1, total_pages + 1))
-            half_window = visible_count // 2
-            first_visible = current_page - half_window
-            last_visible = current_page + half_window
-            if first_visible < 1:
-                first_visible = 1
-                last_visible = visible_count
-            elif last_visible > total_pages:
-                last_visible = total_pages
-                first_visible = total_pages - visible_count + 1
-            return list(range(first_visible, last_visible + 1))
-
-        visible_pages = _visible_page_numbers()
-        show_leading_ellipsis = bool(visible_pages and visible_pages[0] > 1)
-        show_trailing_ellipsis = bool(visible_pages and visible_pages[-1] < total_pages)
 
         def _set_current_page(target_page: int) -> None:
             st.session_state[page_state_key] = max(1, min(target_page, total_pages))
@@ -827,15 +846,7 @@ def render_recent_claims_table(
             )
 
             with pager_col:
-                pager_items = ["first", "prev"]
-                if show_leading_ellipsis:
-                    pager_items.append("leading_ellipsis")
-                pager_items.extend(
-                    [f"page_{page_number}" for page_number in visible_pages]
-                )
-                if show_trailing_ellipsis:
-                    pager_items.append("trailing_ellipsis")
-                pager_items.extend(["next", "last"])
+                pager_items = _recent_claims_pagination_items(current_page, total_pages)
                 pager_cols = safe_columns(
                     [0.46] * len(pager_items), gap="small", vertical_alignment="center"
                 )
@@ -874,13 +885,13 @@ def render_recent_claims_table(
                                 use_container_width=True,
                             ):
                                 _set_current_page(total_pages)
-                        elif item.endswith("ellipsis"):
+                        elif isinstance(item, str) and set(item) == {"."}:
                             st.markdown(
-                                "<div class='recent-claims-pagination-ellipsis'>...</div>",
+                                f"<div class='recent-claims-pagination-ellipsis'>{escape(item)}</div>",
                                 unsafe_allow_html=True,
                             )
                         else:
-                            page_number = int(item.rsplit("_", 1)[1])
+                            page_number = int(item)
                             is_active_page = page_number == current_page
                             if safe_button(
                                 str(page_number),
