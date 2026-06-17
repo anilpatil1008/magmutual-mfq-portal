@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 import sys
 import types
 from pathlib import Path
@@ -235,6 +236,54 @@ def test_hidden_selected_statuses_are_pruned_before_render(monkeypatch):
     dashboard._prune_hidden_selected_statuses()
 
     assert session_state["selected_statuses"] == ["Assigned"]
+    assert session_state["claims_page_number"] == 1
+    assert session_state["dash_recent_claims_pagination_page"] == 1
+    assert session_state["recent_current_page"] == 1
+    assert session_state["ongoing_current_page"] == 1
+    assert session_state["history_current_page"] == 1
+
+
+def test_active_dashboard_filter_chips_exclude_defaults_and_count_date_range_once(monkeypatch):
+    session_state = {
+        "selected_statuses": ["Approved"],
+        "selected_priorities": [],
+        "selected_ai_confidence_buckets": ["High"],
+        "selected_claim_types": ["Suit"],
+        "date_requested_from": date(2026, 6, 1),
+        "date_requested_to": date(2026, 6, 17),
+    }
+    monkeypatch.setattr(dashboard, "st", SimpleNamespace(session_state=session_state))
+
+    chips = dashboard._active_dashboard_filter_chips()
+
+    assert [chip["display"] for chip in chips] == [
+        "MFQ Status: Approved",
+        "Claim Type: Suit",
+        "AI Confidence: More than 90%",
+        "Date Requested: 06/01/2026 - 06/17/2026",
+    ]
+    assert dashboard._active_dashboard_filter_count() == 4
+
+
+def test_remove_active_dashboard_filter_only_updates_that_filter_and_resets_pages(monkeypatch):
+    session_state = {
+        "selected_statuses": ["Approved", "Assigned"],
+        "selected_priorities": ["High"],
+        "selected_ai_confidence_buckets": [],
+        "selected_claim_types": [],
+        "claims_page_number": 3,
+        "dash_recent_claims_pagination_page": 3,
+        "recent_current_page": 2,
+        "ongoing_current_page": 4,
+        "history_current_page": 5,
+    }
+    monkeypatch.setattr(dashboard, "st", SimpleNamespace(session_state=session_state))
+    monkeypatch.setattr(dashboard, "safe_rerun", lambda: None)
+
+    dashboard._remove_dashboard_multi_filter("selected_statuses", "Approved")
+
+    assert session_state["selected_statuses"] == ["Assigned"]
+    assert session_state["selected_priorities"] == ["High"]
     assert session_state["claims_page_number"] == 1
     assert session_state["dash_recent_claims_pagination_page"] == 1
     assert session_state["recent_current_page"] == 1

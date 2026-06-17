@@ -3483,6 +3483,79 @@ div[class*="st-key-dashboard_clear_all_filters"] .stButton button:hover {
   font-weight: 800 !important;
 }
 
+/* Active filter chips shown above the dashboard claims table. */
+.mfq-active-filters-heading {
+  margin: 4px 0 6px !important;
+  color: #004b7a !important;
+  font-size: 0.78rem !important;
+  font-weight: 850 !important;
+  letter-spacing: 0.035em !important;
+  line-height: 1.2 !important;
+  text-transform: uppercase !important;
+}
+
+.mfq-active-filters-empty {
+  margin: 2px 0 8px !important;
+  color: #6b7280 !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+}
+
+div[class*="st-key-active_filter_chip_"] .stButton {
+  margin-bottom: 8px !important;
+}
+
+div[class*="st-key-active_filter_chip_"] .stButton button {
+  min-height: 32px !important;
+  height: auto !important;
+  padding: 6px 11px !important;
+  border-radius: 999px !important;
+  border: 1px solid #91b9d4 !important;
+  background: #eaf4fb !important;
+  color: #004b7a !important;
+  font-size: 0.76rem !important;
+  font-weight: 800 !important;
+  line-height: 1.15 !important;
+  text-align: left !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  box-shadow: none !important;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, transform 0.15s ease !important;
+}
+
+div[class*="st-key-active_filter_chip_"] .stButton button:hover {
+  background: #d8ecf7 !important;
+  border-color: #004b7a !important;
+  color: #003a70 !important;
+  transform: translateY(-1px) !important;
+}
+
+div[class*="st-key-active_filter_chip_"] .stButton button p,
+div[class*="st-key-active_filter_chip_"] .stButton button span {
+  color: inherit !important;
+  line-height: 1.15 !important;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+}
+
+div[class*="st-key-active_filters_clear_all"] .stButton button {
+  min-height: 30px !important;
+  height: 30px !important;
+  padding: 4px 8px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: #004b7a !important;
+  font-size: 0.78rem !important;
+  font-weight: 850 !important;
+  text-decoration: underline !important;
+  box-shadow: none !important;
+}
+
+div[class*="st-key-active_filters_clear_all"] .stButton button:hover {
+  background: transparent !important;
+  color: #003a70 !important;
+}
+
 @media (max-width: 640px) {
   .st-key-dashboard_filters_popover [data-testid="stPopoverContent"],
   [data-testid="stPopoverContent"]:has(.mfq-dashboard-filter-panel-marker) {
