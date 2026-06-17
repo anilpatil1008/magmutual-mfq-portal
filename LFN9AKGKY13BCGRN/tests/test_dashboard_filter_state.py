@@ -32,6 +32,7 @@ def test_clear_dashboard_filters_resets_recent_claims_view_and_search(monkeypatc
         "date_requested_widget_version": 2,
         "claims_page_number": 4,
         "dash_recent_claims_pagination_page": 4,
+        "recent_current_page": 3,
         "ongoing_current_page": 4,
         "history_current_page": 5,
         "ongoing_rows_per_page": 50,
@@ -54,6 +55,7 @@ def test_clear_dashboard_filters_resets_recent_claims_view_and_search(monkeypatc
     assert session_state["date_requested_to"] is None
     assert session_state["claims_page_number"] == 1
     assert session_state["dash_recent_claims_pagination_page"] == 1
+    assert session_state["recent_current_page"] == 1
     assert session_state["ongoing_current_page"] == 1
     assert session_state["history_current_page"] == 1
     assert session_state["ongoing_rows_per_page"] == 50
@@ -92,6 +94,7 @@ def test_recent_claims_view_callback_syncs_radio_aliases_without_resetting_page_
         "claim_scope": "ongoing",
         "claims_page_number": 3,
         "dash_recent_claims_pagination_page": 3,
+        "recent_current_page": 2,
         "ongoing_current_page": 3,
         "history_current_page": 6,
         "ongoing_rows_per_page": 50,
@@ -106,8 +109,9 @@ def test_recent_claims_view_callback_syncs_radio_aliases_without_resetting_page_
     assert session_state["claim_scope"] == "history"
     assert session_state["claims_page_number"] == 3
     assert session_state["dash_recent_claims_pagination_page"] == 3
+    assert session_state["recent_current_page"] == 2
     assert session_state["ongoing_current_page"] == 3
-    assert session_state["history_current_page"] == 6
+    assert session_state["history_current_page"] == 1
     assert session_state["ongoing_rows_per_page"] == 50
     assert session_state["history_rows_per_page"] == 25
 
@@ -222,6 +226,7 @@ def test_hidden_selected_statuses_are_pruned_before_render(monkeypatch):
         "selected_statuses": ["Assigned", "FAILED", "READY_FOR_EMBEDDING"],
         "claims_page_number": 3,
         "dash_recent_claims_pagination_page": 3,
+        "recent_current_page": 2,
         "ongoing_current_page": 2,
         "history_current_page": 4,
     }
@@ -232,6 +237,7 @@ def test_hidden_selected_statuses_are_pruned_before_render(monkeypatch):
     assert session_state["selected_statuses"] == ["Assigned"]
     assert session_state["claims_page_number"] == 1
     assert session_state["dash_recent_claims_pagination_page"] == 1
+    assert session_state["recent_current_page"] == 1
     assert session_state["ongoing_current_page"] == 1
     assert session_state["history_current_page"] == 1
 

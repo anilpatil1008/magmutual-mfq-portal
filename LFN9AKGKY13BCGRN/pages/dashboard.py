@@ -26,8 +26,10 @@ logger = logging.getLogger(__name__)
 
 DASHBOARD_RECENT_CLAIMS_PAGE_SIZE = 10
 DASHBOARD_RECENT_CLAIMS_PAGE_SIZE_OPTIONS = (10, 25, 50, 100)
+DASHBOARD_RECENT_CLAIMS_PAGE_SIZE_STATE_KEY = "recent_rows_per_page"
 DASHBOARD_ONGOING_CLAIMS_PAGE_SIZE_STATE_KEY = "ongoing_rows_per_page"
 DASHBOARD_HISTORY_CLAIMS_PAGE_SIZE_STATE_KEY = "history_rows_per_page"
+DASHBOARD_RECENT_CLAIMS_PAGE_STATE_KEY = "recent_current_page"
 DASHBOARD_ONGOING_CLAIMS_PAGE_STATE_KEY = "ongoing_current_page"
 DASHBOARD_HISTORY_CLAIMS_PAGE_STATE_KEY = "history_current_page"
 DASHBOARD_LEGACY_CLAIMS_PAGE_SIZE_STATE_KEY = "claims_page_size"
@@ -138,8 +140,10 @@ def _init_dashboard_filter_state() -> None:
         "date_requested_widget_version": 0,
         DASHBOARD_LEGACY_CLAIMS_PAGE_STATE_KEY: 1,
         DASHBOARD_LEGACY_CLAIMS_PAGE_SIZE_STATE_KEY: DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
+        DASHBOARD_RECENT_CLAIMS_PAGE_STATE_KEY: 1,
         DASHBOARD_ONGOING_CLAIMS_PAGE_STATE_KEY: 1,
         DASHBOARD_HISTORY_CLAIMS_PAGE_STATE_KEY: 1,
+        DASHBOARD_RECENT_CLAIMS_PAGE_SIZE_STATE_KEY: DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
         DASHBOARD_ONGOING_CLAIMS_PAGE_SIZE_STATE_KEY: DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
         DASHBOARD_HISTORY_CLAIMS_PAGE_SIZE_STATE_KEY: DASHBOARD_RECENT_CLAIMS_PAGE_SIZE,
         "dash_recent_claims_search": "",
@@ -197,6 +201,8 @@ def _claim_bucket_page_state_key(claim_bucket: str) -> str:
     bucket_key = str(claim_bucket or "ongoing").strip().lower()
     if bucket_key == "history":
         return DASHBOARD_HISTORY_CLAIMS_PAGE_STATE_KEY
+    if bucket_key == "recent":
+        return DASHBOARD_RECENT_CLAIMS_PAGE_STATE_KEY
     return DASHBOARD_ONGOING_CLAIMS_PAGE_STATE_KEY
 
 
@@ -204,12 +210,15 @@ def _claim_bucket_page_size_state_key(claim_bucket: str) -> str:
     bucket_key = str(claim_bucket or "ongoing").strip().lower()
     if bucket_key == "history":
         return DASHBOARD_HISTORY_CLAIMS_PAGE_SIZE_STATE_KEY
+    if bucket_key == "recent":
+        return DASHBOARD_RECENT_CLAIMS_PAGE_SIZE_STATE_KEY
     return DASHBOARD_ONGOING_CLAIMS_PAGE_SIZE_STATE_KEY
 
 
 def _reset_recent_claims_pagination() -> None:
     st.session_state[DASHBOARD_LEGACY_CLAIMS_PAGE_STATE_KEY] = 1
     st.session_state["dash_recent_claims_pagination_page"] = 1
+    st.session_state[DASHBOARD_RECENT_CLAIMS_PAGE_STATE_KEY] = 1
     st.session_state[DASHBOARD_ONGOING_CLAIMS_PAGE_STATE_KEY] = 1
     st.session_state[DASHBOARD_HISTORY_CLAIMS_PAGE_STATE_KEY] = 1
 
@@ -217,7 +226,7 @@ def _reset_recent_claims_pagination() -> None:
 def _reset_claim_bucket_pagination(claim_bucket: str) -> None:
     page_state_key = _claim_bucket_page_state_key(claim_bucket)
     st.session_state[page_state_key] = 1
-    if claim_bucket not in {"ongoing", "history"}:
+    if claim_bucket == "recent":
         st.session_state[DASHBOARD_LEGACY_CLAIMS_PAGE_STATE_KEY] = 1
         st.session_state["dash_recent_claims_pagination_page"] = 1
 
@@ -420,6 +429,7 @@ def _clear_all_dashboard_filters_before_widgets() -> None:
             "date_requested_to": None,
             DASHBOARD_LEGACY_CLAIMS_PAGE_STATE_KEY: 1,
             "dash_recent_claims_pagination_page": 1,
+            DASHBOARD_RECENT_CLAIMS_PAGE_STATE_KEY: 1,
             DASHBOARD_ONGOING_CLAIMS_PAGE_STATE_KEY: 1,
             DASHBOARD_HISTORY_CLAIMS_PAGE_STATE_KEY: 1,
             "dash_recent_claims_search": "",
@@ -516,6 +526,7 @@ def _on_recent_claims_view_change() -> None:
     st.session_state[RECENT_CLAIMS_VIEW_STATE_KEY] = selected_view
     st.session_state[CLAIM_BUCKET_STATE_KEY] = selected_view
     st.session_state[CLAIM_BUCKET_LEGACY_STATE_KEY] = selected_view
+    _reset_claim_bucket_pagination(selected_view)
 
 
 def _reset_claims_page_on_context_change(
