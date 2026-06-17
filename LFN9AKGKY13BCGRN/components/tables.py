@@ -664,12 +664,11 @@ def render_recent_claims_table(
     if page_size_widget_key not in st.session_state:
         st.session_state[page_size_widget_key] = page_size
 
-    def _sync_page_size_and_reset_to_first_page() -> None:
+    def _sync_page_size() -> None:
         selected_page_size = int(st.session_state.get(page_size_widget_key, page_size))
         if selected_page_size not in page_size_options:
             selected_page_size = page_size_options[0]
         st.session_state[page_size_key] = selected_page_size
-        st.session_state[page_state_key] = 1
 
     if df.empty and not total_claims:
         st.info(empty_message)
@@ -925,5 +924,5 @@ def render_recent_claims_table(
                             ),
                             key=page_size_widget_key,
                             label_visibility="collapsed",
-                            on_change=_sync_page_size_and_reset_to_first_page,
+                            on_change=_sync_page_size,
                         )
