@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import os
+import sys
 from contextlib import contextmanager
 from typing import Any, Iterator
 
@@ -161,18 +162,26 @@ def safe_dialog(title: str, **kwargs: Any):
 
 
 @contextmanager
-def safe_popover(label: str, **kwargs: Any) -> Iterator[None]:
+def safe_popover(label: str, **kwargs: Any) -> Iterator[Any]:
     """
     Use popover when available. Fall back to expander in older runtimes.
     """
     popover_func = getattr(st, "popover", None)
     if popover_func is not None:
         try:
-            with popover_func(label, **_supported_kwargs(popover_func, kwargs)):
-                yield
-            return
+            popover = popover_func(label, **_supported_kwargs(popover_func, kwargs))
+            popover_value = popover.__enter__()
         except Exception:
             pass
+        else:
+            try:
+                yield popover_value
+            except BaseException:
+                if not popover.__exit__(*sys.exc_info()):
+                    raise
+            else:
+                popover.__exit__(None, None, None)
+            return
 
     expander_kwargs = {"expanded": kwargs.get("expanded", False)}
     expander_func = getattr(st, "expander")
